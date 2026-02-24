@@ -1,0 +1,26 @@
+name = "novel-api"
+main = "src/index.ts"
+compatibility_date = "2025-02-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+WORLD_API_URL = "https://world-api.molroo.io"
+
+# Local dev overrides
+[env.dev.vars]
+WORLD_API_URL = "http://localhost:8788"
+
+# Secrets (set via `wrangler secret put`):
+# OPENROUTER_API_KEY
+# WORLD_API_KEY
+# VILLAGE_ID
+
+[[kv_namespaces]]
+binding = "GAME_STATE"
+id = "placeholder-kv-id"
+preview_id = "placeholder-preview-id"
+
+[[rules]]
+type = "Text"
+globs = ["**/*.md"]
+fallthrough = false
