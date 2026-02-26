@@ -1,6 +1,5 @@
 node_modules/
-dist/
-.wrangler/
+.next/
+.env.local
 .dev.vars
-.env
 *.log
