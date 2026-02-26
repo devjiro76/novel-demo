@@ -4,7 +4,6 @@ import { getEnv } from '@/lib/types';
 import { getVillage } from '@/lib/personas';
 import { generateConversationResponse } from '@/lib/narrator';
 import { generateAppraisal } from '@/lib/appraisal';
-import { loadState } from '@/lib/state';
 import { DebugLog } from '@/lib/debug';
 
 export async function POST(request: Request) {
@@ -12,9 +11,6 @@ export async function POST(request: Request) {
   const dbg = new DebugLog();
 
   try {
-    const gameId = request.headers.get('X-Game-ID');
-    if (!gameId) return NextResponse.json({ error: 'Missing X-Game-ID header' }, { status: 400 });
-
     const body = await request.json() as {
       characterId: string;
       userMessage: string;
@@ -27,14 +23,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing characterId, userMessage, or situation' }, { status: 400 });
     }
 
-    const state = await loadState(gameId);
-    if (!state) return NextResponse.json({ error: 'Game not found' }, { status: 404 });
-
     const village = await getVillage(env);
 
     dbg.add('converse_start', { characterId, userMessage: userMessage.slice(0, 80) });
 
-    // 1. Generate appraisal (engine LLM) + conversation response (main LLM) in parallel
     const stimulusDescription = `용준이 말했다: "${userMessage}"`;
 
     const [appraisal, conversationResult] = await Promise.all([
@@ -42,11 +34,10 @@ export async function POST(request: Request) {
         generateAppraisal(characterId, stimulusDescription, village, env),
       ),
       dbg.time('converse_narrate', { characterId }, () =>
-        generateConversationResponse(characterId, situation, userMessage, state.narratorHistory, village, env, chatHistory),
+        generateConversationResponse(characterId, situation, userMessage, village, env, chatHistory),
       ),
     ]);
 
-    // 2. Feed appraisal to emotion engine (fire-and-forget is fine, but await for safety)
     const persona = village.persona(characterId);
     await persona.interact('converse', {
       actor: 'yongjun',

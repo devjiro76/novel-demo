@@ -224,7 +224,6 @@ export async function generateConversationResponse(
   characterId: string,
   situation: string,
   userMessage: string,
-  eventLog: EventSummary[],
   village: Village,
   env: Env,
   chatHistory?: ChatHistoryMessage[],

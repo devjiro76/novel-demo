@@ -9,9 +9,7 @@ import type { GameState, EventSummary } from './types';
 import type { Village } from './personas';
 import type { AppraisalVector } from '@molroo-ai/world-sdk';
 import { getRelationships } from './personas';
-
-const store: Map<string, string> =
-  (globalThis as any).__novelGameStore ??= new Map<string, string>();
+import { getStore } from './storage';
 const TURNS_PER_CHAPTER = 8;
 
 interface RelSeed {
@@ -213,17 +211,17 @@ export async function seedRelationships(village: Village): Promise<void> {
 }
 
 export async function saveState(state: GameState): Promise<void> {
-  store.set(`game:${state.gameId}`, JSON.stringify(state));
+  await getStore().set(`game:${state.gameId}`, JSON.stringify(state));
 }
 
 export async function loadState(gameId: string): Promise<GameState | null> {
-  const raw = store.get(`game:${gameId}`);
+  const raw = await getStore().get(`game:${gameId}`);
   if (!raw) return null;
   return JSON.parse(raw) as GameState;
 }
 
 export async function deleteState(gameId: string): Promise<void> {
-  store.delete(`game:${gameId}`);
+  await getStore().delete(`game:${gameId}`);
 }
 
 export function advanceTurn(state: GameState): void {

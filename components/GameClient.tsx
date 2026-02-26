@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { ConversationResponse } from '@/lib/types';
-import { startGame, submitConversation, resetGame, setGameId } from '@/lib/api-client';
+import { startGame, submitConversation } from '@/lib/api-client';
 
 type Phase = 'title' | 'loading' | 'select' | 'chat';
 
@@ -82,9 +82,7 @@ export default function GameClient() {
     setPhase('select');
   }, []);
 
-  const handleReset = useCallback(async () => {
-    try { await resetGame(); } catch { /* ignore */ }
-    setGameId(null);
+  const handleReset = useCallback(() => {
     setPhase('title');
     setActiveChar(null);
     setMessages([]);
