@@ -1,0 +1,15 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"main": ".open-next/worker.js",
+	"name": "novel-demo",
+	"compatibility_date": "2025-04-01",
+	"compatibility_flags": ["nodejs_compat"],
+	"assets": {
+		"directory": ".open-next/assets",
+		"binding": "ASSETS"
+	},
+	"vars": {
+		"WORLD_API_URL": "https://world-api.molroo.io",
+		"VILLAGE_ID": "764c24aa-8437-44e4-8244-bea0efaaf500"
+	}
+}

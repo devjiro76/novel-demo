@@ -13,6 +13,8 @@ export interface DebugEntry {
     | 'converse_perceive'
     | 'converse_narrate'
     | 'converse_result'
+    | 'stimulus_gen'
+    | 'update_relationships'
     | 'request_summary';
   ts: string;
   durationMs?: number;

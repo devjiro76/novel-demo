@@ -44,11 +44,32 @@ function CharacterCard({ char, onClick }: { char: typeof CHARACTERS[number]; onC
 export default function GameClient() {
   const [phase, setPhase] = useState<Phase>('title');
   const [activeChar, setActiveChar] = useState<typeof CHARACTERS[number] | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [chatHistories, setChatHistories] = useState<Record<string, ChatMessage[]>>(() => {
+    if (typeof window === 'undefined') return {};
+    try {
+      const saved = sessionStorage.getItem('novel:chats');
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  });
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const messages = activeChar ? (chatHistories[activeChar.id] ?? []) : [];
+
+  const setMessages = useCallback((updater: ChatMessage[] | ((prev: ChatMessage[]) => ChatMessage[])) => {
+    if (!activeChar) return;
+    setChatHistories((prev) => ({
+      ...prev,
+      [activeChar.id]: typeof updater === 'function' ? updater(prev[activeChar.id] ?? []) : updater,
+    }));
+  }, [activeChar]);
+
+  // Persist chat histories to sessionStorage
+  useEffect(() => {
+    try { sessionStorage.setItem('novel:chats', JSON.stringify(chatHistories)); } catch {}
+  }, [chatHistories]);
 
   // Auto-scroll on new messages
   useEffect(() => {
@@ -72,20 +93,19 @@ export default function GameClient() {
 
   const handleSelectCharacter = useCallback((char: typeof CHARACTERS[number]) => {
     setActiveChar(char);
-    setMessages([]);
     setPhase('chat');
   }, []);
 
   const handleBack = useCallback(() => {
     setActiveChar(null);
-    setMessages([]);
     setPhase('select');
   }, []);
 
   const handleReset = useCallback(() => {
     setPhase('title');
     setActiveChar(null);
-    setMessages([]);
+    setChatHistories({});
+    try { sessionStorage.removeItem('novel:chats'); } catch {}
   }, []);
 
   const handleSend = useCallback(async () => {
@@ -120,7 +140,7 @@ export default function GameClient() {
       setSending(false);
       inputRef.current?.focus();
     }
-  }, [input, sending, activeChar, messages]);
+  }, [input, sending, activeChar, messages, setMessages]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -233,7 +253,7 @@ export default function GameClient() {
                 )}
               </div>
               {msg.emotion && (
-                <span className={`text-[10px] ${accentColor} mt-0.5 px-1`}>{msg.emotion}</span>
+                <div className={`text-[10px] ${accentColor} mt-1 px-1`}>{msg.emotion}</div>
               )}
             </div>
           ),

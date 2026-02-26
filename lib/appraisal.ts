@@ -38,7 +38,7 @@ export async function generateStimulus(
     system: `NPC 관점에서 "나에게 무슨 일이 일어나는가"를 1-2문장으로 묘사하세요. 감각적 디테일 포함 (체온, 거리, 접촉, 시선). 출력은 묘사 문장만.`,
     prompt: `상황: ${situation}\n용준의 행동: ${playerChoice}\n대상 NPC: ${characterId}\n행동 라벨: ${actionLabel}`,
     temperature: 0.7,
-    maxTokens: 150,
+    maxOutputTokens: 150,
   });
   return text.trim();
 }

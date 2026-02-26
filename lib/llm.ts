@@ -10,7 +10,6 @@ export function createModel(apiKey: string, model?: string): LanguageModel {
   const provider = createOpenAI({
     apiKey,
     baseURL: 'https://openrouter.ai/api/v1',
-    compatibility: 'compatible',
   });
   return provider.chat(model ?? NARRATIVE_MODEL);
 }
