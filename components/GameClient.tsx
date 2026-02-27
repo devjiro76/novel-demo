@@ -414,42 +414,61 @@ function RoomChatScreen({ npcChar, pack, messages, sending, input, onInputChange
   );
 }
 
-// ---- useRoomPolling Hook ----
-// Polls the room API for new messages (works on stateless Cloudflare Workers)
-function useRoomPolling(
+// ---- useRoomSSE Hook ----
+// Subscribes to SSE for real-time room updates (replaces polling)
+function useRoomSSE(
   roomId: string | null,
   enabled: boolean,
-  onUpdate: (messages: RoomMessage[], playerCount: number) => void,
-  intervalMs = 3000,
+  onMessage: (msg: RoomMessage) => void,
+  onStateSync: (state: { messages: RoomMessage[]; playerCount: number }) => void,
+  onPlayerCountChange?: (count: number) => void,
 ) {
-  const onUpdateRef = useRef(onUpdate);
-  onUpdateRef.current = onUpdate;
-  const lastCountRef = useRef(0);
+  const onMessageRef = useRef(onMessage);
+  onMessageRef.current = onMessage;
+  const onStateSyncRef = useRef(onStateSync);
+  onStateSyncRef.current = onStateSync;
+  const onPlayerCountChangeRef = useRef(onPlayerCountChange);
+  onPlayerCountChangeRef.current = onPlayerCountChange;
 
   useEffect(() => {
     if (!roomId || !enabled) return;
 
-    let cancelled = false;
+    const es = new EventSource(`/api/room/${roomId}/events`);
 
-    const poll = async () => {
+    es.addEventListener('room_state', (e) => {
       try {
-        const res = await fetch(`/api/room/${roomId}`);
-        if (!res.ok) return;
-        const data = await res.json() as { ok: boolean; room: { players: any[] }; messages: RoomMessage[] };
-        if (cancelled) return;
-        const newCount = data.messages?.length ?? 0;
-        if (newCount !== lastCountRef.current) {
-          lastCountRef.current = newCount;
-          onUpdateRef.current(data.messages ?? [], data.room?.players?.length ?? 1);
-        }
+        const data = JSON.parse(e.data);
+        onStateSyncRef.current(data);
       } catch {}
+    });
+
+    es.addEventListener('message', (e) => {
+      try {
+        const msg = JSON.parse(e.data) as RoomMessage;
+        onMessageRef.current(msg);
+      } catch {}
+    });
+
+    es.addEventListener('player_joined', (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        onPlayerCountChangeRef.current?.(data.playerCount);
+      } catch {}
+    });
+
+    es.addEventListener('player_left', (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        onPlayerCountChangeRef.current?.(data.playerCount);
+      } catch {}
+    });
+
+    es.onerror = () => {
+      // EventSource auto-reconnects; no action needed
     };
 
-    // Initial fetch
-    poll();
-    const id = setInterval(poll, intervalMs);
-    return () => { cancelled = true; clearInterval(id); };
-  }, [roomId, enabled, intervalMs]);
+    return () => es.close();
+  }, [roomId, enabled]);
 }
 
 // ---- Main ----
@@ -561,12 +580,21 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
     } catch {}
   }, [storageKey, pack.characters]);
 
-  // Poll for new messages from other players (3s interval)
-  useRoomPolling(roomId, phase === 'chat', (messages, pCount) => {
-    setRoomMessages(messages);
-    setPlayerCount(pCount);
-    setSending(false);
-  });
+  // SSE: receive real-time room events (replaces polling)
+  useRoomSSE(
+    roomId,
+    phase === 'chat',
+    (msg) => {
+      setRoomMessages((prev) =>
+        prev.some((m) => m.id === msg.id) ? prev : [...prev, msg],
+      );
+    },
+    (state) => {
+      setRoomMessages(state.messages);
+      setPlayerCount(state.playerCount);
+    },
+    (count) => setPlayerCount(count),
+  );
 
   // Auto-scroll
   useEffect(() => {
@@ -733,11 +761,25 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
   }, [storageKey]);
 
   const handleSend = useCallback(async () => {
+    if (sending) return;
     const msg = input.trim();
-    if (!msg || sending || !activeChar || !roomId || !playerId) return;
+    if (!msg || !activeChar || !roomId || !playerId) return;
 
     setInput('');
     setSending(true);
+
+    // Optimistic: show user message immediately
+    const tempId = `pending-${Date.now()}`;
+    setRoomMessages((prev) => [
+      ...prev,
+      {
+        id: tempId,
+        roomId: roomId!,
+        timestamp: Date.now(),
+        sender: { type: 'player' as const, id: playerId!, name: myDisplayName ?? pack.playerDisplayName },
+        text: msg,
+      },
+    ]);
 
     try {
       const result = await sendRoomMessage(roomId, playerId, msg, {
@@ -747,16 +789,15 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
         displayName: myDisplayName ?? pack.playerDisplayName,
         characterId: myCharacterId ?? pack.playerCharacterId,
       });
-      // Immediately add returned messages to UI
-      const newMsgs: RoomMessage[] = [];
-      if (result.playerMessage) newMsgs.push(result.playerMessage);
-      if (result.npcMessage) newMsgs.push(result.npcMessage);
-      if (newMsgs.length) {
-        setRoomMessages((prev) => {
-          const ids = new Set(prev.map((m) => m.id));
-          return [...prev, ...newMsgs.filter((m) => !ids.has(m.id))];
-        });
-      }
+      // Replace temp message with real ones (dedup against SSE)
+      setRoomMessages((prev) => {
+        const without = prev.filter((m) => m.id !== tempId);
+        const ids = new Set(without.map((m) => m.id));
+        const toAdd: RoomMessage[] = [];
+        if (result.playerMessage && !ids.has(result.playerMessage.id)) toAdd.push(result.playerMessage);
+        if (result.npcMessage && !ids.has(result.npcMessage.id)) toAdd.push(result.npcMessage);
+        return [...without, ...toAdd];
+      });
     } catch {
       setRoomMessages((prev) => [
         ...prev,
