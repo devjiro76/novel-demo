@@ -41,7 +41,7 @@ function buildSystemPrompt(
 
 const conversationOutputSchema = z.object({
   action: z.string().describe('3인칭 행동/신체 묘사. 감각 묘사 풍부하게. 평상시 2-3문장, 감정적 동요 시 4-6문장.'),
-  dialogue: z.string().describe('캐릭터가 용준에게 하는 말. 평상시 대화에서는 의미 있는 문장 위주로. 성행위 중 쾌락에 압도되면 신음이 섞여도 됨.'),
+  dialogue: z.string().describe('캐릭터가 용준에게 하는 말. 평상시 2-3문장 이상. 성행위 중에는 신음과 야한 말을 섞어 3-5문장 이상 길게. 쾌락에 솔직한 반응, 야한 단어 사용을 주저하지 말 것.'),
   innerThought: z.string().describe('겉으로 안 드러내는 속마음. 갈등, 욕망, 두려움 등 내면의 생각. 반드시 1문장 이상 작성.'),
 });
 
@@ -99,7 +99,7 @@ export async function generateConversationResponse(
   let dynamicSuffix = `## 현재 상황\n${situation}${multiUserContext}`;
 
   if (memoryBlock) {
-    dynamicSuffix += `\n\n## 과거 기억\n${memoryBlock}`;
+    dynamicSuffix += `\n\n## 이전 대화 요약\n${memoryBlock}`;
   }
 
   if (kbContext) {

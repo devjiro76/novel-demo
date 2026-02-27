@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import { getRoom, createRoomWithId, ensurePlayer, addMessage, getMessages } from '@/lib/room-store';
-import { getEnv, getCfBindings } from '@/lib/types';
+import { getEnv } from '@/lib/types';
 import { getVillage } from '@/lib/personas';
 import { generateConversationResponse } from '@/lib/narrator';
 import { generateAppraisal } from '@/lib/appraisal';
 import { getStoryPack } from '@/lib/story-pack';
 import { searchKB } from '@/lib/kb';
-import { saveEpisode, recallAndFormat } from '@/lib/memory';
+import { loadSummary, updateSummaryIfNeeded } from '@/lib/memory';
 import type { RoomMessage } from '@/lib/room';
 
 const EMOTION_KO: Record<string, string> = {
@@ -96,29 +96,30 @@ export async function POST(
 
     const stimulusDescription = `${player.displayName}이(가) 말했다: "${text.trim()}"`;
 
-    // KB search + memory recall in parallel
-    const { db, vectorize, ai } = await getCfBindings();
+    // Context enrichment: KB (early turns) + conversation summary (long chats)
+    const historyLen = chatHistory.length;
+    const needKB = historyLen < 5;
 
-    const [kbContext, memoryBlock] = await Promise.all([
-      searchKB(room.slug, text.trim(), env.EMBEDDING_API_KEY, 3, env.EMBEDDING_BASE_URL).catch((err) => {
-        console.warn('[room/message] KB search failed (non-fatal):', err.message);
-        return '';
-      }),
-      db
-        ? recallAndFormat(db, vectorize, ai, roomId, npcId, text.trim()).catch((err) => {
-            console.warn('[room/message] memory recall failed (non-fatal):', err.message);
+    const [kbContext, summary] = await Promise.all([
+      needKB
+        ? searchKB(room.slug, text.trim(), env.EMBEDDING_API_KEY, 3, env.EMBEDDING_BASE_URL).catch((err) => {
+            console.warn('[room/message] KB search failed (non-fatal):', err.message);
             return '';
           })
         : Promise.resolve(''),
+      updateSummaryIfNeeded(roomId, npcId, chatHistory, env).catch((err) => {
+        console.warn('[room/message] summary failed (non-fatal):', (err as Error).message);
+        return '';
+      }),
     ]);
-    console.log(`[KB] slug=${room.slug} query="${text.trim().slice(0, 40)}" result=${kbContext ? kbContext.length + ' chars' : 'empty'}`);
-    if (memoryBlock) console.log(`[memory] roomId=${roomId} npcId=${npcId} block=${memoryBlock.length} chars`);
+    if (kbContext) console.log(`[KB] slug=${room.slug} result=${kbContext.length} chars`);
+    if (summary) console.log(`[summary] room=${roomId} ${summary.length} chars`);
 
     const [appraisal, conversationResult] = await Promise.all([
       generateAppraisal(npcId, stimulusDescription, village, env, player.characterId),
       generateConversationResponse(
         npcId, situation, text.trim(), village, env, pack, chatHistory,
-        senderPlayer, allPlayers, kbContext, memoryBlock,
+        senderPlayer, allPlayers, kbContext, summary,
       ),
     ]);
 
@@ -152,22 +153,6 @@ export async function POST(
       innerThought: conversationResult.innerThought,
       emotion: emotionLabel,
     });
-
-    // 4. Save episode to D1 + Vectorize
-    if (db) {
-      await saveEpisode(db, vectorize, ai, {
-        id: crypto.randomUUID(),
-        roomId,
-        npcId,
-        timestamp: Date.now(),
-        sourceEntity: player.characterId,
-        context: `${player.displayName}: "${text.trim()}" → ${npcDisplayName}: "${conversationResult.dialogue}"`,
-        importance: appraisalVector.goalRelevance ?? 0.5,
-        emotionV: updatedState.emotion.vad.V,
-        emotionA: updatedState.emotion.vad.A,
-        emotionD: updatedState.emotion.vad.D,
-      }).catch((err) => console.warn('[room/message] episode save failed (non-fatal):', err.message));
-    }
 
     return NextResponse.json({ ok: true, playerMessage: playerMsg, npcMessage: npcMsg });
   } catch (err: any) {
