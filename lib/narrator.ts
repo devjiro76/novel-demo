@@ -1,4 +1,4 @@
-import { createModel, generateObject, z } from './llm';
+import { primaryModel, generateObject, z } from './llm';
 import type { ConversationResponse, Env } from './types';
 import type { Village } from './personas';
 import type { StoryManifest } from './story-pack';
@@ -155,7 +155,7 @@ export async function generateConversationResponse(
   // Add current user message
   conversationMessages.push({ role: 'user', content: userMessage });
 
-  const model = createModel(env.LLM_API_KEY, undefined, env.LLM_BASE_URL);
+  const model = primaryModel(env);
   const { object } = await generateObject({
     model,
     schema: conversationOutputSchema,

@@ -1,4 +1,4 @@
-import { createModel, generateObject, ENGINE_MODEL, z } from './llm';
+import { engineModel, generateObject, z } from './llm';
 import type { Village } from './personas';
 import type { AppraisalVector } from '@molroo-ai/world-sdk';
 import type { Env } from './types';
@@ -43,7 +43,7 @@ export async function generateAppraisal(
 - adjustmentPotential: 0.0 ~ 1.0
 - urgency: 0.0 ~ 1.0`;
 
-  const model = createModel(env.LLM_API_KEY, ENGINE_MODEL, env.LLM_BASE_URL);
+  const model = engineModel(env);
   const { object } = await generateObject({
     model,
 
