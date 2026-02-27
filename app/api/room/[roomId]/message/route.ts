@@ -5,6 +5,7 @@ import { getVillage } from '@/lib/personas';
 import { generateConversationResponse } from '@/lib/narrator';
 import { generateAppraisal } from '@/lib/appraisal';
 import { getStoryPack } from '@/lib/story-pack';
+import { searchKB } from '@/lib/kb';
 import type { RoomMessage } from '@/lib/room';
 
 const EMOTION_KO: Record<string, string> = {
@@ -94,11 +95,18 @@ export async function POST(
 
     const stimulusDescription = `${player.displayName}이(가) 말했다: "${text.trim()}"`;
 
+    // KB search: find relevant story context for the NPC response
+    const kbContext = await searchKB(room.slug, text.trim(), env.EMBEDDING_API_KEY, 3, env.EMBEDDING_BASE_URL).catch((err) => {
+      console.warn('[room/message] KB search failed (non-fatal):', err.message);
+      return '';
+    });
+    console.log(`[KB] slug=${room.slug} query="${text.trim().slice(0, 40)}" result=${kbContext ? kbContext.length + ' chars' : 'empty'}`);
+
     const [appraisal, conversationResult] = await Promise.all([
       generateAppraisal(npcId, stimulusDescription, village, env, player.characterId),
       generateConversationResponse(
         npcId, situation, text.trim(), village, env, pack, chatHistory,
-        senderPlayer, allPlayers,
+        senderPlayer, allPlayers, kbContext,
       ),
     ]);
 

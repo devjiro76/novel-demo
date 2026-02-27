@@ -43,7 +43,7 @@ export async function generateAppraisal(
 - adjustmentPotential: 0.0 ~ 1.0
 - urgency: 0.0 ~ 1.0`;
 
-  const model = createModel(env.OPENROUTER_API_KEY, ENGINE_MODEL);
+  const model = createModel(env.LLM_API_KEY, ENGINE_MODEL, env.LLM_BASE_URL);
   const { object } = await generateObject({
     model,
 

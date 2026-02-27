@@ -3,13 +3,17 @@ import { generateObject } from 'ai';
 import { z } from 'zod';
 import type { LanguageModel } from 'ai';
 
-export const NARRATIVE_MODEL = 'google/gemini-2.5-flash';
-export const ENGINE_MODEL = 'openai/gpt-4o-mini';
+export const NARRATIVE_MODEL = 'deepseek-v3.2';
+export const ENGINE_MODEL = 'llama-3.3-70b';
 
-export function createModel(apiKey: string, model?: string): LanguageModel {
+export function createModel(
+  apiKey: string,
+  model?: string,
+  baseURL?: string,
+): LanguageModel {
   const provider = createOpenAI({
     apiKey,
-    baseURL: 'https://openrouter.ai/api/v1',
+    baseURL: baseURL ?? 'https://api.venice.ai/api/v1',
   });
   return provider.chat(model ?? NARRATIVE_MODEL);
 }

@@ -585,9 +585,22 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
     roomId,
     phase === 'chat',
     (msg) => {
-      setRoomMessages((prev) =>
-        prev.some((m) => m.id === msg.id) ? prev : [...prev, msg],
-      );
+      setRoomMessages((prev) => {
+        // Already have this exact message → skip
+        if (prev.some((m) => m.id === msg.id)) return prev;
+        // If SSE delivers a player message that matches a pending optimistic one, replace it
+        if (msg.sender.type === 'player') {
+          const pendingIdx = prev.findIndex(
+            (m) => m.id.startsWith('pending-') && m.sender.type === 'player' && m.text === msg.text,
+          );
+          if (pendingIdx !== -1) {
+            const next = [...prev];
+            next[pendingIdx] = msg;
+            return next;
+          }
+        }
+        return [...prev, msg];
+      });
     },
     (state) => {
       setRoomMessages(state.messages);
@@ -800,7 +813,7 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
       });
     } catch {
       setRoomMessages((prev) => [
-        ...prev,
+        ...prev.filter((m) => m.id !== tempId),
         {
           id: `error-${Date.now()}`,
           roomId: roomId!,
