@@ -6,15 +6,22 @@ import { generateConversationResponse } from '@/lib/narrator';
 import { generateAppraisal } from '@/lib/appraisal';
 import { DebugLog } from '@/lib/debug';
 
+// Engine emotionCenters: 14 discrete labels only
 const EMOTION_KO: Record<string, string> = {
-  joy: '기쁨', sadness: '슬픔', anger: '분노', fear: '두려움',
-  disgust: '혐오', surprise: '놀라움', trust: '신뢰', anticipation: '기대',
-  love: '사랑', guilt: '죄책감', shame: '수치심', pride: '자부심',
-  envy: '질투', jealousy: '질투', hope: '희망', anxiety: '불안',
-  contentment: '만족', excitement: '흥분', desire: '갈망', longing: '그리움',
-  relief: '안도', frustration: '좌절', contempt: '경멸', awe: '경외',
-  gratitude: '감사', compassion: '연민', nostalgia: '향수', boredom: '권태',
-  confusion: '혼란', embarrassment: '당혹', admiration: '감탄',
+  joy: '기쁨',
+  excitement: '설렘',
+  contentment: '만족',
+  anger: '분노',
+  fear: '두려움',
+  sadness: '슬픔',
+  anxiety: '불안',
+  surprise: '놀라움',
+  disgust: '혐오',
+  trust: '신뢰',
+  calm: '평온',
+  shame: '수치심',
+  guilt: '죄책감',
+  numbness: '무감각',
 };
 
 export async function POST(request: Request) {
@@ -68,8 +75,8 @@ export async function POST(request: Request) {
 
     // Read updated emotion state from engine (after appraisal applied)
     const updatedState = await persona.getState();
-    const rawEmotion = updatedState.emotion.discrete?.primary ?? '';
-    const emotionLabel = EMOTION_KO[rawEmotion] ?? rawEmotion;
+    const rawEmotion = (updatedState.emotion.discrete?.primary ?? '').toLowerCase().trim();
+    const emotionLabel = EMOTION_KO[rawEmotion] ?? EMOTION_KO[rawEmotion.replace(/\s+/g, '_')] ?? '';
     const updatedVad = updatedState.emotion.vad;
 
     dbg.add('converse_result', {

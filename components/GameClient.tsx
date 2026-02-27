@@ -67,33 +67,16 @@ type Character = typeof CHARACTERS[number];
 
 // ---- Avatar ----
 function Avatar({ char, size = 40 }: { char: Character; size?: number }) {
-  if (char.image) {
-    return (
-      <div
-        className="rounded-full overflow-hidden shrink-0 border border-white/10"
-        style={{ width: size, height: size }}
-      >
-        <img
-          src={`${BASE}${char.image}`}
-          alt={char.name}
-          className="object-cover object-[50%_15%] w-full h-full"
-        />
-      </div>
-    );
-  }
   return (
     <div
-      className="rounded-full flex items-center justify-center shrink-0 font-bold border border-white/5"
-      style={{
-        width: size,
-        height: size,
-        fontSize: size * 0.4,
-        background: `radial-gradient(circle at 30% 30%, rgba(${char.glowRgb},0.25), rgba(${char.glowRgb},0.05))`,
-        color: char.glow,
-        boxShadow: `0 0 ${size / 2}px rgba(${char.glowRgb},0.1)`,
-      }}
+      className="rounded-full overflow-hidden shrink-0 border border-white/10"
+      style={{ width: size, height: size }}
     >
-      {char.name[0]}
+      <img
+        src={`${BASE}${char.image}`}
+        alt={char.name}
+        className="object-cover object-[50%_15%] w-full h-full"
+      />
     </div>
   );
 }
@@ -104,11 +87,14 @@ function TitleScreen({ onStart, loading }: { onStart: () => void; loading: boole
     <div className="h-screen w-screen flex flex-col items-center justify-end relative overflow-hidden">
       {/* Background */}
       <div className="absolute inset-0">
-        <img
-          src={`${BASE}/cover-wide.jpg`}
-          alt=""
-          className="absolute inset-0 w-full h-full object-cover object-center scale-110 opacity-50 blur-[2px]"
-        />
+        <picture>
+          <source media="(min-width: 768px)" srcSet={`${BASE}/cover-wide.jpg`} />
+          <img
+            src={`${BASE}/cover-tall.jpg`}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover object-center opacity-40 blur-[2px] md:scale-110 md:opacity-50"
+          />
+        </picture>
         <div className="absolute inset-0 bg-gradient-to-t from-[#08080d] via-[#08080d]/60 to-[#08080d]/30" />
         <div className="absolute inset-0 bg-gradient-to-b from-[#08080d]/80 via-transparent to-[#08080d]" />
       </div>
@@ -153,8 +139,6 @@ function CharacterCard({ char, chatCount, onClick, delay }: {
   onClick: () => void;
   delay: number;
 }) {
-  const hasImage = !!char.image;
-
   return (
     <button
       onClick={onClick}
@@ -167,29 +151,14 @@ function CharacterCard({ char, chatCount, onClick, delay }: {
       }}
     >
       <div className="flex">
-        {/* Image or gradient avatar area */}
+        {/* Image */}
         <div className="relative w-24 shrink-0 overflow-hidden">
-          {hasImage ? (
-            <>
-              <img
-                src={`${BASE}${char.image!}`}
-                alt={char.name}
-                className="absolute inset-0 w-full h-full object-cover object-[50%_12%]"
-              />
-              <div className={`absolute inset-0 bg-gradient-to-r ${char.gradient}`} />
-            </>
-          ) : (
-            <div
-              className="w-full h-full flex items-center justify-center"
-              style={{
-                background: `radial-gradient(ellipse at 50% 30%, rgba(${char.glowRgb},0.15), rgba(${char.glowRgb},0.03))`,
-              }}
-            >
-              <span className="text-3xl font-black opacity-40" style={{ color: char.glow }}>
-                {char.name[0]}
-              </span>
-            </div>
-          )}
+          <img
+            src={`${BASE}${char.image}`}
+            alt={char.name}
+            className="absolute inset-0 w-full h-full object-cover object-[50%_12%]"
+          />
+          <div className={`absolute inset-0 bg-gradient-to-r ${char.gradient}`} />
         </div>
 
         {/* Info */}
@@ -272,43 +241,54 @@ function MessageBubble({ msg, char }: { msg: ChatMessage; char: Character }) {
   }
 
   return (
-    <div className="flex gap-2.5 items-start max-w-[92%] slide-up">
-      <Avatar char={char} size={32} />
-      <div className="flex-1 min-w-0">
-        <div
-          className="rounded-2xl rounded-tl-md px-4 py-3 space-y-2"
-          style={{
-            background: `linear-gradient(135deg, rgba(${char.glowRgb},0.07), rgba(${char.glowRgb},0.02))`,
-            border: `1px solid rgba(${char.glowRgb},0.1)`,
-          }}
-        >
-          {msg.action && (
-            <p className="text-[13px] text-[var(--color-text-secondary)] italic leading-relaxed">
-              {msg.action}
-            </p>
-          )}
-          {msg.text && (
-            <p className="text-[13px] leading-relaxed">&ldquo;{msg.text}&rdquo;</p>
-          )}
-          {msg.innerThought && (
-            <p
-              className="text-[11px] text-[var(--color-text-dim)] italic leading-relaxed pl-2.5 mt-1"
-              style={{ borderLeft: `1.5px solid rgba(${char.glowRgb},0.2)` }}
-            >
-              {msg.innerThought}
-            </p>
-          )}
-        </div>
+    <div className="slide-up space-y-3">
+      {/* Narration — full width, no avatar, visually separate */}
+      {msg.action && (
+        <p className="text-[12px] text-white/70 italic leading-relaxed text-center px-6">
+          {msg.action}
+        </p>
+      )}
 
-        {msg.emotion && (
-          <span
-            className="inline-block text-[10px] px-2 py-0.5 rounded-full mt-1.5 ml-1"
-            style={{ color: char.glow, background: `rgba(${char.glowRgb},0.1)` }}
-          >
-            {msg.emotion}
-          </span>
-        )}
-      </div>
+      {/* Character speech bubble */}
+      {(msg.text || msg.innerThought) && (
+        <div className="flex gap-2.5 items-start max-w-[92%]">
+          <Avatar char={char} size={32} />
+          <div className="flex-1 min-w-0">
+            <div
+              className="rounded-2xl rounded-tl-md px-4 py-3 space-y-2"
+              style={{
+                background: `linear-gradient(135deg, rgba(${char.glowRgb},0.07), rgba(${char.glowRgb},0.02))`,
+                border: `1px solid rgba(${char.glowRgb},0.1)`,
+              }}
+            >
+              {msg.text && (
+                <p className="text-[13px] leading-relaxed">&ldquo;{msg.text}&rdquo;</p>
+              )}
+              {msg.innerThought && (
+                <p
+                  className="text-[12px] italic leading-relaxed pl-2.5 mt-1"
+                  style={{
+                    borderLeft: `2px solid rgba(${char.glowRgb},0.4)`,
+                    color: char.glow,
+                    opacity: 0.75,
+                  }}
+                >
+                  ({msg.innerThought})
+                </p>
+              )}
+            </div>
+
+            {msg.emotion && (
+              <span
+                className="inline-block text-[10px] px-2 py-0.5 rounded-full mt-1.5 ml-1"
+                style={{ color: char.glow, background: `rgba(${char.glowRgb},0.1)` }}
+              >
+                {msg.emotion}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -356,7 +336,7 @@ function ChatScreen({ char, messages, sending, input, onInputChange, onSend, onB
       </header>
 
       {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-5 space-y-4">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-5 space-y-6">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center px-8 opacity-50">
             <Avatar char={char} size={56} />
