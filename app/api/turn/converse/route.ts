@@ -5,6 +5,7 @@ import { getVillage } from '@/lib/personas';
 import { generateConversationResponse } from '@/lib/narrator';
 import { generateAppraisal } from '@/lib/appraisal';
 import { DebugLog } from '@/lib/debug';
+import { getStoryPack } from '@/lib/story-pack';
 
 // Engine emotionCenters: 14 discrete labels only
 const EMOTION_KO: Record<string, string> = {
@@ -25,6 +26,7 @@ const EMOTION_KO: Record<string, string> = {
 };
 
 export async function POST(request: Request) {
+  const pack = getStoryPack();
   const env = getEnv();
   const dbg = new DebugLog();
 
@@ -41,18 +43,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing characterId, userMessage, or situation' }, { status: 400 });
     }
 
-    const village = await getVillage(env);
+    const village = await getVillage(env, pack.villageId);
 
     dbg.add('converse_start', { characterId, userMessage: userMessage.slice(0, 80) });
 
-    const stimulusDescription = `용준이 말했다: "${userMessage}"`;
+    const stimulusDescription = `${pack.playerDisplayName}이 말했다: "${userMessage}"`;
 
     const [appraisal, conversationResult] = await Promise.all([
       dbg.time('converse_appraisal', { characterId }, () =>
         generateAppraisal(characterId, stimulusDescription, village, env),
       ),
       dbg.time('converse_narrate', { characterId }, () =>
-        generateConversationResponse(characterId, situation, userMessage, village, env, chatHistory),
+        generateConversationResponse(characterId, situation, userMessage, village, env, pack, chatHistory),
       ),
     ]);
 
@@ -67,7 +69,7 @@ export async function POST(request: Request) {
     }
 
     await persona.interact('converse', {
-      actor: 'yongjun',
+      actor: pack.playerCharacterId,
       actorType: 'user',
       appraisal: appraisalVector,
       stimulusDescription,

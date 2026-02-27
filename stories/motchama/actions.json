@@ -1,0 +1,276 @@
+{
+  "actions": [
+    {
+      "name": "care",
+      "label": "따뜻하게 챙기기",
+      "description": "상대를 진심으로 걱정하고 배려하는 행동",
+      "category": "positive",
+      "appraisal": {
+        "goal_relevance": 0.6,
+        "goal_congruence": 0.7,
+        "expectedness": 0.5,
+        "controllability": 0.7,
+        "agency": 0.8,
+        "norm_compatibility": 0.8,
+        "internal_standards": 0.6,
+        "adjustment_potential": 0.8,
+        "urgency": 0.2
+      }
+    },
+    {
+      "name": "flirt",
+      "label": "은근히 유혹하기",
+      "description": "눈빛, 말투, 가벼운 접촉으로 이성적 관심을 표현",
+      "category": "romantic",
+      "appraisal": {
+        "goal_relevance": 0.8,
+        "goal_congruence": 0.5,
+        "expectedness": 0.3,
+        "controllability": 0.4,
+        "agency": 0.9,
+        "norm_compatibility": -0.3,
+        "internal_standards": -0.2,
+        "adjustment_potential": 0.5,
+        "urgency": 0.4
+      }
+    },
+    {
+      "name": "seduce",
+      "label": "적극적으로 유혹하기",
+      "description": "의도적이고 노골적인 유혹 행위. 신체 접촉, 분위기 조성",
+      "category": "romantic",
+      "appraisal": {
+        "goal_relevance": 0.9,
+        "goal_congruence": 0.3,
+        "expectedness": 0.2,
+        "controllability": 0.3,
+        "agency": 1.0,
+        "norm_compatibility": -0.7,
+        "internal_standards": -0.5,
+        "adjustment_potential": 0.3,
+        "urgency": 0.6
+      }
+    },
+    {
+      "name": "tease",
+      "label": "장난치며 놀리기",
+      "description": "친근한 놀림, 가벼운 도발. 관심의 다른 표현",
+      "category": "playful",
+      "appraisal": {
+        "goal_relevance": 0.4,
+        "goal_congruence": 0.2,
+        "expectedness": 0.4,
+        "controllability": 0.6,
+        "agency": 0.7,
+        "norm_compatibility": 0.0,
+        "internal_standards": 0.0,
+        "adjustment_potential": 0.7,
+        "urgency": 0.2
+      }
+    },
+    {
+      "name": "comfort",
+      "label": "위로하기",
+      "description": "상대의 슬픔이나 고통에 공감하며 감싸주는 행동",
+      "category": "positive",
+      "appraisal": {
+        "goal_relevance": 0.7,
+        "goal_congruence": 0.8,
+        "expectedness": 0.5,
+        "controllability": 0.6,
+        "agency": 0.8,
+        "norm_compatibility": 0.9,
+        "internal_standards": 0.7,
+        "adjustment_potential": 0.7,
+        "urgency": 0.3
+      }
+    },
+    {
+      "name": "protect",
+      "label": "지켜주기",
+      "description": "위험한 상황에서 상대를 보호하는 용감한 행동",
+      "category": "positive",
+      "appraisal": {
+        "goal_relevance": 0.9,
+        "goal_congruence": 0.9,
+        "expectedness": 0.2,
+        "controllability": 0.5,
+        "agency": 1.0,
+        "norm_compatibility": 0.8,
+        "internal_standards": 0.8,
+        "adjustment_potential": 0.4,
+        "urgency": 0.9
+      }
+    },
+    {
+      "name": "ignore",
+      "label": "무시하기",
+      "description": "상대의 존재나 말을 의도적으로 무시",
+      "category": "negative",
+      "appraisal": {
+        "goal_relevance": 0.5,
+        "goal_congruence": -0.6,
+        "expectedness": 0.4,
+        "controllability": 0.3,
+        "agency": -0.5,
+        "norm_compatibility": -0.4,
+        "internal_standards": -0.3,
+        "adjustment_potential": 0.4,
+        "urgency": 0.1
+      }
+    },
+    {
+      "name": "provoke",
+      "label": "도발하기",
+      "description": "상대의 감정을 자극하고 반응을 유도하는 행동",
+      "category": "negative",
+      "appraisal": {
+        "goal_relevance": 0.7,
+        "goal_congruence": -0.5,
+        "expectedness": 0.3,
+        "controllability": 0.4,
+        "agency": 0.9,
+        "norm_compatibility": -0.6,
+        "internal_standards": -0.4,
+        "adjustment_potential": 0.5,
+        "urgency": 0.5
+      }
+    },
+    {
+      "name": "confess",
+      "label": "솔직하게 고백하기",
+      "description": "숨겨온 감정을 직접적으로 전달",
+      "category": "romantic",
+      "appraisal": {
+        "goal_relevance": 1.0,
+        "goal_congruence": 0.6,
+        "expectedness": 0.1,
+        "controllability": 0.2,
+        "agency": 1.0,
+        "norm_compatibility": -0.4,
+        "internal_standards": 0.3,
+        "adjustment_potential": 0.2,
+        "urgency": 0.7
+      }
+    },
+    {
+      "name": "manipulate",
+      "label": "교묘하게 조종하기",
+      "description": "상대의 약점이나 감정을 이용해 원하는 방향으로 유도",
+      "category": "negative",
+      "appraisal": {
+        "goal_relevance": 0.8,
+        "goal_congruence": -0.3,
+        "expectedness": 0.3,
+        "controllability": 0.3,
+        "agency": 0.9,
+        "norm_compatibility": -0.8,
+        "internal_standards": -0.7,
+        "adjustment_potential": 0.4,
+        "urgency": 0.3
+      }
+    },
+    {
+      "name": "distance",
+      "label": "거리 두기",
+      "description": "의도적으로 관계에 선을 긋고 물러서는 행동",
+      "category": "neutral",
+      "appraisal": {
+        "goal_relevance": 0.4,
+        "goal_congruence": -0.3,
+        "expectedness": 0.5,
+        "controllability": 0.7,
+        "agency": -0.3,
+        "norm_compatibility": 0.5,
+        "internal_standards": 0.4,
+        "adjustment_potential": 0.6,
+        "urgency": 0.2
+      }
+    },
+    {
+      "name": "charm",
+      "label": "매력 어필하기",
+      "description": "자연스러운 매너와 카리스마로 호감을 얻는 행동",
+      "category": "positive",
+      "appraisal": {
+        "goal_relevance": 0.6,
+        "goal_congruence": 0.5,
+        "expectedness": 0.4,
+        "controllability": 0.5,
+        "agency": 0.8,
+        "norm_compatibility": 0.3,
+        "internal_standards": 0.2,
+        "adjustment_potential": 0.6,
+        "urgency": 0.2
+      }
+    },
+    {
+      "name": "confront",
+      "label": "정면 대립하기",
+      "description": "갈등 상황에서 피하지 않고 직접 맞서는 행동",
+      "category": "negative",
+      "appraisal": {
+        "goal_relevance": 0.8,
+        "goal_congruence": -0.4,
+        "expectedness": 0.3,
+        "controllability": 0.5,
+        "agency": 0.9,
+        "norm_compatibility": -0.2,
+        "internal_standards": 0.1,
+        "adjustment_potential": 0.4,
+        "urgency": 0.7
+      }
+    },
+    {
+      "name": "submit",
+      "label": "순응하기",
+      "description": "상대의 요구나 상황에 맞춰 자신을 낮추는 행동",
+      "category": "neutral",
+      "appraisal": {
+        "goal_relevance": 0.3,
+        "goal_congruence": 0.3,
+        "expectedness": 0.6,
+        "controllability": 0.2,
+        "agency": -0.5,
+        "norm_compatibility": 0.6,
+        "internal_standards": -0.2,
+        "adjustment_potential": 0.5,
+        "urgency": 0.2
+      }
+    },
+    {
+      "name": "touch",
+      "label": "스킨십하기",
+      "description": "손 잡기, 어깨 감싸기 등 물리적 친밀감 표현",
+      "category": "romantic",
+      "appraisal": {
+        "goal_relevance": 0.8,
+        "goal_congruence": 0.4,
+        "expectedness": 0.2,
+        "controllability": 0.3,
+        "agency": 1.0,
+        "norm_compatibility": -0.5,
+        "internal_standards": -0.3,
+        "adjustment_potential": 0.3,
+        "urgency": 0.5
+      }
+    },
+    {
+      "name": "joke",
+      "label": "유머로 분위기 풀기",
+      "description": "긴장된 상황을 가벼운 농담으로 해소",
+      "category": "playful",
+      "appraisal": {
+        "goal_relevance": 0.3,
+        "goal_congruence": 0.4,
+        "expectedness": 0.4,
+        "controllability": 0.7,
+        "agency": 0.6,
+        "norm_compatibility": 0.4,
+        "internal_standards": 0.2,
+        "adjustment_potential": 0.8,
+        "urgency": 0.1
+      }
+    }
+  ]
+}

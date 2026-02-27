@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { ConversationResponse } from '@/lib/types';
+import type { ClientStoryPack, CharacterMeta } from '@/lib/story-pack';
 import { startGame, submitConversation } from '@/lib/api-client';
 const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
 
@@ -15,55 +16,7 @@ interface ChatMessage {
   emotion?: string;
 }
 
-const CHARACTERS = [
-  {
-    id: 'jeongsuk',
-    name: '정숙',
-    fullName: '박정숙',
-    age: 41,
-    role: '덕희의 엄마',
-    desc: '남편 몰래 낮에 만나는 사이.\n"용준아" 하고 부르면서도 몸이 먼저 반응한다.',
-    image: '/jeongsuk.png',
-    color: 'pink' as const,
-    glow: '#ff6b9d',
-    glowRgb: '255,107,157',
-    gradient: 'from-pink-950/80 via-rose-900/40 to-transparent',
-    accentText: 'text-pink-400',
-    btnBg: 'bg-pink-600 hover:bg-pink-500',
-  },
-  {
-    id: 'eunhye',
-    name: '은혜',
-    fullName: '장은혜',
-    age: 22,
-    role: '덕희의 누나',
-    desc: '첫 남자. 방문을 잠그고 만난다.\n연하 질색이라던 원칙은 진작에 무너졌다.',
-    image: '/eunhye.png',
-    color: 'purple' as const,
-    glow: '#a855f7',
-    glowRgb: '168,85,247',
-    gradient: 'from-purple-950/80 via-violet-900/40 to-transparent',
-    accentText: 'text-purple-400',
-    btnBg: 'bg-purple-600 hover:bg-purple-500',
-  },
-  {
-    id: 'mina',
-    name: '미나',
-    fullName: '김미나',
-    age: 22,
-    role: '덕희의 여자친구',
-    desc: '"이번이 마지막"을 다섯 번 넘게 말했다.\n죄책감과 욕망 사이에서 무너지는 중.',
-    image: '/mina.png',
-    color: 'red' as const,
-    glow: '#ef4444',
-    glowRgb: '239,68,68',
-    gradient: 'from-red-950/80 via-rose-900/40 to-transparent',
-    accentText: 'text-red-400',
-    btnBg: 'bg-red-600 hover:bg-red-500',
-  },
-] as const;
-
-type Character = typeof CHARACTERS[number];
+type Character = CharacterMeta;
 
 // ---- Avatar ----
 function Avatar({ char, size = 40 }: { char: Character; size?: number }) {
@@ -82,15 +35,15 @@ function Avatar({ char, size = 40 }: { char: Character; size?: number }) {
 }
 
 // ---- Title Screen ----
-function TitleScreen({ onStart, loading }: { onStart: () => void; loading: boolean }) {
+function TitleScreen({ pack, onStart, loading }: { pack: ClientStoryPack; onStart: () => void; loading: boolean }) {
   return (
     <div className="h-full w-full flex flex-col items-center justify-end relative overflow-hidden">
       {/* Background */}
       <div className="absolute inset-0">
         <picture>
-          <source media="(min-width: 768px)" srcSet={`${BASE}/cover-wide.jpg`} />
+          <source media="(min-width: 768px)" srcSet={`${BASE}${pack.coverWide}`} />
           <img
-            src={`${BASE}/cover-tall.jpg`}
+            src={`${BASE}${pack.coverTall}`}
             alt=""
             className="absolute inset-0 w-full h-full object-cover object-center opacity-40 blur-[2px] md:scale-110 md:opacity-50"
           />
@@ -105,13 +58,13 @@ function TitleScreen({ onStart, loading }: { onStart: () => void; loading: boole
       {/* Content */}
       <div className="relative z-10 text-center pb-20 px-6 slide-up">
         <img
-          src={`${BASE}/logo.png`}
-          alt="못참겠어요, 아줌마"
+          src={`${BASE}${pack.logo}`}
+          alt={pack.subtitle ?? pack.title}
           className="w-[280px] max-w-[80vw] mx-auto mb-8 drop-shadow-lg"
         />
 
         <p className="text-[12px] text-white/30 mb-8 leading-relaxed">
-          당신은 <span className="text-pink-300/60 font-semibold">최용준</span>입니다.<br />
+          당신은 <span className="text-pink-300/60 font-semibold">{pack.playerDisplayName}</span>입니다.<br />
           캐릭터들은 당신을 용준으로 대합니다.
         </p>
 
@@ -191,7 +144,7 @@ function CharacterCard({ char, chatCount, onClick, delay }: {
 
 // ---- Select Screen ----
 function SelectScreen({ characters, chatHistories, onSelect, onReset }: {
-  characters: readonly Character[];
+  characters: Character[];
   chatHistories: Record<string, ChatMessage[]>;
   onSelect: (char: Character) => void;
   onReset: () => void;
@@ -414,7 +367,7 @@ function ChatScreen({ char, messages, sending, input, onInputChange, onSend, onB
 }
 
 // ---- Main ----
-export default function GameClient() {
+export default function GameClient({ pack }: { pack: ClientStoryPack }) {
   const [phase, setPhase] = useState<Phase>('title');
   const [activeChar, setActiveChar] = useState<Character | null>(null);
   const [chatHistories, setChatHistories] = useState<Record<string, ChatMessage[]>>({});
@@ -493,7 +446,7 @@ export default function GameClient() {
     setSending(true);
 
     try {
-      const situation = `용준과 ${activeChar.fullName}은(는) 이미 여러 번 몸을 섞은 비밀 연인이다. 둘만의 시간.`;
+      const situation = pack.defaultSituation.replace(/\{\{charFullName\}\}/g, activeChar.fullName);
       const res: ConversationResponse = await submitConversation(activeChar.id, msg, situation, messages);
       setMessages((prev) => [
         ...prev,
@@ -519,11 +472,11 @@ export default function GameClient() {
   let content: React.ReactNode = null;
 
   if (phase === 'title' || phase === 'loading') {
-    content = <TitleScreen onStart={handleStart} loading={phase === 'loading'} />;
+    content = <TitleScreen pack={pack} onStart={handleStart} loading={phase === 'loading'} />;
   } else if (phase === 'select') {
     content = (
       <SelectScreen
-        characters={CHARACTERS}
+        characters={pack.characters}
         chatHistories={chatHistories}
         onSelect={handleSelect}
         onReset={handleReset}

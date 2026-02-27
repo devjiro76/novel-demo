@@ -1,5 +1,4 @@
 import { createModel, generateObject, ENGINE_MODEL, z } from './llm';
-import { generateText } from 'ai';
 import type { Village } from './personas';
 import type { AppraisalVector } from '@molroo-ai/world-sdk';
 import type { Env } from './types';
@@ -16,33 +15,6 @@ const appraisalSchema = z.object({
   urgency: z.number().describe('즉각 반응 필요도 (0.0~1.0)'),
   estimatedElapsedSeconds: z.number().describe('이전 대화로부터 서사적으로 경과한 시간(초). 바로 이어지는 대화=5, 잠시 침묵=60, 시간 경과 언급=해당 초. 최소 1, 최대 86400.'),
 });
-
-export function getStimulusGuide(): string {
-  return `## Stimulus Description 가이드
-각 선택지의 target마다 stimulusDescription을 작성하세요.
-- NPC의 관점에서 "나에게 무슨 일이 일어나는가"를 묘사
-- 감각적 디테일 포함 (체온, 거리, 접촉, 시선)
-- 1-2문장으로 간결하게
-- 예: "용준이 내 이마에 입술을 가져다 댄다. 따뜻한 숨결이 피부에 닿는다."`;
-}
-
-export async function generateStimulus(
-  characterId: string,
-  situation: string,
-  playerChoice: string,
-  actionLabel: string,
-  env: Env,
-): Promise<string> {
-  const model = createModel(env.OPENROUTER_API_KEY, ENGINE_MODEL);
-  const { text } = await generateText({
-    model,
-    system: `NPC 관점에서 "나에게 무슨 일이 일어나는가"를 1-2문장으로 묘사하세요. 감각적 디테일 포함 (체온, 거리, 접촉, 시선). 출력은 묘사 문장만.`,
-    prompt: `상황: ${situation}\n용준의 행동: ${playerChoice}\n대상 NPC: ${characterId}\n행동 라벨: ${actionLabel}`,
-    temperature: 0.7,
-    maxOutputTokens: 150,
-  });
-  return text.trim();
-}
 
 export async function generateAppraisal(
   characterId: string,
