@@ -15,7 +15,7 @@ function parseNarratorOutput(text: string): {
   action: string; dialogue: string; innerThought: string; emotionLabel: string;
 } {
   const section = (tag: string): string => {
-    const regex = new RegExp(`\\[${tag}\\]\\s*\\n([\\s\\S]*?)(?=\\n\\[|$)`);
+    const regex = new RegExp(`\\[${tag}\\]\\s*\\n?([\\s\\S]*?)(?=\\n\\[|$)`);
     const match = text.match(regex);
     return match?.[1]?.trim() ?? '';
   };
@@ -206,11 +206,9 @@ export async function generateReactions(
 // ---- 1:1 Conversation ----
 
 const conversationOutputSchema = z.object({
-  action: z.string().describe('3인칭 행동 묘사. 슬로모션 기법으로 미세 동작을 분해. 1-2문장.'),
-  dialogue: z.string().describe('용준에게 하는 대답. 캐릭터의 말투와 감정 상태를 반영. 1-3문장.'),
-  innerThought: z.string().describe('겉으로 드러내지 않는 속마음. 1문장.'),
-  emotionLabel: z.string().describe('현재 감정을 한 단어로'),
-  conversationOver: z.boolean().describe('캐릭터가 대화를 끝내려 할 때 true. 누군가 다가오는 소리, 상황 변화 등 자연스러운 이유로. 대화가 자연스럽게 이어지면 false.'),
+  action: z.string().describe('3인칭 행동/신체 묘사. 감각 묘사 풍부하게. 평상시 2-3문장, 감정적 동요 시 4-6문장.'),
+  dialogue: z.string().describe('캐릭터가 용준에게 하는 말. 평상시 대화에서는 의미 있는 문장 위주로. 성행위 중 쾌락에 압도되면 신음이 섞여도 됨.'),
+  innerThought: z.string().describe('겉으로 안 드러내는 속마음. 갈등, 욕망, 두려움 등 내면의 생각. 반드시 1문장 이상 작성.'),
 });
 
 interface ChatHistoryMessage {
@@ -254,26 +252,19 @@ ${situation}
 ### 지침
 - 용준과 자연스럽게 대화하세요. 이미 깊은 관계인 연인의 말투로.
 - 용준이 신체적 행위를 하거나 성적 발언을 하면, 그에 맞는 수위로 반응하세요. 수위를 낮추지 마세요.
-- 신음, 거친 숨, 신체 반응을 검열 없이 묘사하세요.
 - 캐릭터의 성격과 갈등(죄책감, 욕망, 집착 등)을 대화에 녹이세요.
 - 대화를 끊지 마세요. 용준이 원하는 만큼 계속 대화합니다.
 
-## 출력 형식
-반드시 아래 형식으로 출력하세요. **각 섹션의 최소 분량을 반드시 지키세요.**
+### 대사 규칙
+- 평상시 대화: 의미 있는 문장 위주. 신음으로 대사를 채우지 마세요.
+- 성행위 중 쾌락에 압도될 때: 신음, 끊긴 문장, 거친 숨이 자연스럽게 섞여도 됩니다.
+- 상황에 맞게 조절하세요. 대화 장면에서 매 문장마다 "흐읍"을 넣는 건 부자연스럽습니다.
 
-[행동]
-(3인칭 행동/신체 묘사. 슬로모션 기법으로 한 동작을 여러 프레임으로 분해. 감각 묘사 풍부하게. 평상시 2-3문장, 감정적 동요나 자극적 상황에서는 4-6문장으로 늘리세요.)
-
-[대사]
-(캐릭터의 말. 감정과 상황에 맞는 자연스러운 길이로. 대화가 이어지도록 용준에게 질문하거나 반응을 이끌어내세요.)
-
-[속마음]
-(겉으로 안 드러내는 속마음. 갈등, 욕망, 두려움. 평상시 1-2문장, 감정적 동요 시 2-3문장.)
-
-[감정]
-(감정 한 단어)
-
-**중요: 대사가 너무 짧으면 대화가 끊깁니다. 상황에 맞는 충분한 분량으로 답하되, 용준이 이어갈 수 있도록 질문이나 반응을 섞으세요.**`;
+## 출력 지침
+- 대사(dialogue)는 실제 의미 있는 말이어야 합니다. "흐으읍… 응… 하아…" 같은 신음만으로 구성하지 마세요. 신음은 대사 중간에 자연스럽게 섞되, 반드시 실제 말(단어, 문장)을 포함하세요.
+- 대사에 용준에게 질문하거나 반응을 이끌어내는 내용을 포함하세요.
+- 속마음(innerThought)은 반드시 작성하세요. 캐릭터의 내면 갈등이나 감정을 드러내야 합니다.
+- 감정은 별도로 생성하지 마세요. 시스템이 자동으로 계산합니다.`;
 
   // Build conversation messages from chat history
   const conversationMessages: { role: 'user' | 'assistant'; content: string }[] = [];
@@ -285,40 +276,41 @@ ${situation}
       if (msg.role === 'user') {
         conversationMessages.push({ role: 'user', content: msg.text });
       } else {
-        // Reconstruct the delimiter format so LLM sees its own output style
-        const parts: string[] = [];
-        if (msg.action) parts.push(`[행동]\n${msg.action}`);
-        if (msg.text) parts.push(`[대사]\n${msg.text}`);
-        if (msg.innerThought) parts.push(`[속마음]\n${msg.innerThought}`);
-        conversationMessages.push({ role: 'assistant', content: parts.join('\n\n') });
+        conversationMessages.push({ role: 'assistant', content: JSON.stringify({
+          action: msg.action ?? '',
+          dialogue: msg.text,
+        }) });
       }
     }
+  }
+
+  // Reminder before current message to prevent pattern copying from history
+  if (conversationMessages.length > 0) {
+    conversationMessages.push({ role: 'user', content: '[시스템] 위는 이전 대화 기록입니다. 이전 대사의 말투나 패턴을 그대로 반복하지 말고, 지금 상황과 감정에 맞게 새롭게 반응하세요. 아래가 용준의 새 메시지입니다.' });
   }
 
   // Add current user message
   conversationMessages.push({ role: 'user', content: userMessage });
 
   const model = createModel(env.OPENROUTER_API_KEY);
-  const { text } = await generateText({
+  const { object } = await generateObject({
     model,
+    schema: conversationOutputSchema,
     system: systemPrompt,
     messages: conversationMessages,
     temperature: 0.9,
   });
 
-  const parsed = parseNarratorOutput(text);
-  const conversationOver = false;
-
   return {
     characterId,
     displayName,
-    dialogue: parsed.dialogue,
-    action: parsed.action,
-    innerThought: parsed.innerThought,
+    dialogue: object.dialogue,
+    action: object.action,
+    innerThought: object.innerThought,
     emotion: {
-      primary: parsed.emotionLabel,
+      primary: '', // Will be filled by route after persona.interact()
       vad,
     },
-    conversationOver,
+    conversationOver: false,
   };
 }

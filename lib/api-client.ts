@@ -1,9 +1,10 @@
 import type { ConversationResponse } from './types';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
 
 async function post<T>(path: string, body?: unknown): Promise<T> {
-  const res = await fetch(path, {
+  const res = await fetch(`${BASE_PATH}${path}`, {
     method: 'POST',
     headers: JSON_HEADERS,
     body: body ? JSON.stringify(body) : undefined,

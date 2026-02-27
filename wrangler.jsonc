@@ -8,6 +8,9 @@
 		"directory": ".open-next/assets",
 		"binding": "ASSETS"
 	},
+	"routes": [
+		{ "pattern": "novel.molroo.io/*", "zone_name": "molroo.io" }
+	],
 	"vars": {
 		"WORLD_API_URL": "https://world-api.molroo.io",
 		"VILLAGE_ID": "764c24aa-8437-44e4-8244-bea0efaaf500"

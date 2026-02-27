@@ -14,6 +14,7 @@ const appraisalSchema = z.object({
   internalStandards: z.number().describe('내 내적 가치관 부합(+)/위반(-) (-1.0~1.0)'),
   adjustmentPotential: z.number().describe('적응/대처 여지 (0.0~1.0)'),
   urgency: z.number().describe('즉각 반응 필요도 (0.0~1.0)'),
+  estimatedElapsedSeconds: z.number().describe('이전 대화로부터 서사적으로 경과한 시간(초). 바로 이어지는 대화=5, 잠시 침묵=60, 시간 경과 언급=해당 초. 최소 1, 최대 86400.'),
 });
 
 export function getStimulusGuide(): string {
@@ -48,7 +49,7 @@ export async function generateAppraisal(
   stimulusDescription: string,
   village: Village,
   env: Env,
-): Promise<AppraisalVector> {
+): Promise<AppraisalVector & { estimatedElapsedSeconds: number }> {
   const persona = village.persona(characterId);
   const promptCtx = await persona.getPromptContext('yongjun');
 
@@ -90,5 +91,6 @@ export async function generateAppraisal(
     internalStandards: clamp(object.internalStandards, -1, 1),
     adjustmentPotential: clamp(object.adjustmentPotential, 0, 1),
     urgency: clamp(object.urgency, 0, 1),
+    estimatedElapsedSeconds: Math.max(1, Math.min(86400, Math.round(object.estimatedElapsedSeconds))),
   };
 }
