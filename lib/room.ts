@@ -1,0 +1,42 @@
+// ---- Room system types ----
+
+export interface Player {
+  playerId: string;
+  displayName: string;
+  characterId: string; // role in the story (e.g. 'yongjun')
+  isDefault: boolean;  // true if room creator (first player)
+  joinedAt: number;
+}
+
+export interface RoomMessage {
+  id: string;
+  roomId: string;
+  timestamp: number;
+  sender:
+    | { type: 'player'; id: string; name: string }
+    | { type: 'npc'; id: string; name: string }
+    | { type: 'system' };
+  text: string;
+  action?: string;
+  innerThought?: string;
+  emotion?: string;
+}
+
+export interface Room {
+  roomId: string;
+  slug: string;
+  villageId: string;
+  npcCharacterId: string;
+  players: Map<string, Player>;
+  messages: RoomMessage[];
+  sseClients: Map<string, ReadableStreamDefaultController>;
+  createdAt: number;
+}
+
+// SSE event types
+export type SSEEventType =
+  | 'message'
+  | 'player_joined'
+  | 'player_left'
+  | 'typing'
+  | 'room_state';

@@ -84,6 +84,7 @@ export interface ClientStoryPack {
   logo: string;
   coverTall: string;
   coverWide: string;
+  playerCharacterId: string;
   playerDisplayName: string;
   defaultSituation: string;
 }
@@ -102,6 +103,7 @@ export function toClientPack(pack: StoryManifest): ClientStoryPack {
     logo: pack.logo,
     coverTall: pack.coverTall,
     coverWide: pack.coverWide,
+    playerCharacterId: pack.playerCharacterId,
     playerDisplayName: pack.playerDisplayName,
     defaultSituation: pack.defaultSituation,
   };

@@ -21,9 +21,10 @@ export async function generateAppraisal(
   stimulusDescription: string,
   village: Village,
   env: Env,
+  senderCharacterId?: string,
 ): Promise<AppraisalVector & { estimatedElapsedSeconds: number }> {
   const persona = village.persona(characterId);
-  const promptCtx = await persona.getPromptContext('yongjun');
+  const promptCtx = await persona.getPromptContext(senderCharacterId ?? 'yongjun');
 
   const systemPrompt = `${promptCtx.systemPrompt}
 

@@ -45,11 +45,17 @@ const conversationOutputSchema = z.object({
   innerThought: z.string().describe('겉으로 안 드러내는 속마음. 갈등, 욕망, 두려움 등 내면의 생각. 반드시 1문장 이상 작성.'),
 });
 
-interface ChatHistoryMessage {
+export interface ChatHistoryMessage {
   role: 'user' | 'character';
   text: string;
   action?: string;
   innerThought?: string;
+}
+
+interface PlayerContext {
+  playerId: string;
+  displayName: string;
+  characterId: string;
 }
 
 export async function generateConversationResponse(
@@ -60,12 +66,15 @@ export async function generateConversationResponse(
   env: Env,
   pack: StoryManifest,
   chatHistory?: ChatHistoryMessage[],
+  senderPlayer?: PlayerContext,
+  allPlayers?: PlayerContext[],
 ): Promise<ConversationResponse> {
   const displayName = pack.displayNames[characterId] ?? characterId;
 
   const persona = village.persona(characterId);
+  const viewerCharId = senderPlayer?.characterId ?? pack.playerCharacterId;
   const [promptCtx, state, speakingStyle] = await Promise.all([
-    persona.getPromptContext(pack.playerCharacterId),
+    persona.getPromptContext(viewerCharId),
     persona.getState(),
     persona.getSpeakingStyle(),
   ]);
@@ -74,9 +83,22 @@ export async function generateConversationResponse(
 
   const staticInstructions = pack.conversationInstructions.replace(/\{\{displayName\}\}/g, displayName);
 
+  // Build multi-user context block if multiple players exist
+  let multiUserContext = '';
+  if (allPlayers && allPlayers.length > 0) {
+    const playerLines = allPlayers.map((p) => {
+      const role = pack.displayNames[p.characterId] ?? p.characterId;
+      const isSender = senderPlayer && p.playerId === senderPlayer.playerId;
+      return `- ${p.displayName} (${role})${isSender ? ' [지금 말을 건 사람]' : ''}`;
+    });
+    multiUserContext = `\n\n## 현재 대화방 참여자\n${playerLines.join('\n')}`;
+  }
+
+  const dynamicSuffix = `## 현재 상황\n${situation}${multiUserContext}`;
+
   const systemPrompt = buildSystemPrompt(
     promptCtx, speakingStyle, staticInstructions,
-    `## 현재 상황\n${situation}`,
+    dynamicSuffix,
   );
 
   // Build conversation messages from chat history

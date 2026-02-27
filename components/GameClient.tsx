@@ -2,19 +2,13 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import type { ConversationResponse } from '@/lib/types';
 import type { ClientStoryPack, CharacterMeta } from '@/lib/story-pack';
-import { startGame, submitConversation } from '@/lib/api-client';
+import { startGame } from '@/lib/api-client';
+import { createRoomAPI, joinRoomAPI, sendRoomMessage } from '@/lib/api-client-room';
+import type { RoomMessage } from '@/lib/room';
+import RoleSelectScreen from './RoleSelectScreen';
 
-type Phase = 'title' | 'loading' | 'select' | 'chat';
-
-interface ChatMessage {
-  role: 'user' | 'character';
-  text: string;
-  action?: string;
-  innerThought?: string;
-  emotion?: string;
-}
+type Phase = 'title' | 'loading' | 'select' | 'roleSelect' | 'chat';
 
 type Character = CharacterMeta;
 
@@ -144,9 +138,9 @@ function CharacterCard({ char, pack, chatCount, onClick, delay }: {
 }
 
 // ---- Select Screen ----
-function SelectScreen({ pack, chatHistories, onSelect, onReset }: {
+function SelectScreen({ pack, chatCounts, onSelect, onReset }: {
   pack: ClientStoryPack;
-  chatHistories: Record<string, ChatMessage[]>;
+  chatCounts: Record<string, number>;
   onSelect: (char: Character) => void;
   onReset: () => void;
 }) {
@@ -179,7 +173,7 @@ function SelectScreen({ pack, chatHistories, onSelect, onReset }: {
             key={char.id}
             char={char}
             pack={pack}
-            chatCount={(chatHistories[char.id] ?? []).length}
+            chatCount={chatCounts[char.id] ?? 0}
             onClick={() => onSelect(char)}
             delay={i * 100}
           />
@@ -189,9 +183,26 @@ function SelectScreen({ pack, chatHistories, onSelect, onReset }: {
   );
 }
 
-// ---- Chat Message ----
-function MessageBubble({ msg, char, pack }: { msg: ChatMessage; char: Character; pack: ClientStoryPack }) {
-  if (msg.role === 'user') {
+// ---- Chat Message (Room-based) ----
+function RoomMessageBubble({ msg, npcChar, pack, myPlayerId }: {
+  msg: RoomMessage;
+  npcChar: Character;
+  pack: ClientStoryPack;
+  myPlayerId: string;
+}) {
+  // System message
+  if (msg.sender.type === 'system') {
+    return (
+      <div className="flex justify-center slide-up">
+        <span className="text-[11px] text-[var(--color-text-dim)] bg-white/[0.03] px-3 py-1 rounded-full">
+          {msg.text}
+        </span>
+      </div>
+    );
+  }
+
+  // Player message (mine)
+  if (msg.sender.type === 'player' && msg.sender.id === myPlayerId) {
     return (
       <div className="flex justify-end slide-up">
         <div className="max-w-[78%] rounded-2xl rounded-br-md bg-white/[0.06] backdrop-blur-sm px-4 py-2.5 border border-white/[0.04]">
@@ -201,38 +212,54 @@ function MessageBubble({ msg, char, pack }: { msg: ChatMessage; char: Character;
     );
   }
 
+  // Player message (other)
+  if (msg.sender.type === 'player') {
+    return (
+      <div className="flex gap-2.5 items-start max-w-[85%] slide-up">
+        <div className="w-7 h-7 rounded-full bg-white/[0.08] flex items-center justify-center shrink-0 text-[10px] font-bold text-white/60">
+          {msg.sender.name.charAt(0)}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-[10px] text-[var(--color-text-dim)] mb-1">{msg.sender.name}</p>
+          <div className="rounded-2xl rounded-tl-md bg-white/[0.04] backdrop-blur-sm px-4 py-2.5 border border-white/[0.04]">
+            <p className="text-[13px] leading-relaxed">{msg.text}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // NPC message
   return (
     <div className="slide-up space-y-3">
       {msg.action && (
-        <p className="text-[12px] text-white/70 italic leading-relaxed text-center px-6">
+        <p className="text-[12px] text-white/70 italic leading-relaxed px-6">
           {msg.action}
         </p>
       )}
 
       {(msg.text || msg.innerThought) && (
         <div className="flex gap-2.5 items-start max-w-[92%]">
-          <CharAvatar char={char} pack={pack} size={32} />
+          <CharAvatar char={npcChar} pack={pack} size={32} />
           <div className="flex-1 min-w-0">
             <div
               className="rounded-2xl rounded-tl-md px-4 py-3 space-y-2"
               style={{
-                background: `linear-gradient(135deg, rgba(${char.glowRgb},0.07), rgba(${char.glowRgb},0.02))`,
-                border: `1px solid rgba(${char.glowRgb},0.1)`,
+                background: `linear-gradient(135deg, rgba(${npcChar.glowRgb},0.07), rgba(${npcChar.glowRgb},0.02))`,
+                border: `1px solid rgba(${npcChar.glowRgb},0.1)`,
               }}
             >
               {msg.text && (
-                <p className="text-[13px] leading-relaxed">&ldquo;{msg.text}&rdquo;</p>
+                <p className="text-[13px] leading-relaxed">{msg.text}</p>
               )}
               {msg.innerThought && (
                 <p
-                  className="text-[12px] italic leading-relaxed pl-2.5 mt-1"
+                  className="text-[12px] italic leading-relaxed pl-2.5 mt-1 opacity-75"
                   style={{
-                    borderLeft: `2px solid rgba(${char.glowRgb},0.4)`,
-                    color: char.glow,
-                    opacity: 0.75,
+                    borderLeft: `2px solid rgba(${npcChar.glowRgb},0.4)`,
                   }}
                 >
-                  ({msg.innerThought})
+                  {msg.innerThought}
                 </p>
               )}
             </div>
@@ -240,7 +267,7 @@ function MessageBubble({ msg, char, pack }: { msg: ChatMessage; char: Character;
             {msg.emotion && (
               <span
                 className="inline-block text-[10px] px-2 py-0.5 rounded-full mt-1.5 ml-1"
-                style={{ color: char.glow, background: `rgba(${char.glowRgb},0.1)` }}
+                style={{ color: npcChar.glow, background: `rgba(${npcChar.glowRgb},0.1)` }}
               >
                 {msg.emotion}
               </span>
@@ -252,16 +279,19 @@ function MessageBubble({ msg, char, pack }: { msg: ChatMessage; char: Character;
   );
 }
 
-// ---- Chat Screen ----
-function ChatScreen({ char, pack, messages, sending, input, onInputChange, onSend, onBack, inputRef, scrollRef }: {
-  char: Character;
+// ---- Chat Screen (Room-based) ----
+function RoomChatScreen({ npcChar, pack, messages, sending, input, onInputChange, onSend, onBack, onShare, playerCount, myPlayerId, inputRef, scrollRef }: {
+  npcChar: Character;
   pack: ClientStoryPack;
-  messages: ChatMessage[];
+  messages: RoomMessage[];
   sending: boolean;
   input: string;
   onInputChange: (v: string) => void;
   onSend: () => void;
   onBack: () => void;
+  onShare: () => void;
+  playerCount: number;
+  myPlayerId: string;
   inputRef: React.RefObject<HTMLInputElement | null>;
   scrollRef: React.RefObject<HTMLDivElement | null>;
 }) {
@@ -277,47 +307,61 @@ function ChatScreen({ char, pack, messages, sending, input, onInputChange, onSen
       <header
         className="px-4 py-3 flex items-center gap-3 slide-down"
         style={{
-          background: `linear-gradient(180deg, rgba(${char.glowRgb},0.06), transparent)`,
-          borderBottom: `1px solid rgba(${char.glowRgb},0.08)`,
+          background: `linear-gradient(180deg, rgba(${npcChar.glowRgb},0.06), transparent)`,
+          borderBottom: `1px solid rgba(${npcChar.glowRgb},0.08)`,
         }}
       >
+        <CharAvatar char={npcChar} pack={pack} size={36} />
+        <div className="flex-1 min-w-0">
+          <span className={`text-sm font-bold ${npcChar.accentText}`}>{npcChar.fullName}</span>
+          <span className="text-[10px] text-[var(--color-text-dim)] ml-2">
+            {npcChar.role} ({playerCount}명)
+          </span>
+        </div>
+        <button
+          onClick={onShare}
+          className="text-[10px] text-[var(--color-text-dim)] hover:text-white/60 transition-colors px-2 py-1 border border-white/[0.06] rounded-lg"
+        >
+          공유
+        </button>
         <button
           onClick={onBack}
-          className="text-sm text-[var(--color-text-dim)] hover:text-white/60 transition-colors p-1"
+          className="text-[10px] text-[var(--color-text-dim)] hover:text-white/60 transition-colors px-2 py-1 border border-white/[0.06] rounded-lg"
         >
-          ←
+          ← 뒤로
         </button>
-        <CharAvatar char={char} pack={pack} size={36} />
-        <div className="flex-1 min-w-0">
-          <span className={`text-sm font-bold ${char.accentText}`}>{char.fullName}</span>
-          <span className="text-[10px] text-[var(--color-text-dim)] ml-2">{char.role}</span>
-        </div>
       </header>
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-5 space-y-6">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center px-8 opacity-50">
-            <CharAvatar char={char} pack={pack} size={56} />
+            <CharAvatar char={npcChar} pack={pack} size={56} />
             <p className="text-xs text-[var(--color-text-dim)] mt-4 leading-relaxed">
-              {char.fullName}에게 말을 걸어보세요.
+              {npcChar.fullName}에게 말을 걸어보세요.
             </p>
           </div>
         )}
 
-        {messages.map((msg, i) => (
-          <MessageBubble key={i} msg={msg} char={char} pack={pack} />
+        {messages.map((msg) => (
+          <RoomMessageBubble
+            key={msg.id}
+            msg={msg}
+            npcChar={npcChar}
+            pack={pack}
+            myPlayerId={myPlayerId}
+          />
         ))}
 
         {sending && (
           <div className="flex gap-2.5 items-start slide-up">
-            <CharAvatar char={char} pack={pack} size={32} />
+            <CharAvatar char={npcChar} pack={pack} size={32} />
             <div className="flex items-center gap-1.5 pt-2">
               {[0, 1, 2].map((i) => (
                 <div
                   key={i}
                   className="w-1.5 h-1.5 rounded-full"
                   style={{
-                    background: char.glow,
+                    background: npcChar.glow,
                     animation: `breathe 1s ease-in-out ${i * 0.15}s infinite`,
                   }}
                 />
@@ -330,8 +374,8 @@ function ChatScreen({ char, pack, messages, sending, input, onInputChange, onSen
       <div
         className="px-4 py-3"
         style={{
-          background: `linear-gradient(0deg, rgba(${char.glowRgb},0.03), transparent)`,
-          borderTop: `1px solid rgba(${char.glowRgb},0.06)`,
+          background: `linear-gradient(0deg, rgba(${npcChar.glowRgb},0.03), transparent)`,
+          borderTop: `1px solid rgba(${npcChar.glowRgb},0.06)`,
         }}
       >
         {messages.length === 0 && (
@@ -350,16 +394,16 @@ function ChatScreen({ char, pack, messages, sending, input, onInputChange, onSen
             placeholder="대사 또는 (행동)을 입력하세요..."
             className="flex-1 rounded-2xl bg-[var(--color-surface-2)] border border-white/[0.06] px-4 py-3 text-base placeholder:text-[var(--color-text-dim)] focus:outline-none disabled:opacity-40 transition-all"
             style={{
-              borderColor: input.trim() ? `rgba(${char.glowRgb},0.3)` : undefined,
-              boxShadow: input.trim() ? `0 0 15px rgba(${char.glowRgb},0.05)` : undefined,
+              borderColor: input.trim() ? `rgba(${npcChar.glowRgb},0.3)` : undefined,
+              boxShadow: input.trim() ? `0 0 15px rgba(${npcChar.glowRgb},0.05)` : undefined,
             }}
           />
           <button
             onClick={onSend}
             disabled={sending || !input.trim()}
-            className={`px-5 py-3 rounded-2xl ${char.btnBg} text-sm font-medium transition-all disabled:opacity-25 disabled:cursor-not-allowed active:scale-95`}
+            className={`px-5 py-3 rounded-2xl ${npcChar.btnBg} text-sm font-medium transition-all disabled:opacity-25 disabled:cursor-not-allowed active:scale-95`}
             style={{
-              boxShadow: !sending && input.trim() ? `0 0 20px rgba(${char.glowRgb},0.2)` : undefined,
+              boxShadow: !sending && input.trim() ? `0 0 20px rgba(${npcChar.glowRgb},0.2)` : undefined,
             }}
           >
             전송
@@ -370,52 +414,171 @@ function ChatScreen({ char, pack, messages, sending, input, onInputChange, onSen
   );
 }
 
+// ---- useRoomPolling Hook ----
+// Polls the room API for new messages (works on stateless Cloudflare Workers)
+function useRoomPolling(
+  roomId: string | null,
+  enabled: boolean,
+  onUpdate: (messages: RoomMessage[], playerCount: number) => void,
+  intervalMs = 3000,
+) {
+  const onUpdateRef = useRef(onUpdate);
+  onUpdateRef.current = onUpdate;
+  const lastCountRef = useRef(0);
+
+  useEffect(() => {
+    if (!roomId || !enabled) return;
+
+    let cancelled = false;
+
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/room/${roomId}`);
+        if (!res.ok) return;
+        const data = await res.json() as { ok: boolean; room: { players: any[] }; messages: RoomMessage[] };
+        if (cancelled) return;
+        const newCount = data.messages?.length ?? 0;
+        if (newCount !== lastCountRef.current) {
+          lastCountRef.current = newCount;
+          onUpdateRef.current(data.messages ?? [], data.room?.players?.length ?? 1);
+        }
+      } catch {}
+    };
+
+    // Initial fetch
+    poll();
+    const id = setInterval(poll, intervalMs);
+    return () => { cancelled = true; clearInterval(id); };
+  }, [roomId, enabled, intervalMs]);
+}
+
 // ---- Main ----
 export default function GameClient({ pack }: { pack: ClientStoryPack }) {
   const [phase, setPhase] = useState<Phase>('title');
   const [villageId, setVillageId] = useState<string | null>(null);
   const [activeChar, setActiveChar] = useState<Character | null>(null);
-  const [chatHistories, setChatHistories] = useState<Record<string, ChatMessage[]>>({});
+  const [chatCounts, setChatCounts] = useState<Record<string, number>>({});
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Room state
+  const [roomId, setRoomId] = useState<string | null>(null);
+  const [playerId, setPlayerId] = useState<string | null>(null);
+  const [myDisplayName, setMyDisplayName] = useState<string | null>(null);
+  const [myCharacterId, setMyCharacterId] = useState<string | null>(null);
+  const [roomMessages, setRoomMessages] = useState<RoomMessage[]>([]);
+  const [playerCount, setPlayerCount] = useState(1);
+  const [joiningRoomId, setJoiningRoomId] = useState<string | null>(null);
+  const [roleLoading, setRoleLoading] = useState(false);
+
   const storageKey = `novel:${pack.slug}`;
 
+  // ---- Single session storage ----
+  interface Session {
+    roomId: string;
+    playerId: string;
+    npcId: string;
+    villageId: string;
+    displayName: string;
+    characterId: string;
+  }
+
+  function saveSession(s: Session) {
+    try { localStorage.setItem(`${storageKey}:session`, JSON.stringify(s)); } catch {}
+  }
+
+  function loadSession(): Session | null {
+    try {
+      const raw = localStorage.getItem(`${storageKey}:session`);
+      return raw ? JSON.parse(raw) as Session : null;
+    } catch { return null; }
+  }
+
+  function clearSession() {
+    try { localStorage.removeItem(`${storageKey}:session`); } catch {}
+  }
+
+  // Restore state on mount
   useEffect(() => {
+    // 1) Check localStorage session first (covers refresh + re-entry)
+    const session = loadSession();
+    if (session) {
+      const char = pack.characters.find((c) => c.id === session.npcId);
+      if (char) {
+        setActiveChar(char);
+        setVillageId(session.villageId);
+        setMyDisplayName(session.displayName);
+        setMyCharacterId(session.characterId);
+        setRoomId(session.roomId);
+        setPlayerId(session.playerId);
+        setPhase('chat');
+        // Ensure URL reflects the session
+        const url = new URL(window.location.href);
+        url.searchParams.set('room', session.roomId);
+        url.searchParams.set('v', session.villageId);
+        url.searchParams.set('npc', session.npcId);
+        window.history.replaceState({}, '', url.toString());
+        // Background: ensure player in KV
+        joinRoomAPI({
+          roomId: session.roomId,
+          playerId: session.playerId,
+          displayName: session.displayName,
+          characterId: session.characterId,
+          slug: pack.slug,
+          villageId: session.villageId,
+          npcCharacterId: session.npcId,
+        }).catch(() => {});
+        return;
+      }
+    }
+
+    // 2) Check URL params (shared link from someone else, no local session)
+    const url = new URL(window.location.href);
+    const roomParam = url.searchParams.get('room');
+    const villageParam = url.searchParams.get('v');
+    const npcParam = url.searchParams.get('npc');
+
+    if (roomParam && villageParam && npcParam) {
+      const char = pack.characters.find((c) => c.id === npcParam);
+      if (char) {
+        setJoiningRoomId(roomParam);
+        setActiveChar(char);
+        setVillageId(villageParam);
+        setPhase('roleSelect');
+        return;
+      }
+    }
+
+    // 3) Normal flow: restore villageId
     try {
       const savedVillageId = localStorage.getItem(`${storageKey}:villageId`);
       if (savedVillageId) {
         setVillageId(savedVillageId);
         setPhase('select');
       }
-      const saved = localStorage.getItem(`${storageKey}:chats`);
-      if (saved) setChatHistories(JSON.parse(saved));
     } catch {}
-  }, [storageKey]);
+  }, [storageKey, pack.characters]);
 
-  const messages = activeChar ? (chatHistories[activeChar.id] ?? []) : [];
+  // Poll for new messages from other players (3s interval)
+  useRoomPolling(roomId, phase === 'chat', (messages, pCount) => {
+    setRoomMessages(messages);
+    setPlayerCount(pCount);
+    setSending(false);
+  });
 
-  const setMessages = useCallback((updater: ChatMessage[] | ((prev: ChatMessage[]) => ChatMessage[])) => {
-    if (!activeChar) return;
-    setChatHistories((prev) => ({
-      ...prev,
-      [activeChar.id]: typeof updater === 'function' ? updater(prev[activeChar.id] ?? []) : updater,
-    }));
-  }, [activeChar]);
-
-  useEffect(() => {
-    try { localStorage.setItem(`${storageKey}:chats`, JSON.stringify(chatHistories)); } catch {}
-  }, [chatHistories, storageKey]);
-
+  // Auto-scroll
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
-  }, [messages, sending]);
+  }, [roomMessages, sending]);
 
+  // Focus input on chat phase
   useEffect(() => {
     if (phase === 'chat') inputRef.current?.focus();
   }, [phase]);
+
+  // ---- Handlers ----
 
   const handleStart = useCallback(async () => {
     setPhase('loading');
@@ -431,56 +594,196 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
 
   const handleSelect = useCallback((char: Character) => {
     setActiveChar(char);
-    setPhase('chat');
-  }, []);
+
+    // Check if we have a saved session for this NPC
+    const session = loadSession();
+    if (session && session.npcId === char.id) {
+      // Restore from session → straight to chat
+      setMyDisplayName(session.displayName);
+      setMyCharacterId(session.characterId);
+      setRoomId(session.roomId);
+      setPlayerId(session.playerId);
+
+      const url = new URL(window.location.href);
+      url.searchParams.set('room', session.roomId);
+      url.searchParams.set('v', session.villageId);
+      url.searchParams.set('npc', session.npcId);
+      window.history.replaceState({}, '', url.toString());
+
+      setPhase('chat');
+
+      // Background: ensure player in KV
+      joinRoomAPI({
+        roomId: session.roomId,
+        playerId: session.playerId,
+        displayName: session.displayName,
+        characterId: session.characterId,
+        slug: pack.slug,
+        villageId: session.villageId,
+        npcCharacterId: session.npcId,
+      }).catch(() => {
+        clearSession();
+        setRoomId(null);
+        setPlayerId(null);
+        setPhase('roleSelect');
+      });
+      return;
+    }
+
+    setPhase('roleSelect');
+  }, [pack.slug]);
+
+  const handleRoleConfirm = useCallback(async (displayName: string, characterId: string) => {
+    if (!activeChar) return;
+    setRoleLoading(true);
+
+    setMyDisplayName(displayName);
+    setMyCharacterId(characterId);
+
+    try {
+      if (joiningRoomId) {
+        const result = await joinRoomAPI({
+          roomId: joiningRoomId,
+          displayName,
+          characterId,
+          slug: pack.slug,
+          villageId: villageId ?? undefined,
+          npcCharacterId: activeChar.id,
+        });
+        setRoomId(joiningRoomId);
+        setPlayerId(result.playerId);
+        setRoomMessages(result.messages);
+        setPlayerCount(result.room.players.length);
+        saveSession({
+          roomId: joiningRoomId, playerId: result.playerId, npcId: activeChar.id,
+          villageId: villageId ?? '', displayName, characterId,
+        });
+        setPhase('chat');
+      } else {
+        if (!villageId) { setRoleLoading(false); return; }
+        const result = await createRoomAPI({
+          slug: pack.slug,
+          villageId,
+          npcCharacterId: activeChar.id,
+          player: { displayName, characterId },
+        });
+        setRoomId(result.roomId);
+        setPlayerId(result.playerId);
+        setRoomMessages([]);
+        setPlayerCount(1);
+        saveSession({
+          roomId: result.roomId, playerId: result.playerId, npcId: activeChar.id,
+          villageId, displayName, characterId,
+        });
+
+        const url = new URL(window.location.href);
+        url.searchParams.set('room', result.roomId);
+        url.searchParams.set('v', villageId);
+        url.searchParams.set('npc', activeChar.id);
+        window.history.replaceState({}, '', url.toString());
+
+        setPhase('chat');
+      }
+    } catch (err) {
+      console.error('Failed to create/join room:', err);
+    } finally {
+      setRoleLoading(false);
+    }
+  }, [activeChar, joiningRoomId, villageId, pack.slug]);
 
   const handleBack = useCallback(() => {
+    // Session stays in localStorage — re-entering will auto-restore
+    setRoomId(null);
+    setPlayerId(null);
+    setRoomMessages([]);
     setActiveChar(null);
-    setPhase('select');
-  }, []);
+    setJoiningRoomId(null);
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete('room');
+    url.searchParams.delete('v');
+    url.searchParams.delete('npc');
+    window.history.replaceState({}, '', url.toString());
+
+    if (villageId) {
+      setPhase('select');
+    } else {
+      setPhase('title');
+    }
+  }, [villageId]);
 
   const handleReset = useCallback(() => {
     setPhase('title');
     setVillageId(null);
     setActiveChar(null);
-    setChatHistories({});
+    setRoomId(null);
+    setPlayerId(null);
+    setRoomMessages([]);
+    setChatCounts({});
+    setJoiningRoomId(null);
     try {
       localStorage.removeItem(`${storageKey}:villageId`);
-      localStorage.removeItem(`${storageKey}:chats`);
+      clearSession();
     } catch {}
+    const url = new URL(window.location.href);
+    url.searchParams.delete('room');
+    url.searchParams.delete('v');
+    url.searchParams.delete('npc');
+    window.history.replaceState({}, '', url.toString());
   }, [storageKey]);
 
   const handleSend = useCallback(async () => {
     const msg = input.trim();
-    if (!msg || sending || !activeChar || !villageId) return;
+    if (!msg || sending || !activeChar || !roomId || !playerId) return;
 
-    setMessages((prev) => [...prev, { role: 'user', text: msg }]);
     setInput('');
     setSending(true);
 
     try {
-      const situation = pack.defaultSituation.replace(/\{\{charFullName\}\}/g, activeChar.fullName);
-      const res: ConversationResponse = await submitConversation(pack.slug, villageId, activeChar.id, msg, situation, messages);
-      setMessages((prev) => [
+      const result = await sendRoomMessage(roomId, playerId, msg, {
+        slug: pack.slug,
+        villageId: villageId ?? '',
+        npcCharacterId: activeChar.id,
+        displayName: myDisplayName ?? pack.playerDisplayName,
+        characterId: myCharacterId ?? pack.playerCharacterId,
+      });
+      // Immediately add returned messages to UI
+      const newMsgs: RoomMessage[] = [];
+      if (result.playerMessage) newMsgs.push(result.playerMessage);
+      if (result.npcMessage) newMsgs.push(result.npcMessage);
+      if (newMsgs.length) {
+        setRoomMessages((prev) => {
+          const ids = new Set(prev.map((m) => m.id));
+          return [...prev, ...newMsgs.filter((m) => !ids.has(m.id))];
+        });
+      }
+    } catch {
+      setRoomMessages((prev) => [
         ...prev,
         {
-          role: 'character',
-          text: res.dialogue,
-          action: res.action,
-          innerThought: res.innerThought,
-          emotion: res.emotion.primary,
+          id: `error-${Date.now()}`,
+          roomId: roomId!,
+          timestamp: Date.now(),
+          sender: { type: 'system' as const },
+          text: '(응답을 생성하지 못했어요)',
         },
-      ]);
-    } catch {
-      setMessages((prev) => [
-        ...prev,
-        { role: 'character', text: '(응답을 생성하지 못했어요)' },
       ]);
     } finally {
       setSending(false);
-      inputRef.current?.focus();
     }
-  }, [input, sending, activeChar, pack, messages, setMessages]);
+  }, [input, sending, activeChar, roomId, playerId, villageId, pack, myDisplayName, myCharacterId]);
+
+  const handleShare = useCallback(() => {
+    if (!roomId) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set('room', roomId);
+    navigator.clipboard.writeText(url.toString()).then(() => {
+      // Visual feedback: could add a toast but keeping it simple
+      alert('방 링크가 클립보드에 복사되었습니다!');
+    }).catch(() => {});
+  }, [roomId]);
+
+  // ---- Render ----
 
   let content: React.ReactNode = null;
 
@@ -490,22 +793,37 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
     content = (
       <SelectScreen
         pack={pack}
-        chatHistories={chatHistories}
+        chatCounts={chatCounts}
         onSelect={handleSelect}
         onReset={handleReset}
       />
     );
+  } else if (phase === 'roleSelect' && activeChar) {
+    content = (
+      <RoleSelectScreen
+        pack={pack}
+        npcChar={activeChar}
+        defaultDisplayName={myDisplayName ?? pack.playerDisplayName}
+        defaultCharacterId={myCharacterId ?? pack.playerCharacterId}
+        isJoining={!!joiningRoomId}
+        onConfirm={handleRoleConfirm}
+        loading={roleLoading}
+      />
+    );
   } else if (phase === 'chat' && activeChar) {
     content = (
-      <ChatScreen
-        char={activeChar}
+      <RoomChatScreen
+        npcChar={activeChar}
         pack={pack}
-        messages={messages}
+        messages={roomMessages}
         sending={sending}
         input={input}
         onInputChange={setInput}
         onSend={handleSend}
         onBack={handleBack}
+        onShare={handleShare}
+        playerCount={playerCount}
+        myPlayerId={playerId ?? ''}
         inputRef={inputRef}
         scrollRef={scrollRef}
       />

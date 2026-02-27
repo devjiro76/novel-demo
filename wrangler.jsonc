@@ -11,6 +11,12 @@
 	"routes": [
 		{ "pattern": "novel.molroo.io/*", "zone_name": "molroo.io" }
 	],
+	"kv_namespaces": [
+		{
+			"binding": "ROOM_KV",
+			"id": "5a00076bd3304860ae4569a15609c6d8"
+		}
+	],
 	"vars": {
 		"WORLD_API_URL": "https://world-api.molroo.io",
 		"VILLAGE_ID": "764c24aa-8437-44e4-8244-bea0efaaf500"
