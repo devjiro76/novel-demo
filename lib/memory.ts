@@ -1,14 +1,15 @@
 /**
- * KV-based conversation summary (Tier 2 memory).
+ * 3-Tier Memory System (OpenClaw-inspired)
  *
- * When chat history exceeds a threshold, older messages are summarized
- * by gpt-4o-mini and stored in KV. The summary is prepended to the
- * system prompt on subsequent turns.
+ * Tier 1 (Short-term): Recent 50 messages sent as chat history — handled by narrator.ts
+ * Tier 2 (Medium-term): Rolling conversation summary per room — KV summary:{roomId}:{npcId}
+ * Tier 3 (Long-term): Persistent core facts per NPC across all rooms — KV long-memory:{npcId}
  *
- * KV key: summary:{roomId}:{npcId}
+ * Tier 2+3 are updated together when chat exceeds 50 turns.
+ * Gemini 2.5 Flash generates both summary and long-term fact extraction in one call.
  */
 
-import { engineModel, generateText } from './llm';
+import { primaryModel, generateText, z, generateObject } from './llm';
 import type { Env } from './types';
 import type { ChatHistoryMessage } from './narrator';
 
@@ -38,14 +39,14 @@ async function kvPut(key: string, value: string): Promise<void> {
   memStore.set(key, value);
 }
 
-// ---- Summary ----
+// ---- Tier 2: Medium-term (Room conversation summary) ----
 
-const SUMMARY_THRESHOLD = 20; // summarize when history exceeds this
-const RECENT_KEEP = 20; // keep this many recent messages verbatim
+const SUMMARY_THRESHOLD = 50;
+const RECENT_KEEP = 50;
 
 interface SummaryData {
   summary: string;
-  coveredUpTo: number; // timestamp of last summarized message
+  coveredUpTo: number;
   updatedAt: number;
 }
 
@@ -53,21 +54,55 @@ function summaryKey(roomId: string, npcId: string): string {
   return `summary:${roomId}:${npcId}`;
 }
 
-/** Load existing summary from KV */
 export async function loadSummary(roomId: string, npcId: string): Promise<string> {
   const raw = await kvGet(summaryKey(roomId, npcId));
   if (!raw) return '';
   try {
-    const data: SummaryData = JSON.parse(raw);
-    return data.summary;
+    return (JSON.parse(raw) as SummaryData).summary;
   } catch {
     return '';
   }
 }
 
+// ---- Tier 3: Long-term (Persistent NPC facts) ----
+
+const MAX_LONG_MEMORY_FACTS = 20;
+
+interface LongMemoryData {
+  facts: string[];
+  updatedAt: number;
+}
+
+function longMemoryKey(npcId: string): string {
+  return `long-memory:${npcId}`;
+}
+
+/** Load long-term memory — always called, every turn */
+export async function loadLongMemory(npcId: string): Promise<string> {
+  const raw = await kvGet(longMemoryKey(npcId));
+  if (!raw) return '';
+  try {
+    const data: LongMemoryData = JSON.parse(raw);
+    return data.facts.map((f, i) => `${i + 1}. ${f}`).join('\n');
+  } catch {
+    return '';
+  }
+}
+
+async function saveLongMemory(npcId: string, facts: string[]): Promise<void> {
+  const data: LongMemoryData = {
+    facts: facts.slice(-MAX_LONG_MEMORY_FACTS),
+    updatedAt: Date.now(),
+  };
+  await kvPut(longMemoryKey(npcId), JSON.stringify(data));
+}
+
+// ---- Update Tier 2 + 3 together ----
+
 /**
- * If history is long enough, summarize older messages and store in KV.
- * Returns the summary (existing or newly generated).
+ * When history exceeds threshold:
+ * 1. Summarize older messages → Tier 2 (KV summary)
+ * 2. Extract lasting facts → merge into Tier 3 (KV long-memory)
  */
 export async function updateSummaryIfNeeded(
   roomId: string,
@@ -76,15 +111,12 @@ export async function updateSummaryIfNeeded(
   env: Env,
 ): Promise<string> {
   if (allHistory.length <= SUMMARY_THRESHOLD) {
-    // Not enough history to warrant summarization
     return loadSummary(roomId, npcId);
   }
 
-  // Split: older messages to summarize, recent to keep
   const older = allHistory.slice(0, -RECENT_KEEP);
   const existingSummary = await loadSummary(roomId, npcId);
 
-  // Build text to summarize
   const lines = older.map((m) => {
     if (m.role === 'user') return `유저: ${m.text}`;
     return `캐릭터: ${m.text}`;
@@ -94,24 +126,55 @@ export async function updateSummaryIfNeeded(
     ? `[이전 요약]\n${existingSummary}\n\n[새로운 대화]\n${lines.join('\n')}`
     : lines.join('\n');
 
+  // Load existing long-term facts for context
+  const existingLongRaw = await kvGet(longMemoryKey(npcId));
+  const existingFacts: string[] = existingLongRaw
+    ? (JSON.parse(existingLongRaw) as LongMemoryData).facts
+    : [];
+
   try {
-    const { text: summary } = await generateText({
-      model: engineModel(env),
-      system: '당신은 대화 요약 전문가입니다. 주어진 대화를 3-5문장으로 요약하세요. 핵심 사건, 감정 변화, 관계 진전을 중심으로. 한국어로 작성.',
+    const { object } = await generateObject({
+      model: primaryModel(env),
+      schema: z.object({
+        summary: z.string().describe('대화 요약. 3-5문장. 핵심 사건, 감정 변화, 관계 진전 중심.'),
+        newFacts: z.array(z.string()).describe(
+          '이 대화에서 새로 발견된, 장기적으로 기억할 만한 사실들. '
+          + '예: "용준과 정숙의 관계가 시작됨", "미나는 용준에게 질투를 느낌". '
+          + '이미 알려진 사실은 제외. 새로운 것만. 없으면 빈 배열.',
+        ),
+      }),
+      system: `당신은 소설 캐릭터의 기억을 관리하는 시스템입니다.
+주어진 대화를 분석하여:
+1. 대화 요약 (3-5문장)
+2. 장기 기억으로 저장할 새로운 사실 추출
+
+기존에 이미 알고 있는 사실:
+${existingFacts.length > 0 ? existingFacts.map((f, i) => `${i + 1}. ${f}`).join('\n') : '(없음)'}
+
+중복되는 사실은 newFacts에 넣지 마세요. 한국어로 작성.`,
       prompt: textToSummarize,
-      maxOutputTokens: 300,
+      maxOutputTokens: 500,
     });
 
-    const data: SummaryData = {
-      summary,
+    // Save Tier 2: summary
+    const summaryData: SummaryData = {
+      summary: object.summary,
       coveredUpTo: Date.now(),
       updatedAt: Date.now(),
     };
-    await kvPut(summaryKey(roomId, npcId), JSON.stringify(data));
-    console.log(`[summary] updated for room=${roomId} npc=${npcId} (${summary.length} chars)`);
-    return summary;
+    await kvPut(summaryKey(roomId, npcId), JSON.stringify(summaryData));
+
+    // Save Tier 3: merge new facts
+    if (object.newFacts.length > 0) {
+      const merged = [...existingFacts, ...object.newFacts];
+      await saveLongMemory(npcId, merged);
+      console.log(`[long-memory] npc=${npcId} +${object.newFacts.length} facts (total ${merged.length})`);
+    }
+
+    console.log(`[summary] room=${roomId} npc=${npcId} (${object.summary.length} chars)`);
+    return object.summary;
   } catch (err) {
-    console.warn('[summary] generation failed (non-fatal):', (err as Error).message);
+    console.warn('[memory] update failed (non-fatal):', (err as Error).message);
     return existingSummary;
   }
 }

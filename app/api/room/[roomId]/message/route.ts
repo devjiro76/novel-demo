@@ -5,8 +5,7 @@ import { getVillage } from '@/lib/personas';
 import { generateConversationResponse } from '@/lib/narrator';
 import { generateAppraisal } from '@/lib/appraisal';
 import { getStoryPack } from '@/lib/story-pack';
-import { searchKB } from '@/lib/kb';
-import { loadSummary, updateSummaryIfNeeded } from '@/lib/memory';
+import { updateSummaryIfNeeded, loadLongMemory } from '@/lib/memory';
 import type { RoomMessage } from '@/lib/room';
 
 const EMOTION_KO: Record<string, string> = {
@@ -96,30 +95,22 @@ export async function POST(
 
     const stimulusDescription = `${player.displayName}이(가) 말했다: "${text.trim()}"`;
 
-    // Context enrichment: KB (early turns) + conversation summary (long chats)
-    const historyLen = chatHistory.length;
-    const needKB = historyLen < 5;
-
-    const [kbContext, summary] = await Promise.all([
-      needKB
-        ? searchKB(room.slug, text.trim(), env.EMBEDDING_API_KEY, 3, env.EMBEDDING_BASE_URL).catch((err) => {
-            console.warn('[room/message] KB search failed (non-fatal):', err.message);
-            return '';
-          })
-        : Promise.resolve(''),
+    // Context enrichment: conversation summary (Tier 2) + long-term memory (Tier 3)
+    const [summary, longMemory] = await Promise.all([
       updateSummaryIfNeeded(roomId, npcId, chatHistory, env).catch((err) => {
         console.warn('[room/message] summary failed (non-fatal):', (err as Error).message);
         return '';
       }),
+      loadLongMemory(npcId).catch(() => ''),
     ]);
-    if (kbContext) console.log(`[KB] slug=${room.slug} result=${kbContext.length} chars`);
     if (summary) console.log(`[summary] room=${roomId} ${summary.length} chars`);
+    if (longMemory) console.log(`[long-memory] npc=${npcId} ${longMemory.length} chars`);
 
     const [appraisal, conversationResult] = await Promise.all([
       generateAppraisal(npcId, stimulusDescription, village, env, player.characterId),
       generateConversationResponse(
         npcId, situation, text.trim(), village, env, pack, chatHistory,
-        senderPlayer, allPlayers, kbContext, summary,
+        senderPlayer, allPlayers, summary, longMemory,
       ),
     ]);
 
@@ -163,7 +154,7 @@ export async function POST(
 
 /** Convert room messages to chat history format for narrator */
 function buildChatHistory(messages: RoomMessage[], npcCharacterId: string) {
-  const recent = messages.slice(-30);
+  const recent = messages.slice(-50);
   return recent.map((m) => {
     if (m.sender.type === 'system') {
       return { role: 'user' as const, text: `[시스템] ${m.text}` };

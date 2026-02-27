@@ -26,13 +26,13 @@ function buildSystemPrompt(
   if (speakingStyle) prompt += '\n\n## 말투 가이드\n' + speakingStyle;
   prompt += '\n\n' + staticInstructions;
 
-  // — Dynamic block (changes per request) —
+  // — Dynamic block (changes per request, broad → narrow) —
+  if (dynamicSuffix) prompt += '\n\n' + dynamicSuffix;
   const dynamicParts = [pc.emotion, pc.mood, pc.goals, pc.self, pc.narrative]
     .filter(Boolean);
   if (dynamicParts.length) {
     prompt += '\n\n## 현재 내면 상태\n' + dynamicParts.join('\n');
   }
-  if (dynamicSuffix) prompt += '\n\n' + dynamicSuffix;
 
   return prompt;
 }
@@ -68,8 +68,8 @@ export async function generateConversationResponse(
   chatHistory?: ChatHistoryMessage[],
   senderPlayer?: PlayerContext,
   allPlayers?: PlayerContext[],
-  kbContext?: string,
   memoryBlock?: string,
+  longMemory?: string,
 ): Promise<ConversationResponse> {
   const displayName = pack.displayNames[characterId] ?? characterId;
 
@@ -83,7 +83,8 @@ export async function generateConversationResponse(
 
   const vad = state.emotion.vad;
 
-  const staticInstructions = pack.conversationInstructions.replace(/\{\{displayName\}\}/g, displayName);
+  const staticInstructions = pack.conversationInstructions.replace(/\{\{displayName\}\}/g, displayName)
+    + '\n\n## 서사 진행 (필수)\n- 매 턴 장면이 **실제로 진행**되어야 합니다. 같은 자세·동작·위치에 머무르지 마세요.\n- 유저가 요구하는 행동이 있으면 캐릭터답게 응하거나 거부하되, **장면을 앞으로 밀어야** 합니다.\n- 위협만 반복하거나 같은 신체 접촉을 반복하는 것은 금지합니다.';
 
   // Build multi-user context block if multiple players exist
   let multiUserContext = '';
@@ -96,18 +97,20 @@ export async function generateConversationResponse(
     multiUserContext = `\n\n## 현재 대화방 참여자\n${playerLines.join('\n')}`;
   }
 
-  let dynamicSuffix = `## 현재 상황\n${situation}${multiUserContext}`;
+  // Dynamic suffix: broadest context → narrowest context
+  let dynamicSuffix = '';
+
+  if (longMemory) {
+    dynamicSuffix += `## 장기 기억 (모든 대화에서 누적된 핵심 사실)\n${longMemory}`;
+  }
 
   if (memoryBlock) {
-    dynamicSuffix += `\n\n## 이전 대화 요약\n${memoryBlock}`;
+    if (dynamicSuffix) dynamicSuffix += '\n\n';
+    dynamicSuffix += `## 이전 대화 요약\n${memoryBlock}`;
   }
 
-  if (kbContext) {
-    dynamicSuffix += `\n\n## 원작 전개 방향\n${kbContext}\n\n### 활용 지시\n- 이 장면들의 **전개 방향, 감정 곡선, 캐릭터 간 역학**을 이번 응답에 반영하세요.\n- 원작에서 다음에 일어나는 일을 자연스럽게 암시하거나 유도하세요.\n- 대사를 그대로 인용하지 말고, 현재 상황과 캐릭터 상태에 맞게 재해석하세요.`;
-  }
-
-  // 서사 진행 지시: KB 유무에 관계없이 항상 포함
-  dynamicSuffix += '\n\n## 서사 진행 (필수)\n- 매 턴 장면이 **실제로 진행**되어야 합니다. 같은 자세·동작·위치에 머무르지 마세요.\n- 유저가 요구하는 행동이 있으면 캐릭터답게 응하거나 거부하되, **장면을 앞으로 밀어야** 합니다.\n- 위협만 반복하거나 같은 신체 접촉을 반복하는 것은 금지합니다.';
+  if (dynamicSuffix) dynamicSuffix += '\n\n';
+  dynamicSuffix += `## 현재 상황\n${situation}${multiUserContext}`;
 
   const systemPrompt = buildSystemPrompt(
     promptCtx, speakingStyle, staticInstructions,
@@ -119,7 +122,7 @@ export async function generateConversationResponse(
 
   if (chatHistory && chatHistory.length > 0) {
     // Keep last 20 messages to avoid context overflow
-    const recent = chatHistory.slice(-20);
+    const recent = chatHistory.slice(-50);
     for (const msg of recent) {
       if (msg.role === 'user') {
         conversationMessages.push({ role: 'user', content: msg.text });
