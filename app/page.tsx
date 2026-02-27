@@ -1,8 +1,7 @@
-import GameClient from '@/components/GameClient';
-import { getStoryPack, toClientPack } from '@/lib/story-pack';
+import StorySelector from '@/components/StorySelector';
+import { getAllClientPacks } from '@/lib/story-pack';
 
 export default function Page() {
-  const pack = getStoryPack();
-  const clientPack = toClientPack(pack);
-  return <GameClient pack={clientPack} />;
+  const packs = getAllClientPacks();
+  return <StorySelector packs={packs} />;
 }

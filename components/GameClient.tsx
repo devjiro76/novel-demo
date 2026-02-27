@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import Link from 'next/link';
 import type { ConversationResponse } from '@/lib/types';
 import type { ClientStoryPack, CharacterMeta } from '@/lib/story-pack';
 import { startGame, submitConversation } from '@/lib/api-client';
-const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
 
 type Phase = 'title' | 'loading' | 'select' | 'chat';
 
@@ -19,14 +19,14 @@ interface ChatMessage {
 type Character = CharacterMeta;
 
 // ---- Avatar ----
-function Avatar({ char, size = 40 }: { char: Character; size?: number }) {
+function CharAvatar({ char, pack, size = 40 }: { char: Character; pack: ClientStoryPack; size?: number }) {
   return (
     <div
       className="rounded-full overflow-hidden shrink-0 border border-white/10"
       style={{ width: size, height: size }}
     >
       <img
-        src={`${BASE}${char.image}`}
+        src={`${pack.assetsBasePath}${char.image}`}
         alt={char.name}
         className="object-cover object-[50%_15%] w-full h-full"
       />
@@ -38,12 +38,11 @@ function Avatar({ char, size = 40 }: { char: Character; size?: number }) {
 function TitleScreen({ pack, onStart, loading }: { pack: ClientStoryPack; onStart: () => void; loading: boolean }) {
   return (
     <div className="h-full w-full flex flex-col items-center justify-end relative overflow-hidden">
-      {/* Background */}
       <div className="absolute inset-0">
         <picture>
-          <source media="(min-width: 768px)" srcSet={`${BASE}${pack.coverWide}`} />
+          <source media="(min-width: 768px)" srcSet={`${pack.assetsBasePath}${pack.coverWide}`} />
           <img
-            src={`${BASE}${pack.coverTall}`}
+            src={`${pack.assetsBasePath}${pack.coverTall}`}
             alt=""
             className="absolute inset-0 w-full h-full object-cover object-center opacity-40 blur-[2px] md:scale-110 md:opacity-50"
           />
@@ -52,20 +51,24 @@ function TitleScreen({ pack, onStart, loading }: { pack: ClientStoryPack; onStar
         <div className="absolute inset-0 bg-gradient-to-b from-[#08080d]/80 via-transparent to-[#08080d]" />
       </div>
 
-      {/* Ambient glow */}
+      <Link
+        href="/"
+        className="absolute top-5 left-5 z-20 text-sm text-white/30 hover:text-white/60 transition-colors p-2"
+      >
+        ← 다른 이야기
+      </Link>
+
       <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[400px] h-[200px] rounded-full bg-pink-500/8 blur-[80px] breathe pointer-events-none" />
 
-      {/* Content */}
       <div className="relative z-10 text-center pb-20 px-6 slide-up">
         <img
-          src={`${BASE}${pack.logo}`}
+          src={`${pack.assetsBasePath}${pack.logo}`}
           alt={pack.subtitle ?? pack.title}
           className="w-[280px] max-w-[80vw] mx-auto mb-8 drop-shadow-lg"
         />
 
         <p className="text-[12px] text-white/30 mb-8 leading-relaxed">
-          당신은 <span className="text-pink-300/60 font-semibold">{pack.playerDisplayName}</span>입니다.<br />
-          캐릭터들은 당신을 용준으로 대합니다.
+          당신은 <span className="text-pink-300/60 font-semibold">{pack.playerDisplayName}</span>입니다.
         </p>
 
         <button
@@ -86,8 +89,9 @@ function TitleScreen({ pack, onStart, loading }: { pack: ClientStoryPack; onStar
 }
 
 // ---- Character Card ----
-function CharacterCard({ char, chatCount, onClick, delay }: {
+function CharacterCard({ char, pack, chatCount, onClick, delay }: {
   char: Character;
+  pack: ClientStoryPack;
   chatCount: number;
   onClick: () => void;
   delay: number;
@@ -104,17 +108,15 @@ function CharacterCard({ char, chatCount, onClick, delay }: {
       }}
     >
       <div className="flex">
-        {/* Image */}
         <div className="relative w-24 shrink-0 overflow-hidden">
           <img
-            src={`${BASE}${char.image}`}
+            src={`${pack.assetsBasePath}${char.image}`}
             alt={char.name}
             className="absolute inset-0 w-full h-full object-cover object-[50%_12%]"
           />
           <div className={`absolute inset-0 bg-gradient-to-r ${char.gradient}`} />
         </div>
 
-        {/* Info */}
         <div className="flex-1 p-4 min-w-0">
           <div className="flex items-baseline gap-2 mb-0.5">
             <span className={`text-base font-bold ${char.accentText}`}>{char.fullName}</span>
@@ -133,7 +135,6 @@ function CharacterCard({ char, chatCount, onClick, delay }: {
         </div>
       </div>
 
-      {/* Hover glow */}
       <div
         className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
         style={{ boxShadow: `inset 0 0 40px rgba(${char.glowRgb},0.05)` }}
@@ -143,8 +144,8 @@ function CharacterCard({ char, chatCount, onClick, delay }: {
 }
 
 // ---- Select Screen ----
-function SelectScreen({ characters, chatHistories, onSelect, onReset }: {
-  characters: Character[];
+function SelectScreen({ pack, chatHistories, onSelect, onReset }: {
+  pack: ClientStoryPack;
   chatHistories: Record<string, ChatMessage[]>;
   onSelect: (char: Character) => void;
   onReset: () => void;
@@ -154,6 +155,12 @@ function SelectScreen({ characters, chatHistories, onSelect, onReset }: {
       <header className="px-5 pt-8 pb-5">
         <div className="flex items-end justify-between">
           <div>
+            <Link
+              href="/"
+              className="text-[10px] text-[var(--color-text-dim)] hover:text-white/60 transition-colors mb-2 block"
+            >
+              ← 다른 이야기
+            </Link>
             <h2 className="text-xl font-bold tracking-tight">누구에게 갈까?</h2>
             <p className="text-[11px] text-[var(--color-text-dim)] mt-1 tracking-wide">비밀은 지켜줄게.</p>
           </div>
@@ -167,10 +174,11 @@ function SelectScreen({ characters, chatHistories, onSelect, onReset }: {
       </header>
 
       <main className="flex-1 overflow-y-auto px-5 pb-8 space-y-3">
-        {characters.map((char, i) => (
+        {pack.characters.map((char, i) => (
           <CharacterCard
             key={char.id}
             char={char}
+            pack={pack}
             chatCount={(chatHistories[char.id] ?? []).length}
             onClick={() => onSelect(char)}
             delay={i * 100}
@@ -182,7 +190,7 @@ function SelectScreen({ characters, chatHistories, onSelect, onReset }: {
 }
 
 // ---- Chat Message ----
-function MessageBubble({ msg, char }: { msg: ChatMessage; char: Character }) {
+function MessageBubble({ msg, char, pack }: { msg: ChatMessage; char: Character; pack: ClientStoryPack }) {
   if (msg.role === 'user') {
     return (
       <div className="flex justify-end slide-up">
@@ -195,17 +203,15 @@ function MessageBubble({ msg, char }: { msg: ChatMessage; char: Character }) {
 
   return (
     <div className="slide-up space-y-3">
-      {/* Narration — full width, no avatar, visually separate */}
       {msg.action && (
         <p className="text-[12px] text-white/70 italic leading-relaxed text-center px-6">
           {msg.action}
         </p>
       )}
 
-      {/* Character speech bubble */}
       {(msg.text || msg.innerThought) && (
         <div className="flex gap-2.5 items-start max-w-[92%]">
-          <Avatar char={char} size={32} />
+          <CharAvatar char={char} pack={pack} size={32} />
           <div className="flex-1 min-w-0">
             <div
               className="rounded-2xl rounded-tl-md px-4 py-3 space-y-2"
@@ -247,8 +253,9 @@ function MessageBubble({ msg, char }: { msg: ChatMessage; char: Character }) {
 }
 
 // ---- Chat Screen ----
-function ChatScreen({ char, messages, sending, input, onInputChange, onSend, onBack, inputRef, scrollRef }: {
+function ChatScreen({ char, pack, messages, sending, input, onInputChange, onSend, onBack, inputRef, scrollRef }: {
   char: Character;
+  pack: ClientStoryPack;
   messages: ChatMessage[];
   sending: boolean;
   input: string;
@@ -267,7 +274,6 @@ function ChatScreen({ char, messages, sending, input, onInputChange, onSend, onB
 
   return (
     <div className="h-screen flex flex-col">
-      {/* Header */}
       <header
         className="px-4 py-3 flex items-center gap-3 slide-down"
         style={{
@@ -281,18 +287,17 @@ function ChatScreen({ char, messages, sending, input, onInputChange, onSend, onB
         >
           ←
         </button>
-        <Avatar char={char} size={36} />
+        <CharAvatar char={char} pack={pack} size={36} />
         <div className="flex-1 min-w-0">
           <span className={`text-sm font-bold ${char.accentText}`}>{char.fullName}</span>
           <span className="text-[10px] text-[var(--color-text-dim)] ml-2">{char.role}</span>
         </div>
       </header>
 
-      {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-5 space-y-6">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center px-8 opacity-50">
-            <Avatar char={char} size={56} />
+            <CharAvatar char={char} pack={pack} size={56} />
             <p className="text-xs text-[var(--color-text-dim)] mt-4 leading-relaxed">
               {char.fullName}에게 말을 걸어보세요.
             </p>
@@ -300,12 +305,12 @@ function ChatScreen({ char, messages, sending, input, onInputChange, onSend, onB
         )}
 
         {messages.map((msg, i) => (
-          <MessageBubble key={i} msg={msg} char={char} />
+          <MessageBubble key={i} msg={msg} char={char} pack={pack} />
         ))}
 
         {sending && (
           <div className="flex gap-2.5 items-start slide-up">
-            <Avatar char={char} size={32} />
+            <CharAvatar char={char} pack={pack} size={32} />
             <div className="flex items-center gap-1.5 pt-2">
               {[0, 1, 2].map((i) => (
                 <div
@@ -322,7 +327,6 @@ function ChatScreen({ char, messages, sending, input, onInputChange, onSend, onB
         )}
       </div>
 
-      {/* Input */}
       <div
         className="px-4 py-3"
         style={{
@@ -369,6 +373,7 @@ function ChatScreen({ char, messages, sending, input, onInputChange, onSend, onB
 // ---- Main ----
 export default function GameClient({ pack }: { pack: ClientStoryPack }) {
   const [phase, setPhase] = useState<Phase>('title');
+  const [villageId, setVillageId] = useState<string | null>(null);
   const [activeChar, setActiveChar] = useState<Character | null>(null);
   const [chatHistories, setChatHistories] = useState<Record<string, ChatMessage[]>>({});
   const [input, setInput] = useState('');
@@ -376,13 +381,19 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const storageKey = `novel:${pack.slug}`;
+
   useEffect(() => {
     try {
-      if (sessionStorage.getItem('novel:started')) setPhase('select');
-      const saved = sessionStorage.getItem('novel:chats');
+      const savedVillageId = localStorage.getItem(`${storageKey}:villageId`);
+      if (savedVillageId) {
+        setVillageId(savedVillageId);
+        setPhase('select');
+      }
+      const saved = localStorage.getItem(`${storageKey}:chats`);
       if (saved) setChatHistories(JSON.parse(saved));
     } catch {}
-  }, []);
+  }, [storageKey]);
 
   const messages = activeChar ? (chatHistories[activeChar.id] ?? []) : [];
 
@@ -395,8 +406,8 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
   }, [activeChar]);
 
   useEffect(() => {
-    try { sessionStorage.setItem('novel:chats', JSON.stringify(chatHistories)); } catch {}
-  }, [chatHistories]);
+    try { localStorage.setItem(`${storageKey}:chats`, JSON.stringify(chatHistories)); } catch {}
+  }, [chatHistories, storageKey]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
@@ -409,13 +420,14 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
   const handleStart = useCallback(async () => {
     setPhase('loading');
     try {
-      await startGame();
-      sessionStorage.setItem('novel:started', '1');
+      const newVillageId = await startGame(pack.slug);
+      setVillageId(newVillageId);
+      localStorage.setItem(`${storageKey}:villageId`, newVillageId);
       setPhase('select');
     } catch {
       setPhase('title');
     }
-  }, []);
+  }, [pack.slug, storageKey]);
 
   const handleSelect = useCallback((char: Character) => {
     setActiveChar(char);
@@ -429,17 +441,18 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
 
   const handleReset = useCallback(() => {
     setPhase('title');
+    setVillageId(null);
     setActiveChar(null);
     setChatHistories({});
     try {
-      sessionStorage.removeItem('novel:chats');
-      sessionStorage.removeItem('novel:started');
+      localStorage.removeItem(`${storageKey}:villageId`);
+      localStorage.removeItem(`${storageKey}:chats`);
     } catch {}
-  }, []);
+  }, [storageKey]);
 
   const handleSend = useCallback(async () => {
     const msg = input.trim();
-    if (!msg || sending || !activeChar) return;
+    if (!msg || sending || !activeChar || !villageId) return;
 
     setMessages((prev) => [...prev, { role: 'user', text: msg }]);
     setInput('');
@@ -447,7 +460,7 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
 
     try {
       const situation = pack.defaultSituation.replace(/\{\{charFullName\}\}/g, activeChar.fullName);
-      const res: ConversationResponse = await submitConversation(activeChar.id, msg, situation, messages);
+      const res: ConversationResponse = await submitConversation(pack.slug, villageId, activeChar.id, msg, situation, messages);
       setMessages((prev) => [
         ...prev,
         {
@@ -467,7 +480,7 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
       setSending(false);
       inputRef.current?.focus();
     }
-  }, [input, sending, activeChar, messages, setMessages]);
+  }, [input, sending, activeChar, pack, messages, setMessages]);
 
   let content: React.ReactNode = null;
 
@@ -476,7 +489,7 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
   } else if (phase === 'select') {
     content = (
       <SelectScreen
-        characters={pack.characters}
+        pack={pack}
         chatHistories={chatHistories}
         onSelect={handleSelect}
         onReset={handleReset}
@@ -486,6 +499,7 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
     content = (
       <ChatScreen
         char={activeChar}
+        pack={pack}
         messages={messages}
         sending={sending}
         input={input}

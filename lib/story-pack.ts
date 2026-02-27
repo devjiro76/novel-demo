@@ -24,14 +24,39 @@ export interface RelSeed {
   trust: number;
 }
 
+export interface PersonaSeed {
+  persona_config_id: string;
+  display_name: string;
+  config: Record<string, unknown>;
+}
+
+export interface ActionSeed {
+  name: string;
+  description: string;
+  appraisal: {
+    goal_relevance: number;
+    goal_congruence: number;
+    expectedness: number;
+    controllability: number;
+    agency: number;
+    norm_compatibility: number;
+    internal_standards: number;
+    adjustment_potential: number;
+    urgency: number;
+  };
+}
+
 export interface StoryManifest {
   slug: string;
   title: string;
   subtitle?: string;
   description: string;
 
-  // World API
-  villageId: string;
+  // World API seed data
+  personas: PersonaSeed[];
+  actions: ActionSeed[];
+  initialRelationships: RelSeed[];
+
   playerCharacterId: string;
   playerDisplayName: string;
   npcIds: string[];
@@ -47,12 +72,9 @@ export interface StoryManifest {
   // Narrator prompt blocks (use {{displayName}} placeholder)
   conversationInstructions: string;
   defaultSituation: string; // use {{charFullName}} placeholder
-
-  // State
-  initialRelationships: RelSeed[];
 }
 
-/** Client-safe subset — no prompt text, no relationships */
+/** Client-safe subset — no prompt text, no seed data */
 export interface ClientStoryPack {
   slug: string;
   title: string;
@@ -83,4 +105,8 @@ export function toClientPack(pack: StoryManifest): ClientStoryPack {
     playerDisplayName: pack.playerDisplayName,
     defaultSituation: pack.defaultSituation,
   };
+}
+
+export function getAllClientPacks(): ClientStoryPack[] {
+  return Object.values(STORY_PACKS).map(toClientPack);
 }

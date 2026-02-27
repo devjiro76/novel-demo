@@ -35,8 +35,8 @@ export interface VillageEvent {
 let _village: Village | null = null;
 let _villageKey = '';
 
-export async function getVillage(env: Env, villageId?: string): Promise<Village> {
-  const key = villageId ?? env.VILLAGE_ID;
+export async function getVillage(env: Env, villageId: string): Promise<Village> {
+  const key = villageId;
   if (_village && _villageKey === key) return _village;
   const world = new World({ apiKey: env.WORLD_API_KEY, baseUrl: env.WORLD_API_URL });
   _village = await world.getVillage(key);

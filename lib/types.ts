@@ -4,7 +4,6 @@ export interface Env {
   OPENROUTER_API_KEY: string;
   WORLD_API_KEY: string;
   WORLD_API_URL: string;
-  VILLAGE_ID: string;
 }
 
 export function getEnv(): Env {
@@ -12,7 +11,6 @@ export function getEnv(): Env {
     OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY!,
     WORLD_API_KEY: process.env.WORLD_API_KEY!,
     WORLD_API_URL: process.env.WORLD_API_URL!,
-    VILLAGE_ID: process.env.VILLAGE_ID!,
   };
 }
 

@@ -1,0 +1,174 @@
+{
+  "actions": [
+    {
+      "name": "obey",
+      "label": "순순히 따르기",
+      "description": "저항 없이 상대의 지시나 요구에 따르는 행동",
+      "category": "submissive",
+      "appraisal": {
+        "goal_relevance": 0.6,
+        "goal_congruence": 0.3,
+        "expectedness": 0.7,
+        "controllability": 0.2,
+        "agency": -0.6,
+        "norm_compatibility": -0.5,
+        "internal_standards": -0.4,
+        "adjustment_potential": 0.5,
+        "urgency": 0.3
+      }
+    },
+    {
+      "name": "resist",
+      "label": "거부하기",
+      "description": "상대의 요구를 거부하거나 저항하는 행동",
+      "category": "defiant",
+      "appraisal": {
+        "goal_relevance": 0.8,
+        "goal_congruence": -0.5,
+        "expectedness": 0.3,
+        "controllability": 0.5,
+        "agency": 0.8,
+        "norm_compatibility": 0.5,
+        "internal_standards": 0.6,
+        "adjustment_potential": 0.4,
+        "urgency": 0.7
+      }
+    },
+    {
+      "name": "seduce",
+      "label": "유혹하기",
+      "description": "자신의 매력이나 신체를 이용해 상대를 유혹",
+      "category": "sexual",
+      "appraisal": {
+        "goal_relevance": 0.8,
+        "goal_congruence": 0.3,
+        "expectedness": 0.2,
+        "controllability": 0.4,
+        "agency": 0.9,
+        "norm_compatibility": -0.7,
+        "internal_standards": -0.6,
+        "adjustment_potential": 0.3,
+        "urgency": 0.5
+      }
+    },
+    {
+      "name": "beg",
+      "label": "애원하기",
+      "description": "상대에게 무언가를 간청하는 행동",
+      "category": "submissive",
+      "appraisal": {
+        "goal_relevance": 0.7,
+        "goal_congruence": 0.2,
+        "expectedness": 0.5,
+        "controllability": 0.1,
+        "agency": -0.7,
+        "norm_compatibility": -0.6,
+        "internal_standards": -0.7,
+        "adjustment_potential": 0.3,
+        "urgency": 0.6
+      }
+    },
+    {
+      "name": "tease",
+      "label": "장난치기",
+      "description": "가볍게 놀리거나 장난스러운 행동",
+      "category": "playful",
+      "appraisal": {
+        "goal_relevance": 0.3,
+        "goal_congruence": 0.2,
+        "expectedness": 0.4,
+        "controllability": 0.6,
+        "agency": 0.6,
+        "norm_compatibility": 0.0,
+        "internal_standards": 0.0,
+        "adjustment_potential": 0.7,
+        "urgency": 0.1
+      }
+    },
+    {
+      "name": "confide",
+      "label": "속마음 털어놓기",
+      "description": "감추고 있던 감정이나 비밀을 상대에게 말하는 행동",
+      "category": "emotional",
+      "appraisal": {
+        "goal_relevance": 0.9,
+        "goal_congruence": 0.5,
+        "expectedness": 0.1,
+        "controllability": 0.3,
+        "agency": 0.8,
+        "norm_compatibility": -0.3,
+        "internal_standards": 0.4,
+        "adjustment_potential": 0.2,
+        "urgency": 0.5
+      }
+    },
+    {
+      "name": "converse",
+      "label": "대화하기",
+      "description": "일반적인 대화를 나누는 행동",
+      "category": "neutral",
+      "appraisal": {
+        "goal_relevance": 0.3,
+        "goal_congruence": 0.4,
+        "expectedness": 0.6,
+        "controllability": 0.7,
+        "agency": 0.5,
+        "norm_compatibility": 0.5,
+        "internal_standards": 0.3,
+        "adjustment_potential": 0.8,
+        "urgency": 0.1
+      }
+    },
+    {
+      "name": "touch",
+      "label": "신체 접촉",
+      "description": "의도적인 신체 접촉이나 스킨십",
+      "category": "sexual",
+      "appraisal": {
+        "goal_relevance": 0.7,
+        "goal_congruence": 0.3,
+        "expectedness": 0.3,
+        "controllability": 0.3,
+        "agency": 0.9,
+        "norm_compatibility": -0.6,
+        "internal_standards": -0.4,
+        "adjustment_potential": 0.3,
+        "urgency": 0.4
+      }
+    },
+    {
+      "name": "ignore",
+      "label": "무시하기",
+      "description": "상대의 말이나 존재를 의도적으로 무시",
+      "category": "defiant",
+      "appraisal": {
+        "goal_relevance": 0.4,
+        "goal_congruence": -0.5,
+        "expectedness": 0.4,
+        "controllability": 0.3,
+        "agency": -0.5,
+        "norm_compatibility": -0.3,
+        "internal_standards": -0.2,
+        "adjustment_potential": 0.5,
+        "urgency": 0.1
+      }
+    },
+    {
+      "name": "provoke",
+      "label": "도발하기",
+      "description": "상대를 자극하거나 반응을 유도하는 행동",
+      "category": "defiant",
+      "appraisal": {
+        "goal_relevance": 0.6,
+        "goal_congruence": -0.4,
+        "expectedness": 0.3,
+        "controllability": 0.4,
+        "agency": 0.8,
+        "norm_compatibility": -0.5,
+        "internal_standards": -0.3,
+        "adjustment_potential": 0.5,
+        "urgency": 0.5
+      }
+    }
+  ]
+}

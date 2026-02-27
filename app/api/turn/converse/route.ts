@@ -26,24 +26,26 @@ const EMOTION_KO: Record<string, string> = {
 };
 
 export async function POST(request: Request) {
-  const pack = getStoryPack();
   const env = getEnv();
   const dbg = new DebugLog();
 
   try {
     const body = await request.json() as {
+      slug?: string;
+      villageId: string;
       characterId: string;
       userMessage: string;
       situation: string;
       chatHistory?: { role: 'user' | 'character'; text: string; action?: string; innerThought?: string }[];
     };
-    const { characterId, userMessage, situation, chatHistory } = body;
+    const { slug, villageId, characterId, userMessage, situation, chatHistory } = body;
+    const pack = getStoryPack(slug);
 
-    if (!characterId || !userMessage || !situation) {
-      return NextResponse.json({ error: 'Missing characterId, userMessage, or situation' }, { status: 400 });
+    if (!villageId || !characterId || !userMessage || !situation) {
+      return NextResponse.json({ error: 'Missing villageId, characterId, userMessage, or situation' }, { status: 400 });
     }
 
-    const village = await getVillage(env, pack.villageId);
+    const village = await getVillage(env, villageId);
 
     dbg.add('converse_start', { characterId, userMessage: userMessage.slice(0, 80) });
 

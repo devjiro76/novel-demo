@@ -1,10 +1,9 @@
 import type { ConversationResponse } from './types';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
-const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
 
 async function post<T>(path: string, body?: unknown): Promise<T> {
-  const res = await fetch(`${BASE_PATH}${path}`, {
+  const res = await fetch(path, {
     method: 'POST',
     headers: JSON_HEADERS,
     body: body ? JSON.stringify(body) : undefined,
@@ -18,8 +17,9 @@ async function post<T>(path: string, body?: unknown): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export async function startGame(): Promise<void> {
-  await post('/api/game/start');
+export async function startGame(slug: string): Promise<string> {
+  const res = await post<{ ok: boolean; villageId: string }>('/api/game/start', { slug });
+  return res.villageId;
 }
 
 export interface ChatHistoryMessage {
@@ -30,12 +30,16 @@ export interface ChatHistoryMessage {
 }
 
 export async function submitConversation(
+  slug: string,
+  villageId: string,
   characterId: string,
   userMessage: string,
   situation: string,
   chatHistory?: ChatHistoryMessage[],
 ): Promise<ConversationResponse> {
   return post<ConversationResponse>('/api/turn/converse', {
+    slug,
+    villageId,
     characterId,
     userMessage,
     situation,

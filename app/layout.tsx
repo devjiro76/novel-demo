@@ -9,7 +9,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: '못참아 — Interactive Novel',
+  title: 'Interactive Novel',
   description: 'AI-driven interactive novel with emotion engine',
 };
 
