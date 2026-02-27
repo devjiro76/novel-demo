@@ -84,7 +84,7 @@ function Avatar({ char, size = 40 }: { char: Character; size?: number }) {
 // ---- Title Screen ----
 function TitleScreen({ onStart, loading }: { onStart: () => void; loading: boolean }) {
   return (
-    <div className="h-screen w-screen flex flex-col items-center justify-end relative overflow-hidden">
+    <div className="h-full w-full flex flex-col items-center justify-end relative overflow-hidden">
       {/* Background */}
       <div className="absolute inset-0">
         <picture>
@@ -516,12 +516,12 @@ export default function GameClient() {
     }
   }, [input, sending, activeChar, messages, setMessages]);
 
-  if (phase === 'title' || phase === 'loading') {
-    return <TitleScreen onStart={handleStart} loading={phase === 'loading'} />;
-  }
+  let content: React.ReactNode = null;
 
-  if (phase === 'select') {
-    return (
+  if (phase === 'title' || phase === 'loading') {
+    content = <TitleScreen onStart={handleStart} loading={phase === 'loading'} />;
+  } else if (phase === 'select') {
+    content = (
       <SelectScreen
         characters={CHARACTERS}
         chatHistories={chatHistories}
@@ -529,10 +529,8 @@ export default function GameClient() {
         onReset={handleReset}
       />
     );
-  }
-
-  if (phase === 'chat' && activeChar) {
-    return (
+  } else if (phase === 'chat' && activeChar) {
+    content = (
       <ChatScreen
         char={activeChar}
         messages={messages}
@@ -547,5 +545,11 @@ export default function GameClient() {
     );
   }
 
-  return null;
+  return (
+    <div className="h-screen w-screen bg-black flex justify-center">
+      <div className="w-full max-w-[480px] h-full bg-[#08080d] relative md:border-x md:border-white/[0.06] md:shadow-[0_0_80px_rgba(0,0,0,0.8)]">
+        {content}
+      </div>
+    </div>
+  );
 }

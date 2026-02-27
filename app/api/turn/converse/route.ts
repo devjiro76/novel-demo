@@ -71,6 +71,8 @@ export async function POST(request: Request) {
       actorType: 'user',
       appraisal: appraisalVector,
       stimulusDescription,
+    }).catch((err: any) => {
+      console.warn('[converse] interact failed (non-fatal):', err.message);
     });
 
     // Read updated emotion state from engine (after appraisal applied)
