@@ -69,6 +69,7 @@ export async function generateConversationResponse(
   senderPlayer?: PlayerContext,
   allPlayers?: PlayerContext[],
   kbContext?: string,
+  memoryBlock?: string,
 ): Promise<ConversationResponse> {
   const displayName = pack.displayNames[characterId] ?? characterId;
 
@@ -96,6 +97,10 @@ export async function generateConversationResponse(
   }
 
   let dynamicSuffix = `## 현재 상황\n${situation}${multiUserContext}`;
+
+  if (memoryBlock) {
+    dynamicSuffix += `\n\n## 과거 기억\n${memoryBlock}`;
+  }
 
   if (kbContext) {
     dynamicSuffix += `\n\n## 원작 전개 방향\n${kbContext}\n\n### 활용 지시\n- 이 장면들의 **전개 방향, 감정 곡선, 캐릭터 간 역학**을 이번 응답에 반영하세요.\n- 원작에서 다음에 일어나는 일을 자연스럽게 암시하거나 유도하세요.\n- 대사를 그대로 인용하지 말고, 현재 상황과 캐릭터 상태에 맞게 재해석하세요.`;

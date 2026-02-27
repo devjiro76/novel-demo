@@ -1,9 +1,14 @@
-import * as fs from 'fs';
-import * as path from 'path';
 import type { KBIndex, KBSearchResult } from './types';
 
-/** In-memory cache of loaded indices */
-const indexCache = new Map<string, KBIndex>();
+// Static imports — CF Workers can't use fs.readFileSync at runtime.
+// These get bundled into the worker at build time.
+import motchamaIndex from '@/data/kb/motchama-vectors.json';
+import oppaFriendsIndex from '@/data/kb/oppa-friends-vectors.json';
+
+const staticIndices: Record<string, KBIndex> = {
+  motchama: motchamaIndex as unknown as KBIndex,
+  'oppa-friends': oppaFriendsIndex as unknown as KBIndex,
+};
 
 function cosineSimilarity(a: number[], b: number[]): number {
   let dot = 0;
@@ -17,17 +22,9 @@ function cosineSimilarity(a: number[], b: number[]): number {
   return dot / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
-/** Load index from JSON file, with in-memory caching */
+/** Load index — bundled at build time via static import */
 export function loadIndex(storySlug: string): KBIndex | null {
-  const cached = indexCache.get(storySlug);
-  if (cached) return cached;
-
-  const filePath = path.join(process.cwd(), 'data', 'kb', `${storySlug}-vectors.json`);
-  if (!fs.existsSync(filePath)) return null;
-
-  const data = JSON.parse(fs.readFileSync(filePath, 'utf-8')) as KBIndex;
-  indexCache.set(storySlug, data);
-  return data;
+  return staticIndices[storySlug] ?? null;
 }
 
 /** Search for top-k most similar chunks */

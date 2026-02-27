@@ -17,8 +17,26 @@
 			"id": "5a00076bd3304860ae4569a15609c6d8"
 		}
 	],
+	"d1_databases": [
+		{
+			"binding": "EPISODES_DB",
+			"database_name": "novel-episodes",
+			"database_id": "d958966d-ffa4-4b1a-b87f-cf63e75a82f8"
+		}
+	],
+	"vectorize": [
+		{
+			"binding": "VECTORIZE_INDEX",
+			"index_name": "novel-episodes-idx"
+		}
+	],
+	"ai": {
+		"binding": "AI"
+	},
 	"vars": {
 		"WORLD_API_URL": "https://world-api.molroo.io",
-		"VILLAGE_ID": "764c24aa-8437-44e4-8244-bea0efaaf500"
+		"VILLAGE_ID": "764c24aa-8437-44e4-8244-bea0efaaf500",
+		"LLM_BASE_URL": "https://api.venice.ai/api/v1",
+		"EMBEDDING_BASE_URL": "https://openrouter.ai/api/v1"
 	}
 }
