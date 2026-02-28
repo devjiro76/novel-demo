@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
+import { useIsDesktop } from '@/hooks/useMediaQuery';
+import { PageLayout, PageCard } from '@/components/layout';
 import type { UserWorldRelationship } from '@/lib/types';
 import { Switch } from '@/components/ui/switch';
 
@@ -442,8 +444,8 @@ export default function WorldWizard() {
   if (done) {
     const themeColor = characters[0]?.glow ?? '#a855f7';
     return (
-      <div className="min-h-screen bg-[var(--color-bg)] flex items-center justify-center px-4">
-        <div className="max-w-[480px] w-full text-center space-y-6">
+      <PageLayout width="sm" className="flex items-center justify-center">
+        <div className="text-center space-y-6">
           <div
             className="w-20 h-20 rounded-full mx-auto flex items-center justify-center text-3xl"
             style={{ background: `${themeColor}22`, border: `2px solid ${themeColor}66` }}
@@ -476,29 +478,21 @@ export default function WorldWizard() {
             </Link>
           </div>
         </div>
-      </div>
+      </PageLayout>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-[var(--color-bg)] flex flex-col items-center px-4 pt-4 pb-24">
-      <div className="max-w-[520px] w-full space-y-6">
-        {/* Header */}
-        <div className="flex items-center gap-3">
-          <Link
-            href="/"
-            className="flex items-center justify-center w-9 h-9 rounded-full transition-colors"
-            style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.2)' }}
-          >
-            <ArrowLeft size={18} className="text-purple-400" />
-          </Link>
-          <div>
-            <h1 className="text-xl font-bold text-[var(--color-text)]">월드 만들기</h1>
-            <p className="text-sm text-[var(--color-text-secondary)]">나만의 AI 스토리 월드를 생성하세요</p>
-          </div>
-        </div>
+  const isDesktop = useIsDesktop();
 
-        {/* Step indicator */}
+  return (
+    <PageLayout 
+      title="월드 만들기" 
+      subtitle="나만의 AI 스토리 월드를 생성하세요" 
+      width="md"
+      showBackButton={!isDesktop}
+    >
+      <div className="space-y-6">
+        {/* Step indicator -->
         <div className="space-y-2">
           <div className="flex justify-between text-xs text-[var(--color-text-secondary)]">
             <span>단계 {step} / {TOTAL_STEPS}</span>
@@ -915,6 +909,6 @@ export default function WorldWizard() {
           )}
         </div>
       </div>
-    </div>
+    </PageLayout>
   );
 }

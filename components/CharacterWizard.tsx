@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useIsDesktop } from '@/hooks/useMediaQuery';
-import { ChevronLeft, Check, Sparkles } from 'lucide-react';
+import { PageLayout, PageCard } from '@/components/layout';
+import { Check, Sparkles } from 'lucide-react';
 
 const COLOR_PRESETS = [
   { label: '핑크', value: '#ff6b9d' },
@@ -112,8 +113,8 @@ export default function CharacterWizard() {
   // Success Screen
   if (done) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="max-w-md w-full text-center space-y-6 animate-scale-in">
+      <PageLayout width="sm" className="flex items-center justify-center">
+        <div className="text-center space-y-6 animate-scale-in">
           <div
             className="w-24 h-24 rounded-full mx-auto flex items-center justify-center text-4xl"
             style={{ 
@@ -141,28 +142,9 @@ export default function CharacterWizard() {
             홈으로
           </Link>
         </div>
-      </div>
+      </PageLayout>
     );
   }
-
-  const header = (
-    <div className="mb-6">
-      {isDesktop ? (
-        <>
-          <h1 className="text-3xl font-black text-gradient">캐릭터 만들기</h1>
-          <p className="text-[var(--color-text-secondary)] mt-2">나만의 AI 캐릭터를 생성하세요</p>
-        </>
-      ) : (
-        <>
-          <Link href="/" className="text-[10px] text-[var(--color-text-dim)] flex items-center gap-1 mb-2">
-            <ChevronLeft className="w-3 h-3" /> 홈
-          </Link>
-          <h1 className="text-2xl font-bold">캐릭터 만들기</h1>
-          <p className="text-[11px] text-[var(--color-text-dim)] mt-1">나만의 AI 캐릭터를 생성하세요</p>
-        </>
-      )}
-    </div>
-  );
 
   const stepIndicator = (
     <div className="mb-8">
@@ -432,41 +414,29 @@ export default function CharacterWizard() {
     </p>
   );
 
-  // Desktop Layout
-  if (isDesktop) {
-    return (
-      <div className="min-h-screen p-8">
-        <div className="max-w-2xl mx-auto">
-          {header}
-          <div
-            className="rounded-2xl p-8"
-            style={{
-              background: 'var(--color-surface)',
-              border: '1px solid rgba(255,255,255,0.06)',
-            }}
-          >
-            {stepIndicator}
-            {step === 1 && step1Content}
-            {step === 2 && step2Content}
-            {step === 3 && step3Content}
-            {errorMsg}
-            {actions}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Mobile Layout
-  return (
-    <div className="min-h-screen px-5 py-6">
-      {header}
+  const content = (
+    <>
       {stepIndicator}
       {step === 1 && step1Content}
       {step === 2 && step2Content}
       {step === 3 && step3Content}
       {errorMsg}
       {actions}
-    </div>
+    </>
+  );
+
+  return (
+    <PageLayout 
+      title="캐릭터 만들기" 
+      subtitle="나만의 AI 캐릭터를 생성하세요" 
+      width="md"
+      showBackButton={!isDesktop}
+    >
+      {isDesktop ? (
+        <PageCard padding="lg">{content}</PageCard>
+      ) : (
+        content
+      )}
+    </PageLayout>
   );
 }
