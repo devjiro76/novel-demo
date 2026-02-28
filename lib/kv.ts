@@ -16,7 +16,7 @@ async function getKV(): Promise<KVNamespace | null> {
   } catch {
     _kvCache = null;
   }
-  return _kvCache;
+  return _kvCache ?? null;
 }
 
 const memStore = new Map<string, string>();

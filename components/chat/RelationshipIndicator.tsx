@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { RelSeed } from '@/lib/story-pack';
 
 interface RelationshipIndicatorProps {
@@ -14,6 +14,19 @@ export function RelationshipIndicator({ roomId, npcId, glowRgb, glow }: Relation
   const [open, setOpen] = useState(false);
   const [rel, setRel] = useState<RelSeed | null>(null);
   const [loading, setLoading] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const handleClose = useCallback(() => setOpen(false), []);
+
+  // Close on Escape key
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleClose();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [open, handleClose]);
 
   useEffect(() => {
     if (!open || rel || loading) return;
@@ -33,7 +46,7 @@ export function RelationshipIndicator({ roomId, npcId, glowRgb, glow }: Relation
   }, [open, roomId, npcId, rel, loading]);
 
   return (
-    <div className="relative">
+    <div className="relative" ref={containerRef}>
       <button
         onClick={() => setOpen((o) => !o)}
         className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] transition-colors"
@@ -42,6 +55,7 @@ export function RelationshipIndicator({ roomId, npcId, glowRgb, glow }: Relation
           background: open ? `rgba(${glowRgb},0.1)` : 'transparent',
         }}
         aria-label="관계 정보"
+        aria-expanded={open}
       >
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
@@ -51,6 +65,8 @@ export function RelationshipIndicator({ roomId, npcId, glowRgb, glow }: Relation
 
       {open && (
         <div
+          role="tooltip"
+          aria-live="polite"
           className="absolute top-full right-0 mt-1 w-48 rounded-xl p-3 z-20 space-y-2"
           style={{
             background: '#12121a',

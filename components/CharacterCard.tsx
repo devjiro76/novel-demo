@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useIsDesktop } from '@/hooks/useMediaQuery';
 
 interface CharacterCardProps {
   charId: string;
@@ -12,6 +13,7 @@ interface CharacterCardProps {
   glow: string;
   glowRgb: string;
   slug: string;
+  index?: number;
 }
 
 export default function CharacterCard({
@@ -24,54 +26,99 @@ export default function CharacterCard({
   glow,
   glowRgb,
   slug,
+  index = 0,
 }: CharacterCardProps) {
+  const isDesktop = useIsDesktop();
+  
+  // Responsive sizes
+  const cardWidth = isDesktop ? 'w-[180px]' : 'w-[140px]';
+  const cardRadius = isDesktop ? 'rounded-3xl' : 'rounded-2xl';
+  const imageHeight = isDesktop ? 'h-[220px]' : 'h-[170px]';
+  
   return (
     <Link
       href={`/${slug}?char=${charId}`}
-      className="flex-none w-[130px] rounded-2xl overflow-hidden transition-all duration-200 hover:scale-[1.03] active:scale-[0.97] group"
+      className={`
+        ${cardWidth} ${cardRadius} overflow-hidden transition-all duration-300 
+        hover:-translate-y-1 active:scale-[0.98] group relative
+        animate-slide-up
+      `}
       style={{
-        background: `linear-gradient(160deg, rgba(${glowRgb},0.12) 0%, rgba(14,14,20,0.95) 70%)`,
-        border: `1px solid rgba(${glowRgb},0.18)`,
+        background: `linear-gradient(160deg, rgba(${glowRgb},0.15) 0%, rgba(14,14,20,0.98) 60%)`,
+        border: `1px solid rgba(${glowRgb},0.2)`,
+        boxShadow: `0 4px 16px rgba(${glowRgb},0.1), 0 2px 4px rgba(0,0,0,0.3)`,
+        animationDelay: `${index * 50}ms`,
       }}
     >
       {/* Avatar */}
-      <div
-        className="w-full aspect-[3/4] flex items-center justify-center overflow-hidden"
-        style={{ background: `rgba(${glowRgb},0.06)` }}
+      <div 
+        className={`w-full ${imageHeight} overflow-hidden relative`}
+        style={{ background: `rgba(${glowRgb},0.08)` }}
       >
         {image ? (
           <img
             src={image}
             alt={name}
-            className="w-full h-full object-cover object-top"
+            className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
-          <span
-            className="text-4xl font-bold opacity-30"
-            style={{ color: glow }}
-          >
-            {name.charAt(0)}
-          </span>
+          <div className="w-full h-full flex items-center justify-center">
+            <span
+              className="text-5xl font-bold opacity-40"
+              style={{ color: glow }}
+            >
+              {name.charAt(0)}
+            </span>
+          </div>
         )}
+        
+        {/* Gradient overlay */}
+        <div 
+          className="absolute inset-0 bg-gradient-to-t from-[var(--color-surface)] via-transparent to-transparent"
+          style={{ opacity: 0.8 }}
+        />
+        
+        {/* Age badge */}
+        <div 
+          className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-medium"
+          style={{ 
+            background: `rgba(${glowRgb},0.2)`,
+            color: glow,
+            border: `1px solid rgba(${glowRgb},0.3)`,
+          }}
+        >
+          {age}세
+        </div>
       </div>
 
       {/* Info */}
-      <div className="px-2.5 py-2.5 flex flex-col gap-0.5">
-        <span className="text-xs font-bold text-white leading-tight truncate">
+      <div className="px-3 py-3 flex flex-col gap-1">
+        <span className="text-sm font-bold text-white leading-tight truncate">
           {fullName || name}
         </span>
-        <span className="text-[10px] leading-tight truncate" style={{ color: glow }}>
+        <span 
+          className="text-[11px] leading-tight truncate font-medium"
+          style={{ color: glow }}
+        >
           {role}
-        </span>
-        <span className="text-[10px] leading-tight" style={{ color: 'var(--color-text-dim)' }}>
-          {age}세
         </span>
       </div>
 
-      {/* Hover glow */}
+      {/* Hover glow effect */}
       <div
-        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-2xl"
-        style={{ boxShadow: `inset 0 0 30px rgba(${glowRgb},0.08)` }}
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-inherit"
+        style={{ 
+          boxShadow: `inset 0 0 40px rgba(${glowRgb},0.15)`,
+          borderRadius: 'inherit',
+        }}
+      />
+      
+      {/* Bottom glow line on hover */}
+      <div 
+        className="absolute bottom-0 left-0 right-0 h-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+        style={{ 
+          background: `linear-gradient(90deg, transparent, ${glow}, transparent)`,
+        }}
       />
     </Link>
   );

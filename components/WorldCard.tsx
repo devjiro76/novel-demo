@@ -1,7 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import type { WorldCardData } from '@/lib/story-pack';
+import { hexToRgb } from '@/lib/colors';
 
 interface WorldCardProps {
   world: WorldCardData;
@@ -9,23 +11,31 @@ interface WorldCardProps {
 }
 
 export default function WorldCard({ world, index = 0 }: WorldCardProps) {
+  const router = useRouter();
+
   const href =
     world.type === 'builtin' && world.slug
       ? `/world/${world.slug}`
       : `/world/${world.id}`;
 
+  const startHref =
+    world.type === 'builtin' && world.slug
+      ? `/${world.slug}`
+      : `/${world.id}`;
+
   const rgb = world.themeColorRgb;
   const displayChars = world.characters.slice(0, 3);
 
   return (
-    <Link
-      href={href}
-      className="group relative flex flex-col rounded-2xl overflow-hidden transition-all duration-300 active:scale-[0.97]"
+    <div
+      className="group relative flex flex-col rounded-2xl overflow-hidden transition-all duration-300 active:scale-[0.97] cursor-pointer"
       style={{
         animation: `slideUp 0.45s ease-out ${index * 70}ms both`,
         background: `linear-gradient(160deg, rgba(${rgb},0.10) 0%, rgba(17,17,24,0.95) 60%)`,
         border: `1px solid rgba(${rgb},0.18)`,
       }}
+      onClick={() => router.push(href)}
+      role="article"
     >
       {/* Top image strip with overlapping avatars */}
       <div
@@ -133,7 +143,7 @@ export default function WorldCard({ world, index = 0 }: WorldCardProps) {
             {world.tags.slice(0, 3).map((tag) => (
               <span
                 key={tag}
-                className="text-[9px] px-1.5 py-0.5 rounded-full bg-white/[0.04] text-[var(--color-text-dim)] border border-white/[0.06]"
+                className="text-[9px] px-1.5 py-0.5 rounded-full bg-white/[0.04] text-[var(--color-text-dim)] border border-[var(--color-border-subtle)]"
               >
                 {tag}
               </span>
@@ -149,13 +159,41 @@ export default function WorldCard({ world, index = 0 }: WorldCardProps) {
           background: `linear-gradient(90deg, transparent, ${world.themeColor}, transparent)`,
         }}
       />
-    </Link>
-  );
-}
 
-function hexToRgb(hex: string): string {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return `${r},${g},${b}`;
+      {/* "바로 시작" hover overlay */}
+      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none group-hover:pointer-events-auto">
+        <div
+          className="absolute inset-0"
+          style={{ background: `rgba(0,0,0,0.45)` }}
+        />
+        <div className="relative flex gap-2 z-10">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              router.push(startHref);
+            }}
+            className="px-4 py-2 rounded-xl text-[13px] font-bold text-white transition-transform active:scale-95"
+            style={{
+              background: `linear-gradient(135deg, rgba(${rgb},0.9) 0%, rgba(${rgb},0.7) 100%)`,
+              boxShadow: `0 0 20px rgba(${rgb},0.4)`,
+            }}
+          >
+            바로 시작
+          </button>
+          <Link
+            href={href}
+            onClick={(e) => e.stopPropagation()}
+            className="px-4 py-2 rounded-xl text-[13px] font-semibold text-[var(--color-text)] transition-transform active:scale-95"
+            style={{
+              background: 'rgba(255,255,255,0.08)',
+              border: '1px solid var(--color-border-subtle)',
+            }}
+          >
+            자세히 보기
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
 }
