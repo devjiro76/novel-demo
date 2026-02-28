@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, TrendingUp, Sparkles } from 'lucide-react';
+import Link from 'next/link';
+import { Search, Sparkles, Users, Globe, ChevronRight } from 'lucide-react';
 import { useIsDesktop } from '@/hooks/useMediaQuery';
 import type { ClientStoryPack, WorldCardData } from '@/lib/story-pack';
 import CharacterCard from '@/components/CharacterCard';
@@ -12,6 +13,27 @@ interface LandingProps {
 }
 
 type TabId = 'all' | string;
+type ViewMode = 'worlds' | 'characters';
+
+// Extract all characters from worlds
+type WorldCharacter = WorldCardData['characters'][number];
+
+function extractAllCharacters(worlds: WorldCardData[]): Array<{
+  char: WorldCharacter;
+  world: WorldCardData;
+  slug: string;
+}> {
+  const characters: Array<{ char: WorldCharacter; world: WorldCardData; slug: string }> = [];
+  worlds.forEach(world => {
+    const slug = world.slug ?? world.id;
+    world.characters
+      .filter(c => c.role) // Only NPCs with roles
+      .forEach(char => {
+        characters.push({ char, world, slug });
+      });
+  });
+  return characters;
+}
 
 /* ========================================
    Desktop Components
@@ -19,6 +41,7 @@ type TabId = 'all' | string;
 
 function DesktopLanding({ worlds }: { worlds: WorldCardData[] }) {
   const [activeTab, setActiveTab] = useState<TabId>('all');
+  const [viewMode, setViewMode] = useState<ViewMode>('worlds');
   const [searchQuery, setSearchQuery] = useState('');
   
   const allTags = Array.from(
@@ -29,7 +52,8 @@ function DesktopLanding({ worlds }: { worlds: WorldCardData[] }) {
     { id: 'all', label: '전체' },
     ...allTags.slice(0, 8).map((tag) => ({ id: tag, label: tag })),
   ];
-  
+
+  // Filter worlds
   const filteredWorlds = activeTab === 'all'
     ? worlds
     : worlds.filter((w) => w.tags.includes(activeTab));
@@ -45,6 +69,24 @@ function DesktopLanding({ worlds }: { worlds: WorldCardData[] }) {
         );
       })
     : filteredWorlds;
+
+  // Characters
+  const allCharacters = extractAllCharacters(worlds);
+  const filteredCharacters = activeTab === 'all'
+    ? allCharacters
+    : allCharacters.filter(({ world }) => world.tags.includes(activeTab));
+  
+  const searchedCharacters = searchQuery.trim()
+    ? filteredCharacters.filter(({ char, world }) => {
+        const q = searchQuery.toLowerCase();
+        return (
+          char.name.toLowerCase().includes(q) ||
+          char.fullName.toLowerCase().includes(q) ||
+          char.role.toLowerCase().includes(q) ||
+          world.name.toLowerCase().includes(q)
+        );
+      })
+    : filteredCharacters;
 
   return (
     <div className="min-h-screen p-6 lg:p-8">
@@ -103,8 +145,36 @@ function DesktopLanding({ worlds }: { worlds: WorldCardData[] }) {
         </div>
       </header>
 
-      {/* Featured Section */}
-      {searchedWorlds.length > 0 && !searchQuery && (
+      {/* View Mode Toggle */}
+      <div className="flex gap-2 mb-6">
+        <button
+          onClick={() => setViewMode('worlds')}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all"
+          style={{
+            background: viewMode === 'worlds' ? 'var(--color-surface)' : 'transparent',
+            border: '1px solid rgba(255,255,255,0.06)',
+            color: viewMode === 'worlds' ? 'var(--color-text)' : 'var(--color-text-muted)',
+          }}
+        >
+          <Globe className="w-4 h-4" />
+          월드
+        </button>
+        <button
+          onClick={() => setViewMode('characters')}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all"
+          style={{
+            background: viewMode === 'characters' ? 'var(--color-surface)' : 'transparent',
+            border: '1px solid rgba(255,255,255,0.06)',
+            color: viewMode === 'characters' ? 'var(--color-text)' : 'var(--color-text-muted)',
+          }}
+        >
+          <Users className="w-4 h-4" />
+          캐릭터
+        </button>
+      </div>
+
+      {/* Featured Section - Only show on worlds mode */}
+      {viewMode === 'worlds' && searchedWorlds.length > 0 && !searchQuery && (
         <section className="mb-10">
           <div className="flex items-center gap-2 mb-4">
             <Sparkles className="w-5 h-5 text-[var(--color-brand-primary)]" />
@@ -118,20 +188,60 @@ function DesktopLanding({ worlds }: { worlds: WorldCardData[] }) {
         </section>
       )}
 
-      {/* World Grid */}
-      <div className="space-y-8">
-        {searchedWorlds.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <p className="text-[var(--color-text-muted)]">
-              {searchQuery ? `'${searchQuery}' 검색 결과 없음` : '세계가 없습니다.'}
-            </p>
+      {/* Worlds View */}
+      {viewMode === 'worlds' && (
+        <div className="space-y-8">
+          {searchedWorlds.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <p className="text-[var(--color-text-muted)]">
+                {searchQuery ? `'${searchQuery}' 검색 결과 없음` : '세계가 없습니다.'}
+              </p>
+            </div>
+          ) : (
+            searchedWorlds.map((world) => (
+              <WorldSection key={world.id} world={world} isDesktop />
+            ))
+          )}
+        </div>
+      )}
+
+      {/* Characters View */}
+      {viewMode === 'characters' && (
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <Users className="w-5 h-5 text-[var(--color-brand-primary)]" />
+            <h2 className="text-xl font-bold">전체 캐릭터</h2>
+            <span className="text-sm text-[var(--color-text-muted)]">
+              ({searchedCharacters.length}명)
+            </span>
           </div>
-        ) : (
-          searchedWorlds.map((world) => (
-            <WorldSection key={world.id} world={world} isDesktop />
-          ))
-        )}
-      </div>
+          {searchedCharacters.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <p className="text-[var(--color-text-muted)]">
+                {searchQuery ? `'${searchQuery}' 검색 결과 없음` : '캐릭터가 없습니다.'}
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-4">
+              {searchedCharacters.map(({ char, world, slug }, index) => (
+                <CharacterCard
+                  key={char.id}
+                  charId={char.id}
+                  name={char.name}
+                  fullName={char.fullName}
+                  role={char.role}
+                  age={char.age}
+                  image={char.image}
+                  glow={char.glow}
+                  glowRgb={char.glowRgb}
+                  slug={slug}
+                  index={index}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -141,49 +251,52 @@ function FeaturedWorldCard({ world }: { world: WorldCardData }) {
   const firstChar = npcChars[0];
   
   return (
-    <div 
-      className="relative overflow-hidden rounded-2xl p-6 group cursor-pointer transition-all duration-300 hover:scale-[1.01]"
-      style={{
-        background: `linear-gradient(135deg, rgba(168,85,247,0.1) 0%, var(--color-surface) 100%)`,
-        border: '1px solid rgba(255,255,255,0.06)',
-      }}
-    >
-      <div className="flex gap-4">
-        <div 
-          className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0"
-          style={{ background: firstChar ? `rgba(${firstChar.glowRgb},0.1)` : 'var(--color-surface-2)' }}
-        >
-          {firstChar?.image ? (
-            <img src={firstChar.image} alt="" className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-2xl">🌏</div>
-          )}
-        </div>
-        <div className="flex-1 min-w-0">
-          <h3 className="text-lg font-bold mb-1 truncate">{world.name}</h3>
-          <p className="text-sm text-[var(--color-text-secondary)] line-clamp-2 mb-3">
-            {world.description}
-          </p>
-          <div className="flex items-center gap-2">
-            <span className="text-xs px-2 py-1 rounded-full bg-white/[0.06] text-[var(--color-text-muted)]">
-              {npcChars.length}개 캐릭터
-            </span>
-            {world.tags.slice(0, 2).map(tag => (
-              <span 
-                key={tag}
-                className="text-xs px-2 py-1 rounded-full"
-                style={{ 
-                  background: 'rgba(168,85,247,0.1)',
-                  color: 'var(--color-brand-primary)',
-                }}
-              >
-                {tag}
-              </span>
-            ))}
+    <Link href={`/world/${world.id}`}>
+      <div 
+        className="relative overflow-hidden rounded-2xl p-6 group cursor-pointer transition-all duration-300 hover:scale-[1.01]"
+        style={{
+          background: `linear-gradient(135deg, rgba(168,85,247,0.1) 0%, var(--color-surface) 100%)`,
+          border: '1px solid rgba(255,255,255,0.06)',
+        }}
+      >
+        <div className="flex gap-4">
+          <div 
+            className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0"
+            style={{ background: firstChar ? `rgba(${firstChar.glowRgb},0.1)` : 'var(--color-surface-2)' }}
+          >
+            {firstChar?.image ? (
+              <img src={firstChar.image} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-2xl">🌏</div>
+            )}
           </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-lg font-bold mb-1 truncate">{world.name}</h3>
+            <p className="text-sm text-[var(--color-text-secondary)] line-clamp-2 mb-3">
+              {world.description}
+            </p>
+            <div className="flex items-center gap-2">
+              <span className="text-xs px-2 py-1 rounded-full bg-white/[0.06] text-[var(--color-text-muted)]">
+                {npcChars.length}개 캐릭터
+              </span>
+              {world.tags.slice(0, 2).map(tag => (
+                <span 
+                  key={tag}
+                  className="text-xs px-2 py-1 rounded-full"
+                  style={{ 
+                    background: 'rgba(168,85,247,0.1)',
+                    color: 'var(--color-brand-primary)',
+                  }}
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+          <ChevronRight className="w-5 h-5 text-[var(--color-text-muted)] self-center" />
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
 
@@ -193,6 +306,7 @@ function FeaturedWorldCard({ world }: { world: WorldCardData }) {
 
 function MobileLanding({ worlds }: { worlds: WorldCardData[] }) {
   const [activeTab, setActiveTab] = useState<TabId>('all');
+  const [viewMode, setViewMode] = useState<ViewMode>('worlds');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
 
@@ -205,10 +319,10 @@ function MobileLanding({ worlds }: { worlds: WorldCardData[] }) {
     ...allTags.slice(0, 5).map((tag) => ({ id: tag, label: tag })),
   ];
 
-  const filtered =
-    activeTab === 'all'
-      ? worlds
-      : worlds.filter((w) => w.tags.includes(activeTab));
+  // Filter worlds
+  const filtered = activeTab === 'all'
+    ? worlds
+    : worlds.filter((w) => w.tags.includes(activeTab));
 
   const searched = searchQuery.trim()
     ? filtered.filter((w) => {
@@ -221,6 +335,24 @@ function MobileLanding({ worlds }: { worlds: WorldCardData[] }) {
         );
       })
     : filtered;
+
+  // Characters
+  const allCharacters = extractAllCharacters(worlds);
+  const filteredChars = activeTab === 'all'
+    ? allCharacters
+    : allCharacters.filter(({ world }) => world.tags.includes(activeTab));
+  
+  const searchedChars = searchQuery.trim()
+    ? filteredChars.filter(({ char, world }) => {
+        const q = searchQuery.toLowerCase();
+        return (
+          char.name.toLowerCase().includes(q) ||
+          char.fullName.toLowerCase().includes(q) ||
+          char.role.toLowerCase().includes(q) ||
+          world.name.toLowerCase().includes(q)
+        );
+      })
+    : filteredChars;
 
   return (
     <div className="min-h-screen">
@@ -262,6 +394,36 @@ function MobileLanding({ worlds }: { worlds: WorldCardData[] }) {
         </div>
       )}
 
+      {/* View Mode Toggle */}
+      <div className="px-4 pb-3">
+        <div className="flex gap-2">
+          <button
+            onClick={() => setViewMode('worlds')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+            style={{
+              background: viewMode === 'worlds' ? 'var(--color-surface)' : 'transparent',
+              border: '1px solid rgba(255,255,255,0.06)',
+              color: viewMode === 'worlds' ? 'var(--color-text)' : 'var(--color-text-muted)',
+            }}
+          >
+            <Globe className="w-3.5 h-3.5" />
+            월드
+          </button>
+          <button
+            onClick={() => setViewMode('characters')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+            style={{
+              background: viewMode === 'characters' ? 'var(--color-surface)' : 'transparent',
+              border: '1px solid rgba(255,255,255,0.06)',
+              color: viewMode === 'characters' ? 'var(--color-text)' : 'var(--color-text-muted)',
+            }}
+          >
+            <Users className="w-3.5 h-3.5" />
+            캐릭터
+          </button>
+        </div>
+      </div>
+
       {/* Category tabs */}
       <div className="px-4 pb-3">
         <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
@@ -293,21 +455,59 @@ function MobileLanding({ worlds }: { worlds: WorldCardData[] }) {
         </div>
       </div>
 
-      {/* World sections */}
-      <main className="px-4 pb-24 space-y-6">
-        {searched.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <p className="text-[var(--color-text-muted)] text-sm">
-              {searchQuery ? `'${searchQuery}' 검색 결과 없음` : '세계가 없습니다.'}
-            </p>
-          </div>
+      {/* Content */}
+      <main className="px-4 pb-24">
+        {viewMode === 'worlds' ? (
+          <>
+            {searched.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20">
+                <p className="text-[var(--color-text-muted)] text-sm">
+                  {searchQuery ? `'${searchQuery}' 검색 결과 없음` : '세계가 없습니다.'}
+                </p>
+              </div>
+            ) : (
+              searched.map((world) => (
+                <WorldSection key={world.id} world={world} isDesktop={false} />
+              ))
+            )}
+            <CommunityWorlds />
+          </>
         ) : (
-          searched.map((world) => (
-            <WorldSection key={world.id} world={world} isDesktop={false} />
-          ))
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <Users className="w-4 h-4 text-[var(--color-brand-primary)]" />
+              <h2 className="text-sm font-bold">전체 캐릭터</h2>
+              <span className="text-xs text-[var(--color-text-muted)]">
+                ({searchedChars.length}명)
+              </span>
+            </div>
+            {searchedChars.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20">
+                <p className="text-[var(--color-text-muted)] text-sm">
+                  {searchQuery ? `'${searchQuery}' 검색 결과 없음` : '캐릭터가 없습니다.'}
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-3">
+                {searchedChars.map(({ char, world, slug }, index) => (
+                  <CharacterCard
+                    key={char.id}
+                    charId={char.id}
+                    name={char.name}
+                    fullName={char.fullName}
+                    role={char.role}
+                    age={char.age}
+                    image={char.image}
+                    glow={char.glow}
+                    glowRgb={char.glowRgb}
+                    slug={slug}
+                    index={index}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         )}
-        
-        <CommunityWorlds />
       </main>
     </div>
   );
@@ -361,12 +561,14 @@ function WorldSection({ world, isDesktop }: { world: WorldCardData; isDesktop: b
 
   return (
     <section className={isDesktop ? '' : 'mb-6'}>
-      <div className={`flex items-center justify-between mb-3 ${isDesktop ? '' : ''}`}>
+      <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-base">🌏</span>
-          <h3 className="text-sm font-bold text-[var(--color-text)] truncate">
-            {world.name}
-          </h3>
+          <Link href={`/world/${world.id}`}>
+            <h3 className="text-sm font-bold text-[var(--color-text)] truncate hover:text-[var(--color-brand-primary)] transition-colors">
+              {world.name}
+            </h3>
+          </Link>
         </div>
         <span className="text-[11px] text-[var(--color-text-muted)] shrink-0">
           {npcChars.length}캐릭터
@@ -400,8 +602,6 @@ function WorldSection({ world, isDesktop }: { world: WorldCardData; isDesktop: b
 
 export default function Landing({ packs, worlds }: LandingProps) {
   const isDesktop = useIsDesktop();
-  
-  // Merge worlds from packs and worlds prop
   const allWorlds = [...worlds];
   
   return isDesktop ? (

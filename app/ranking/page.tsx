@@ -1,7 +1,8 @@
 import RankingPage from '@/components/RankingPage';
-import { getAllClientPacks } from '@/lib/story-pack';
+import { getAllClientPacks, getAllWorldCards } from '@/lib/story-pack';
 
 export default function Page() {
   const packs = getAllClientPacks();
-  return <RankingPage packs={packs} />;
+  const worlds = getAllWorldCards();
+  return <RankingPage packs={packs} worlds={worlds} />;
 }
