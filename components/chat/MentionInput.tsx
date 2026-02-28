@@ -41,6 +41,10 @@ export const MentionInput = forwardRef<HTMLInputElement, MentionInputProps>(
       const newVal = e.target.value;
       onChange(newVal);
 
+      // Ensure input scrolls to caret (some chars like "?" don't trigger auto-scroll)
+      const el = e.target;
+      requestAnimationFrame(() => { el.scrollLeft = el.scrollWidth; });
+
       if (!mentionEnabled) return;
 
       const cursorPos = e.target.selectionStart ?? newVal.length;

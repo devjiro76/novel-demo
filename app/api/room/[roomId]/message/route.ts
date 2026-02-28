@@ -83,14 +83,16 @@ export async function POST(
     const freshRoom = await getRoom(roomId);
     const allPlayers = freshRoom?.players ?? [];
     const senderPlayer = { playerId: player.playerId, displayName: player.displayName, characterId: player.characterId };
-    const stimulusDescription = `${player.displayName}이(가) 말했다: "${text.trim()}"`;
+    // Strip @mention from text for NPC prompt (keep in stored message)
+    const npcText = text.trim().replace(/^@\S+\s*/, '').trim() || text.trim();
+    const stimulusDescription = `${player.displayName}이(가) 말했다: "${npcText}"`;
 
     // Generate all NPC responses in parallel
     const npcMessages = await Promise.all(
       respondingNpcIds.map((npcId) =>
         generateNpcResponse({
           roomId, npcId, pack, village, env, allMessages,
-          allPlayers, senderPlayer, stimulusDescription, playerText: text.trim(), player,
+          allPlayers, senderPlayer, stimulusDescription, playerText: npcText, player,
         }).catch((err) => {
           console.error(`[room/message] NPC ${npcId} response failed:`, err);
           return null;

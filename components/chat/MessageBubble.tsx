@@ -43,6 +43,35 @@ function CharAvatar({ char, size = 40, imageSrc }: { char: Character; size?: num
   );
 }
 
+/** Render text with @mention highlighted using the mentioned NPC's color */
+function renderMentionText(text: string, npcChars?: Map<string, Character>, allChars?: Character[]) {
+  const match = text.match(/^(@\S+)\s*/);
+  if (!match) return <>{text}</>;
+
+  const mentionTag = match[1]; // e.g. "@은혜"
+  const name = mentionTag.slice(1);
+  const rest = text.slice(match[0].length);
+
+  // Find the character to get their color
+  let color: string | undefined;
+  if (npcChars) {
+    for (const c of npcChars.values()) {
+      if (c.name === name) { color = c.glow; break; }
+    }
+  }
+  if (!color && allChars) {
+    const c = allChars.find((ch) => ch.name === name);
+    if (c) color = c.glow;
+  }
+
+  return (
+    <>
+      <span className="font-semibold" style={{ color: color ?? '#a78bfa' }}>{mentionTag}</span>
+      {rest ? ' ' + rest : ''}
+    </>
+  );
+}
+
 function RoomMessageBubbleInner({ msg, npcChar, npcChars, myPlayerId, assetsBasePath }: {
   msg: RoomMessage;
   npcChar: Character;
@@ -67,7 +96,7 @@ function RoomMessageBubbleInner({ msg, npcChar, npcChars, myPlayerId, assetsBase
       <div className="flex justify-end items-end gap-1.5 slide-up">
         <span className="text-[9px] text-[var(--color-text-dim)] shrink-0 pb-1">{formatTime(msg.timestamp)}</span>
         <div className="max-w-[78%] rounded-2xl rounded-br-md bg-white/[0.06] backdrop-blur-sm px-4 py-2.5 border border-white/[0.04]">
-          <p className="text-[13px] leading-relaxed">{msg.text}</p>
+          <p className="text-[13px] leading-relaxed">{renderMentionText(msg.text, npcChars)}</p>
         </div>
       </div>
     );
@@ -86,7 +115,7 @@ function RoomMessageBubbleInner({ msg, npcChar, npcChars, myPlayerId, assetsBase
           <p className="text-[10px] text-[var(--color-text-dim)] mb-1">{msg.sender.name}</p>
           <div className="flex items-end gap-1.5">
             <div className="rounded-2xl rounded-tl-md bg-white/[0.04] backdrop-blur-sm px-4 py-2.5 border border-white/[0.04]">
-              <p className="text-[13px] leading-relaxed">{msg.text}</p>
+              <p className="text-[13px] leading-relaxed">{renderMentionText(msg.text, npcChars)}</p>
             </div>
             <span className="text-[9px] text-[var(--color-text-dim)] shrink-0 pb-1">{formatTime(msg.timestamp)}</span>
           </div>

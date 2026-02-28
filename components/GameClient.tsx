@@ -378,7 +378,7 @@ function RoomChatScreen({ npcChar, pack, messages, sending, input, onInputChange
             npcChars={mentionNpcChars}
             disabled={sending}
             placeholder={mentionNpcChars.length > 0 ? "@이름으로 대상 지정..." : "대사 또는 (행동)을 입력하세요..."}
-            className="rounded-2xl bg-[var(--color-surface-2)] border-white/[0.06] px-4 py-3 h-auto text-base placeholder:text-[var(--color-text-dim)]"
+            className="rounded-2xl bg-[var(--color-surface-2)] border-white/[0.06] px-4 pr-6 py-3 h-auto text-base placeholder:text-[var(--color-text-dim)] min-w-0"
             style={{
               borderColor: input.trim() ? `rgba(${npcChar.glowRgb},0.3)` : undefined,
               boxShadow: input.trim() ? `0 0 15px rgba(${npcChar.glowRgb},0.05)` : undefined,
@@ -746,12 +746,15 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
 
     if (!cleanText) return;
 
+    // Display text keeps the @mention, API text is clean
+    const displayText = rawMsg;
+
     setInput('');
     setSending(true);
     setRespondingNpcId(resolvedTargetNpcId);
     setTargetNpcId(null);
 
-    // Optimistic: show user message immediately
+    // Optimistic: show user message immediately (with @mention visible)
     const tempId = `pending-${Date.now()}`;
     setRoomMessages((prev) => [
       ...prev,
@@ -760,12 +763,12 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
         roomId: roomId!,
         timestamp: Date.now(),
         sender: { type: 'player' as const, id: playerId!, name: myDisplayName ?? pack.playerDisplayName },
-        text: cleanText,
+        text: displayText,
       },
     ]);
 
     try {
-      const result = await sendRoomMessage(roomId, playerId, cleanText, {
+      const result = await sendRoomMessage(roomId, playerId, displayText, {
         slug: pack.slug,
         villageId: villageId ?? '',
         npcCharacterId: activeChar.id,
