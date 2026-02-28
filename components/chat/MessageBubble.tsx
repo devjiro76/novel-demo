@@ -2,7 +2,9 @@
 
 import React from 'react';
 import type { RoomMessage } from '@/lib/room';
-import type { ClientStoryPack, CharacterMeta } from '@/lib/story-pack';
+import type { CharacterMeta } from '@/lib/story-pack';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 
 type Character = CharacterMeta;
 
@@ -15,34 +17,46 @@ function formatTime(ts: number): string {
   return `${period} ${h12}:${m}`;
 }
 
-function CharAvatar({ char, pack, size = 40 }: { char: Character; pack: ClientStoryPack; size?: number }) {
+function CharAvatar({ char, size = 40, imageSrc }: { char: Character; size?: number; imageSrc?: string }) {
+  const sizeClass = size <= 32 ? 'size-8' : size <= 40 ? 'size-10' : 'size-14';
+  const fontSize = size <= 32 ? 'text-xs' : size <= 40 ? 'text-sm' : 'text-lg';
   return (
-    <div
-      className="rounded-full overflow-hidden shrink-0 border border-white/10"
-      style={{ width: size, height: size }}
-    >
-      <img
-        src={`${pack.assetsBasePath}${char.image}`}
-        alt={char.name}
-        className="object-cover object-[50%_15%] w-full h-full"
-      />
-    </div>
+    <Avatar className={`${sizeClass} border border-white/10`}>
+      {imageSrc && char.image && (
+        <AvatarImage
+          src={imageSrc}
+          alt={char.name}
+          className="object-cover object-[50%_15%]"
+        />
+      )}
+      <AvatarFallback
+        className={`${fontSize} font-bold`}
+        style={{
+          background: `linear-gradient(135deg, rgba(${char.glowRgb},0.3), rgba(${char.glowRgb},0.1))`,
+          color: char.glow,
+        }}
+        delayMs={0}
+      >
+        {char.name.charAt(0)}
+      </AvatarFallback>
+    </Avatar>
   );
 }
 
-function RoomMessageBubbleInner({ msg, npcChar, pack, myPlayerId }: {
+function RoomMessageBubbleInner({ msg, npcChar, npcChars, myPlayerId, assetsBasePath }: {
   msg: RoomMessage;
   npcChar: Character;
-  pack: ClientStoryPack;
+  npcChars?: Map<string, Character>;
   myPlayerId: string;
+  assetsBasePath?: string;
 }) {
   // System message
   if (msg.sender.type === 'system') {
     return (
       <div className="flex justify-center slide-up">
-        <span className="text-[11px] text-[var(--color-text-dim)] bg-white/[0.03] px-3 py-1 rounded-full">
+        <Badge variant="secondary" className="text-[11px] font-normal">
           {msg.text}
-        </span>
+        </Badge>
       </div>
     );
   }
@@ -63,9 +77,11 @@ function RoomMessageBubbleInner({ msg, npcChar, pack, myPlayerId }: {
   if (msg.sender.type === 'player') {
     return (
       <div className="flex gap-2.5 items-start max-w-[85%] slide-up">
-        <div className="w-7 h-7 rounded-full bg-white/[0.08] flex items-center justify-center shrink-0 text-[10px] font-bold text-white/60">
-          {msg.sender.name.charAt(0)}
-        </div>
+        <Avatar className="size-7">
+          <AvatarFallback className="bg-white/[0.08] text-[10px] font-bold text-white/60">
+            {msg.sender.name.charAt(0)}
+          </AvatarFallback>
+        </Avatar>
         <div className="flex-1 min-w-0">
           <p className="text-[10px] text-[var(--color-text-dim)] mb-1">{msg.sender.name}</p>
           <div className="flex items-end gap-1.5">
@@ -79,24 +95,29 @@ function RoomMessageBubbleInner({ msg, npcChar, pack, myPlayerId }: {
     );
   }
 
-  // NPC message
+  // NPC message — resolve the correct character for multi-NPC rooms
+  const resolvedChar = (npcChars && msg.sender.type === 'npc')
+    ? (npcChars.get(msg.sender.id) ?? npcChar)
+    : npcChar;
+
   return (
     <div className="slide-up space-y-3">
       {msg.action && (
-        <p className="text-[12px] text-white/70 italic leading-relaxed px-6">
+        <p className="text-[13px] text-white/50 italic leading-loose mx-4 my-1 px-4 py-3 rounded-xl bg-white/[0.02] border-l-2 border-white/[0.08]">
           {msg.action}
         </p>
       )}
 
       {(msg.text || msg.innerThought) && (
         <div className="flex gap-2.5 items-start max-w-[92%]">
-          <CharAvatar char={npcChar} pack={pack} size={32} />
+          <CharAvatar char={resolvedChar} size={32} imageSrc={assetsBasePath ? `${assetsBasePath}${resolvedChar.image}` : undefined} />
           <div className="flex-1 min-w-0">
+            <p className={`text-[10px] font-medium mb-1 ${resolvedChar.accentText}`}>{resolvedChar.name}</p>
             <div
               className="rounded-2xl rounded-tl-md px-4 py-3 space-y-2"
               style={{
-                background: `linear-gradient(135deg, rgba(${npcChar.glowRgb},0.07), rgba(${npcChar.glowRgb},0.02))`,
-                border: `1px solid rgba(${npcChar.glowRgb},0.1)`,
+                background: `linear-gradient(135deg, rgba(${resolvedChar.glowRgb},0.07), rgba(${resolvedChar.glowRgb},0.02))`,
+                border: `1px solid rgba(${resolvedChar.glowRgb},0.1)`,
               }}
             >
               {msg.text && (
@@ -106,7 +127,7 @@ function RoomMessageBubbleInner({ msg, npcChar, pack, myPlayerId }: {
                 <p
                   className="text-[12px] italic leading-relaxed pl-2.5 mt-1 opacity-75"
                   style={{
-                    borderLeft: `2px solid rgba(${npcChar.glowRgb},0.4)`,
+                    borderLeft: `2px solid rgba(${resolvedChar.glowRgb},0.4)`,
                   }}
                 >
                   {msg.innerThought}
@@ -116,12 +137,13 @@ function RoomMessageBubbleInner({ msg, npcChar, pack, myPlayerId }: {
 
             <div className="flex items-center gap-2 mt-1.5 ml-1">
               {msg.emotion && (
-                <span
-                  className="inline-block text-[10px] px-2 py-0.5 rounded-full"
-                  style={{ color: npcChar.glow, background: `rgba(${npcChar.glowRgb},0.1)` }}
+                <Badge
+                  variant="outline"
+                  className="text-[10px] font-normal border-transparent"
+                  style={{ color: resolvedChar.glow, background: `rgba(${resolvedChar.glowRgb},0.1)` }}
                 >
                   {msg.emotion}
-                </span>
+                </Badge>
               )}
               <span className="text-[9px] text-[var(--color-text-dim)]">{formatTime(msg.timestamp)}</span>
             </div>

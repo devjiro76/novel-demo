@@ -16,6 +16,7 @@ export function useRoomPolling(
   sendingRef: React.RefObject<boolean>,
   setMessages: React.Dispatch<React.SetStateAction<RoomMessage[]>>,
   setPlayerCount: React.Dispatch<React.SetStateAction<number>>,
+  setActiveNpcIds?: React.Dispatch<React.SetStateAction<string[]>>,
 ) {
   const intervalRef = useRef(BASE_INTERVAL);
 
@@ -33,7 +34,7 @@ export function useRoomPolling(
       try {
         const res = await fetch(`/api/room/${roomId}`);
         if (!res.ok || cancelled) { schedulePoll(); return; }
-        const data: { messages?: RoomMessage[]; room?: { players?: unknown[] } } = await res.json();
+        const data: { messages?: RoomMessage[]; room?: { players?: unknown[]; npcCharacterIds?: string[] } } = await res.json();
         const polledMessages: RoomMessage[] = data.messages ?? [];
         const polledPlayerCount: number = data.room?.players?.length ?? 1;
 
@@ -52,6 +53,11 @@ export function useRoomPolling(
         });
 
         setPlayerCount(polledPlayerCount);
+
+        // Sync active NPC IDs
+        if (setActiveNpcIds && data.room?.npcCharacterIds) {
+          setActiveNpcIds(data.room.npcCharacterIds);
+        }
 
         // Adaptive: back off when idle, reset when data changes
         if (changed) {
@@ -79,5 +85,5 @@ export function useRoomPolling(
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [roomId, enabled, sendingRef, setMessages, setPlayerCount]);
+  }, [roomId, enabled, sendingRef, setMessages, setPlayerCount, setActiveNpcIds]);
 }

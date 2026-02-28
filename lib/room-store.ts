@@ -15,7 +15,8 @@ interface RoomData {
   roomId: string;
   slug: string;
   villageId: string;
-  npcCharacterId: string;
+  npcCharacterId: string;       // primary NPC (backwards compat)
+  npcCharacterIds: string[];    // all active NPCs
   players: Player[];
   createdAt: number;
 }
@@ -29,7 +30,12 @@ function generateId(): string {
 async function getRoomData(roomId: string): Promise<RoomData | null> {
   const raw = await kvGet(`room:${roomId}`);
   if (!raw) return null;
-  return JSON.parse(raw) as RoomData;
+  const data = JSON.parse(raw) as RoomData;
+  // Backwards compat: older rooms lack npcCharacterIds
+  if (!data.npcCharacterIds) {
+    data.npcCharacterIds = [data.npcCharacterId];
+  }
+  return data;
 }
 
 async function saveRoomData(data: RoomData): Promise<void> {
@@ -70,6 +76,7 @@ export async function createRoom(opts: {
     slug: opts.slug,
     villageId: opts.villageId,
     npcCharacterId: opts.npcCharacterId,
+    npcCharacterIds: [opts.npcCharacterId],
     players: [player],
     createdAt: Date.now(),
   };
@@ -91,6 +98,7 @@ export async function createRoomWithId(
     slug: opts.slug,
     villageId: opts.villageId,
     npcCharacterId: opts.npcCharacterId,
+    npcCharacterIds: [opts.npcCharacterId],
     players: [],
     createdAt: Date.now(),
   };
@@ -209,6 +217,27 @@ export async function ensurePlayer(
   return player;
 }
 
+// ---- NPC management ----
+
+export async function addNpcToRoom(roomId: string, npcCharacterId: string): Promise<string[]> {
+  const data = await getRoomData(roomId);
+  if (!data) return [];
+  if (data.npcCharacterIds.includes(npcCharacterId)) return data.npcCharacterIds;
+  data.npcCharacterIds.push(npcCharacterId);
+  await saveRoomData(data);
+  return data.npcCharacterIds;
+}
+
+export async function removeNpcFromRoom(roomId: string, npcCharacterId: string): Promise<string[]> {
+  const data = await getRoomData(roomId);
+  if (!data) return [];
+  // primary NPC는 강퇴 불가
+  if (npcCharacterId === data.npcCharacterId) return data.npcCharacterIds;
+  data.npcCharacterIds = data.npcCharacterIds.filter((id) => id !== npcCharacterId);
+  await saveRoomData(data);
+  return data.npcCharacterIds;
+}
+
 // ---- JSON helpers ----
 
 export function playerToJSON(player: Player) {
@@ -227,6 +256,7 @@ export function roomToJSON(data: RoomData) {
     slug: data.slug,
     villageId: data.villageId,
     npcCharacterId: data.npcCharacterId,
+    npcCharacterIds: data.npcCharacterIds,
     players: data.players.map(playerToJSON),
     createdAt: data.createdAt,
   };

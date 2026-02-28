@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import type { ClientStoryPack } from '@/lib/story-pack';
+import { Avatar, AvatarImage, AvatarFallback, AvatarGroup, AvatarGroupCount } from '@/components/ui/avatar';
 
 export default function StorySelector({ packs }: { packs: ClientStoryPack[] }) {
   return (
@@ -40,25 +41,23 @@ export default function StorySelector({ packs }: { packs: ClientStoryPack[] }) {
                     {pack.subtitle && (
                       <p className="text-[11px] text-white/40 mb-3">{pack.subtitle}</p>
                     )}
-                    <div className="flex gap-1.5 flex-wrap">
+                    <AvatarGroup>
                       {pack.characters.slice(0, 4).map((char) => (
-                        <div
-                          key={char.id}
-                          className="w-7 h-7 rounded-full overflow-hidden border border-white/10"
-                        >
-                          <img
+                        <Avatar key={char.id} size="sm" className="border border-white/10">
+                          <AvatarImage
                             src={`${pack.assetsBasePath}${char.image}`}
                             alt={char.name}
-                            className="w-full h-full object-cover object-[50%_15%]"
+                            className="object-cover object-[50%_15%]"
                           />
-                        </div>
+                          <AvatarFallback>{char.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
                       ))}
                       {pack.characters.length > 4 && (
-                        <div className="w-7 h-7 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[9px] text-white/40">
+                        <AvatarGroupCount className="text-[9px] text-white/40 bg-white/5 border border-white/10 size-6">
                           +{pack.characters.length - 4}
-                        </div>
+                        </AvatarGroupCount>
                       )}
-                    </div>
+                    </AvatarGroup>
                   </div>
                 </div>
 

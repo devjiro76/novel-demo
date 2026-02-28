@@ -1,15 +1,23 @@
 'use client';
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import type { ClientStoryPack, CharacterMeta } from '@/lib/story-pack';
 import { startGame } from '@/lib/api-client';
-import { createRoomAPI, joinRoomAPI, sendRoomMessage } from '@/lib/api-client-room';
+import { createRoomAPI, joinRoomAPI, sendRoomMessage, inviteNpcAPI, kickNpcAPI } from '@/lib/api-client-room';
 import type { RoomMessage } from '@/lib/room';
 import { saveSession, loadSession, clearSession } from '@/lib/session';
 import { useRoomPolling } from '@/hooks/useRoomPolling';
 import { RoomMessageBubble, CharAvatar } from './chat/MessageBubble';
+import { InviteNpcPopover } from './chat/InviteNpcPopover';
+import { MentionInput } from './chat/MentionInput';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import RoleSelectScreen from './RoleSelectScreen';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
+import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 type Phase = 'title' | 'loading' | 'select' | 'roleSelect' | 'chat';
 
@@ -52,18 +60,21 @@ function TitleScreen({ pack, onStart, loading }: { pack: ClientStoryPack; onStar
           당신은 <span className="text-pink-300/60 font-semibold">{pack.playerDisplayName}</span>입니다.
         </p>
 
-        <button
+        <Button
           onClick={onStart}
           disabled={loading}
-          className="relative px-12 py-4 rounded-2xl text-sm font-bold tracking-wide transition-all active:scale-95 disabled:opacity-50 overflow-hidden group"
+          size="lg"
+          className="relative px-12 py-4 h-auto rounded-2xl text-sm font-bold tracking-wide active:scale-95 overflow-hidden group"
           style={{
             background: 'linear-gradient(135deg, #ec4899, #a855f7)',
             boxShadow: '0 0 30px rgba(168,85,247,0.3), 0 4px 20px rgba(0,0,0,0.3)',
           }}
         >
-          <span className="relative z-10">{loading ? '준비 중...' : '시작하기'}</span>
+          <span className="relative z-10">
+            {loading ? <><Spinner className="size-4 inline mr-2" />준비 중...</> : '시작하기'}
+          </span>
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -145,12 +156,14 @@ function SelectScreen({ pack, chatCounts, onSelect, onReset }: {
             <h2 className="text-xl font-bold tracking-tight">누구에게 갈까?</h2>
             <p className="text-[11px] text-[var(--color-text-dim)] mt-1 tracking-wide">비밀은 지켜줄게.</p>
           </div>
-          <button
+          <Button
+            variant="ghost"
+            size="xs"
             onClick={onReset}
-            className="text-[10px] text-[var(--color-text-dim)] hover:text-white/60 transition-colors px-2 py-1"
+            className="text-[10px] text-[var(--color-text-dim)] hover:text-white/60"
           >
             초기화
-          </button>
+          </Button>
         </div>
       </header>
 
@@ -171,7 +184,7 @@ function SelectScreen({ pack, chatCounts, onSelect, onReset }: {
 }
 
 // ---- Chat Screen (Room-based) ----
-function RoomChatScreen({ npcChar, pack, messages, sending, input, onInputChange, onSend, onBack, onShare, playerCount, myPlayerId, inputRef, scrollRef, loading }: {
+function RoomChatScreen({ npcChar, pack, messages, sending, input, onInputChange, onSend, onBack, onShare, playerCount, myPlayerId, inputRef, scrollRef, loading, activeNpcIds, npcChars, onInvite, onKickNpc, onMentionSelect, respondingNpcId, primaryNpcId }: {
   npcChar: Character;
   pack: ClientStoryPack;
   messages: RoomMessage[];
@@ -186,6 +199,13 @@ function RoomChatScreen({ npcChar, pack, messages, sending, input, onInputChange
   inputRef: React.RefObject<HTMLInputElement | null>;
   scrollRef: React.RefObject<HTMLDivElement | null>;
   loading?: boolean;
+  activeNpcIds: string[];
+  npcChars: Map<string, Character>;
+  onInvite: (charId: string) => void;
+  onKickNpc: (charId: string) => void;
+  onMentionSelect: (charId: string) => void;
+  respondingNpcId: string | null;
+  primaryNpcId: string;
 }) {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -193,6 +213,12 @@ function RoomChatScreen({ npcChar, pack, messages, sending, input, onInputChange
       onSend();
     }
   };
+
+  const activeChars = activeNpcIds
+    .map((id) => npcChars.get(id))
+    .filter((c): c is Character => !!c);
+
+  const mentionNpcChars = activeChars.length > 1 ? activeChars : [];
 
   return (
     <div className="h-screen flex flex-col">
@@ -203,49 +229,94 @@ function RoomChatScreen({ npcChar, pack, messages, sending, input, onInputChange
           borderBottom: `1px solid rgba(${npcChar.glowRgb},0.08)`,
         }}
       >
-        <CharAvatar char={npcChar} pack={pack} size={36} />
+        {activeChars.length <= 1 ? (
+          <CharAvatar char={npcChar} size={36} imageSrc={`${pack.assetsBasePath}${npcChar.image}`} />
+        ) : (
+          <div className="flex -space-x-2">
+            {activeChars.slice(0, 3).map((c) => (
+              <CharAvatar key={c.id} char={c} size={28} imageSrc={`${pack.assetsBasePath}${c.image}`} />
+            ))}
+          </div>
+        )}
         <div className="flex-1 min-w-0">
-          <span className={`text-sm font-bold ${npcChar.accentText}`}>{npcChar.fullName}</span>
-          <span className="text-[10px] text-[var(--color-text-dim)] ml-2">
-            {npcChar.role} ({playerCount}명)
-          </span>
+          {activeChars.length <= 1 ? (
+            <>
+              <span className={`text-sm font-bold ${npcChar.accentText}`}>{npcChar.fullName}</span>
+              <span className="text-[10px] text-[var(--color-text-dim)] ml-2">{npcChar.role}</span>
+            </>
+          ) : (
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="text-sm font-bold text-white/90 hover:text-white transition-colors">
+                  {activeChars.map((c) => c.name).join(', ')}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent side="bottom" align="start" className="w-56 p-2 bg-[#12121a] border-white/[0.08]">
+                <p className="text-[11px] text-white/40 px-2 py-1.5">참여 중인 캐릭터</p>
+                {activeChars.map((c) => (
+                  <div key={c.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg">
+                    <CharAvatar char={c} size={24} imageSrc={`${pack.assetsBasePath}${c.image}`} />
+                    <span className={`flex-1 text-sm ${c.accentText}`}>{c.name}</span>
+                    {c.id !== primaryNpcId && (
+                      <button
+                        onClick={() => onKickNpc(c.id)}
+                        className="text-[10px] text-red-400/60 hover:text-red-400 transition-colors px-1.5 py-0.5 rounded hover:bg-red-400/10"
+                      >
+                        내보내기
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </PopoverContent>
+            </Popover>
+          )}
+          <Badge variant="outline" className="ml-2 text-[10px] font-normal border-white/[0.08] gap-1">
+            <span
+              className="inline-block size-1.5 rounded-full animate-pulse"
+              style={{ background: npcChar.glow }}
+            />
+            {playerCount}명
+          </Badge>
         </div>
-        <button
-          onClick={onShare}
-          className="text-[10px] text-[var(--color-text-dim)] hover:text-white/60 transition-colors px-2 py-1 border border-white/[0.06] rounded-lg"
-        >
-          공유
-        </button>
-        <button
-          onClick={onBack}
-          className="text-[10px] text-[var(--color-text-dim)] hover:text-white/60 transition-colors px-2 py-1 border border-white/[0.06] rounded-lg"
-        >
-          ← 뒤로
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              size="xs"
+              onClick={onShare}
+              className="text-[10px] text-[var(--color-text-dim)] hover:text-white/60 border-white/[0.06]"
+            >
+              초대
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>초대 링크 복사</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              size="xs"
+              onClick={onBack}
+              className="text-[10px] text-[var(--color-text-dim)] hover:text-white/60 border-white/[0.06]"
+            >
+              ← 뒤로
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>캐릭터 선택으로</TooltipContent>
+        </Tooltip>
       </header>
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-5 space-y-6">
         {loading && messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center px-8 opacity-50">
-            <CharAvatar char={npcChar} pack={pack} size={56} />
-            <div className="flex items-center gap-1.5 mt-4">
-              {[0, 1, 2].map((i) => (
-                <div
-                  key={i}
-                  className="w-1.5 h-1.5 rounded-full"
-                  style={{
-                    background: npcChar.glow,
-                    animation: `breathe 1s ease-in-out ${i * 0.15}s infinite`,
-                  }}
-                />
-              ))}
-            </div>
+            <CharAvatar char={npcChar} size={56} imageSrc={`${pack.assetsBasePath}${npcChar.image}`} />
+            <Spinner className="size-5 mt-4" style={{ color: npcChar.glow }} />
           </div>
         )}
 
         {!loading && messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center px-8 opacity-50">
-            <CharAvatar char={npcChar} pack={pack} size={56} />
+            <CharAvatar char={npcChar} size={56} imageSrc={`${pack.assetsBasePath}${npcChar.image}`} />
             <p className="text-xs text-[var(--color-text-dim)] mt-4 leading-relaxed">
               {npcChar.fullName}에게 말을 걸어보세요.
             </p>
@@ -257,28 +328,26 @@ function RoomChatScreen({ npcChar, pack, messages, sending, input, onInputChange
             key={msg.id}
             msg={msg}
             npcChar={npcChar}
-            pack={pack}
+            npcChars={npcChars}
             myPlayerId={myPlayerId}
+            assetsBasePath={pack.assetsBasePath}
           />
         ))}
 
-        {sending && (
-          <div className="flex gap-2.5 items-start slide-up">
-            <CharAvatar char={npcChar} pack={pack} size={32} />
-            <div className="flex items-center gap-1.5 pt-2">
-              {[0, 1, 2].map((i) => (
-                <div
-                  key={i}
-                  className="w-1.5 h-1.5 rounded-full"
-                  style={{
-                    background: npcChar.glow,
-                    animation: `breathe 1s ease-in-out ${i * 0.15}s infinite`,
-                  }}
-                />
-              ))}
+        {sending && (() => {
+          // Show responding NPC(s)' avatar(s) with spinner
+          const respondingChars = respondingNpcId
+            ? [npcChars.get(respondingNpcId) ?? npcChar]
+            : activeChars;
+          return respondingChars.map((c) => (
+            <div key={c.id} className="flex gap-2.5 items-start slide-up">
+              <CharAvatar char={c} size={32} imageSrc={`${pack.assetsBasePath}${c.image}`} />
+              <div className="flex items-center gap-1.5 pt-2">
+                <Spinner className="size-4" style={{ color: c.glow }} />
+              </div>
             </div>
-          </div>
-        )}
+          ));
+        })()}
       </div>
 
       <div
@@ -294,30 +363,37 @@ function RoomChatScreen({ npcChar, pack, messages, sending, input, onInputChange
           </p>
         )}
         <div className="flex gap-2 max-w-lg mx-auto">
-          <input
-            ref={inputRef}
-            type="text"
-            value={input}
-            onChange={(e) => onInputChange(e.target.value)}
-            onKeyDown={handleKeyDown}
+          <InviteNpcPopover
+            pack={pack}
+            activeNpcIds={activeNpcIds}
+            onInvite={onInvite}
             disabled={sending}
-            placeholder="대사 또는 (행동)을 입력하세요..."
-            className="flex-1 rounded-2xl bg-[var(--color-surface-2)] border border-white/[0.06] px-4 py-3 text-base placeholder:text-[var(--color-text-dim)] focus:outline-none disabled:opacity-40 transition-all"
+          />
+          <MentionInput
+            ref={inputRef}
+            value={input}
+            onChange={onInputChange}
+            onKeyDown={handleKeyDown}
+            onMentionSelect={onMentionSelect}
+            npcChars={mentionNpcChars}
+            disabled={sending}
+            placeholder={mentionNpcChars.length > 0 ? "@이름으로 대상 지정..." : "대사 또는 (행동)을 입력하세요..."}
+            className="rounded-2xl bg-[var(--color-surface-2)] border-white/[0.06] px-4 py-3 h-auto text-base placeholder:text-[var(--color-text-dim)]"
             style={{
               borderColor: input.trim() ? `rgba(${npcChar.glowRgb},0.3)` : undefined,
               boxShadow: input.trim() ? `0 0 15px rgba(${npcChar.glowRgb},0.05)` : undefined,
             }}
           />
-          <button
+          <Button
             onClick={onSend}
             disabled={sending || !input.trim()}
-            className={`px-5 py-3 rounded-2xl ${npcChar.btnBg} text-sm font-medium transition-all disabled:opacity-25 disabled:cursor-not-allowed active:scale-95`}
+            className={`px-5 py-3 h-auto rounded-2xl ${npcChar.btnBg} text-sm font-medium active:scale-95`}
             style={{
               boxShadow: !sending && input.trim() ? `0 0 20px rgba(${npcChar.glowRgb},0.2)` : undefined,
             }}
           >
             전송
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -345,8 +421,21 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
   const [playerCount, setPlayerCount] = useState(1);
   const [joiningRoomId, setJoiningRoomId] = useState<string | null>(null);
   const [roleLoading, setRoleLoading] = useState(false);
+  const [activeNpcIds, setActiveNpcIds] = useState<string[]>([]);
+  const [targetNpcId, setTargetNpcId] = useState<string | null>(null);
+  const [respondingNpcId, setRespondingNpcId] = useState<string | null>(null); // null = all NPCs
 
   const storageKey = `novel:${pack.slug}`;
+
+  // Build NPC character map from activeNpcIds
+  const npcCharsMap = useMemo(() => {
+    const map = new Map<string, Character>();
+    for (const id of activeNpcIds) {
+      const c = pack.characters.find((ch) => ch.id === id);
+      if (c) map.set(id, c);
+    }
+    return map;
+  }, [activeNpcIds, pack.characters]);
 
   // Restore state on mount
   useEffect(() => {
@@ -380,6 +469,7 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
         }).then((result) => {
           setRoomMessages(result.messages);
           setPlayerCount(result.room.players.length);
+          setActiveNpcIds(result.room.npcCharacterIds ?? [session.npcId]);
           setChatReady(true);
         }).catch(() => {
           setChatReady(true);
@@ -420,7 +510,7 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
   sendingRef.current = sending;
 
   // Polling: fetch room state periodically with adaptive interval
-  useRoomPolling(roomId, phase === 'chat', sendingRef, setRoomMessages, setPlayerCount);
+  useRoomPolling(roomId, phase === 'chat', sendingRef, setRoomMessages, setPlayerCount, setActiveNpcIds);
 
   // Auto-scroll: instant on initial load, smooth during conversation
   const hasScrolledRef = useRef(false);
@@ -482,6 +572,7 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
       }).then((result) => {
         setRoomMessages(result.messages);
         setPlayerCount(result.room.players.length);
+        setActiveNpcIds(result.room.npcCharacterIds ?? [session.npcId]);
         setChatReady(true);
       }).catch(() => {
         clearSession(storageKey);
@@ -516,6 +607,7 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
         setPlayerId(result.playerId);
         setRoomMessages(result.messages);
         setPlayerCount(result.room.players.length);
+        setActiveNpcIds(result.room.npcCharacterIds ?? [activeChar.id]);
         saveSession(storageKey, {
           roomId: joiningRoomId, playerId: result.playerId, npcId: activeChar.id,
           villageId: villageId ?? '', displayName, characterId,
@@ -534,6 +626,7 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
         setPlayerId(result.playerId);
         setRoomMessages([]);
         setPlayerCount(1);
+        setActiveNpcIds([activeChar.id]);
         saveSession(storageKey, {
           roomId: result.roomId, playerId: result.playerId, npcId: activeChar.id,
           villageId, displayName, characterId,
@@ -562,6 +655,8 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
     setActiveChar(null);
     setJoiningRoomId(null);
     setChatReady(false);
+    setActiveNpcIds([]);
+    setTargetNpcId(null);
     hasScrolledRef.current = false;
 
     const url = new URL(window.location.href);
@@ -587,6 +682,8 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
     setChatCounts({});
     setJoiningRoomId(null);
     setChatReady(false);
+    setActiveNpcIds([]);
+    setTargetNpcId(null);
     hasScrolledRef.current = false;
     try {
       localStorage.removeItem(`${storageKey}:villageId`);
@@ -599,13 +696,60 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
     window.history.replaceState({}, '', url.toString());
   }, [storageKey]);
 
+  const handleInviteNpc = useCallback(async (charId: string) => {
+    if (!roomId) return;
+    try {
+      const result = await inviteNpcAPI(roomId, charId);
+      setActiveNpcIds(result.npcCharacterIds);
+    } catch (err) {
+      console.error('Failed to invite NPC:', err);
+      toast.error('초대에 실패했습니다');
+    }
+  }, [roomId]);
+
+  const handleKickNpc = useCallback(async (charId: string) => {
+    if (!roomId) return;
+    try {
+      const result = await kickNpcAPI(roomId, charId);
+      setActiveNpcIds(result.npcCharacterIds);
+    } catch (err) {
+      console.error('Failed to kick NPC:', err);
+      toast.error('내보내기에 실패했습니다');
+    }
+  }, [roomId]);
+
+  const handleMentionSelect = useCallback((charId: string) => {
+    setTargetNpcId(charId);
+  }, []);
+
   const handleSend = useCallback(async () => {
     if (sending) return;
-    const msg = input.trim();
-    if (!msg || !activeChar || !roomId || !playerId) return;
+    const rawMsg = input.trim();
+    if (!rawMsg || !activeChar || !roomId || !playerId) return;
+
+    // Parse @mention to determine targetNpcId
+    let resolvedTargetNpcId = targetNpcId;
+    let cleanText = rawMsg;
+
+    // Extract @name patterns
+    const mentionMatch = rawMsg.match(/^@(\S+)\s*/);
+    if (mentionMatch) {
+      const mentionName = mentionMatch[1];
+      const mentionedChar = pack.characters.find(
+        (c) => c.name === mentionName && activeNpcIds.includes(c.id)
+      );
+      if (mentionedChar) {
+        resolvedTargetNpcId = mentionedChar.id;
+        cleanText = rawMsg.slice(mentionMatch[0].length).trim();
+      }
+    }
+
+    if (!cleanText) return;
 
     setInput('');
     setSending(true);
+    setRespondingNpcId(resolvedTargetNpcId);
+    setTargetNpcId(null);
 
     // Optimistic: show user message immediately
     const tempId = `pending-${Date.now()}`;
@@ -616,24 +760,29 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
         roomId: roomId!,
         timestamp: Date.now(),
         sender: { type: 'player' as const, id: playerId!, name: myDisplayName ?? pack.playerDisplayName },
-        text: msg,
+        text: cleanText,
       },
     ]);
 
     try {
-      const result = await sendRoomMessage(roomId, playerId, msg, {
+      const result = await sendRoomMessage(roomId, playerId, cleanText, {
         slug: pack.slug,
         villageId: villageId ?? '',
         npcCharacterId: activeChar.id,
         displayName: myDisplayName ?? pack.playerDisplayName,
         characterId: myCharacterId ?? pack.playerCharacterId,
+        targetNpcId: resolvedTargetNpcId ?? undefined,
       });
       setRoomMessages((prev) => {
         const without = prev.filter((m) => m.id !== tempId);
         const ids = new Set(without.map((m) => m.id));
         const toAdd: RoomMessage[] = [];
         if (result.playerMessage && !ids.has(result.playerMessage.id)) toAdd.push(result.playerMessage);
-        if (result.npcMessage && !ids.has(result.npcMessage.id)) toAdd.push(result.npcMessage);
+        // Use npcMessages (multi-NPC) if available, fallback to single npcMessage
+        const npcMsgs = result.npcMessages ?? (result.npcMessage ? [result.npcMessage] : []);
+        for (const m of npcMsgs) {
+          if (!ids.has(m.id)) toAdd.push(m);
+        }
         return [...without, ...toAdd];
       });
     } catch {
@@ -649,16 +798,20 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
       ]);
     } finally {
       setSending(false);
+      setRespondingNpcId(null);
+      inputRef.current?.focus();
     }
-  }, [input, sending, activeChar, roomId, playerId, villageId, pack, myDisplayName, myCharacterId]);
+  }, [input, sending, activeChar, roomId, playerId, villageId, pack, myDisplayName, myCharacterId, targetNpcId, activeNpcIds]);
 
   const handleShare = useCallback(() => {
     if (!roomId) return;
     const url = new URL(window.location.href);
     url.searchParams.set('room', roomId);
     navigator.clipboard.writeText(url.toString()).then(() => {
-      alert('방 링크가 클립보드에 복사되었습니다!');
-    }).catch(() => {});
+      toast.success('방 링크가 복사되었습니다');
+    }).catch(() => {
+      toast.error('복사에 실패했습니다');
+    });
   }, [roomId]);
 
   // ---- Render ----
@@ -705,6 +858,13 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
         inputRef={inputRef}
         scrollRef={scrollRef}
         loading={!chatReady}
+        activeNpcIds={activeNpcIds}
+        npcChars={npcCharsMap}
+        onInvite={handleInviteNpc}
+        onKickNpc={handleKickNpc}
+        onMentionSelect={handleMentionSelect}
+        respondingNpcId={respondingNpcId}
+        primaryNpcId={activeChar.id}
       />
     );
   }

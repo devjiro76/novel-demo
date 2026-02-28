@@ -2,6 +2,10 @@
 
 import { useState } from 'react';
 import type { ClientStoryPack, CharacterMeta } from '@/lib/story-pack';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 
 interface RoleSelectScreenProps {
   pack: ClientStoryPack;
@@ -91,16 +95,14 @@ export default function RoleSelectScreen({
       <div className="w-full max-w-sm space-y-6 slide-up py-8">
         {/* NPC info */}
         <div className="text-center space-y-3">
-          <div
-            className="w-16 h-16 rounded-full overflow-hidden mx-auto border-2"
-            style={{ borderColor: `rgba(${npcChar.glowRgb},0.3)` }}
-          >
-            <img
+          <Avatar className="size-16 mx-auto border-2" style={{ borderColor: `rgba(${npcChar.glowRgb},0.3)` }}>
+            <AvatarImage
               src={`${pack.assetsBasePath}${npcChar.image}`}
               alt={npcChar.name}
-              className="object-cover object-[50%_15%] w-full h-full"
+              className="object-cover object-[50%_15%]"
             />
-          </div>
+            <AvatarFallback>{npcChar.name.charAt(0)}</AvatarFallback>
+          </Avatar>
           <div>
             <h2 className={`text-lg font-bold ${npcChar.accentText}`}>
               {npcChar.fullName}의 방
@@ -118,10 +120,11 @@ export default function RoleSelectScreen({
           </label>
           <div className="space-y-1.5">
             {roleOptions.map((role) => (
-              <button
+              <Button
                 key={role.id}
+                variant="ghost"
                 onClick={() => handleRoleSelect(role)}
-                className="w-full text-left px-4 py-2.5 rounded-xl transition-all text-sm"
+                className="w-full justify-start h-auto px-4 py-2.5 rounded-xl text-sm"
                 style={{
                   background: selectedRole === role.id
                     ? `rgba(${npcChar.glowRgb},0.12)`
@@ -137,7 +140,7 @@ export default function RoleSelectScreen({
                 <span className="text-[10px] text-[var(--color-text-dim)] ml-2">
                   {role.description}
                 </span>
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -148,12 +151,12 @@ export default function RoleSelectScreen({
             <label className="block text-xs text-[var(--color-text-secondary)]">
               역할 설명 <span className="text-[var(--color-text-dim)]">(NPC가 이걸 보고 판단합니다)</span>
             </label>
-            <input
+            <Input
               type="text"
               value={customRoleId}
               onChange={(e) => setCustomRoleId(e.target.value)}
               placeholder="예: 경비아저씨, 택배기사, 용준의 형..."
-              className="w-full rounded-2xl bg-[var(--color-surface-2)] border border-white/[0.06] px-4 py-3 text-sm placeholder:text-[var(--color-text-dim)] focus:outline-none transition-all"
+              className="rounded-2xl bg-[var(--color-surface-2)] border-white/[0.06] px-4 py-3 h-auto text-sm placeholder:text-[var(--color-text-dim)]"
               style={{
                 borderColor: customRoleId.trim() ? `rgba(${npcChar.glowRgb},0.3)` : undefined,
               }}
@@ -166,13 +169,13 @@ export default function RoleSelectScreen({
           <label className="block text-xs text-[var(--color-text-secondary)]">
             표시 이름
           </label>
-          <input
+          <Input
             type="text"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(); }}
             placeholder="이름을 입력하세요"
-            className="w-full rounded-2xl bg-[var(--color-surface-2)] border border-white/[0.06] px-4 py-3 text-sm placeholder:text-[var(--color-text-dim)] focus:outline-none transition-all"
+            className="rounded-2xl bg-[var(--color-surface-2)] border-white/[0.06] px-4 py-3 h-auto text-sm placeholder:text-[var(--color-text-dim)]"
             style={{
               borderColor: displayName.trim() ? `rgba(${npcChar.glowRgb},0.3)` : undefined,
             }}
@@ -181,16 +184,16 @@ export default function RoleSelectScreen({
         </div>
 
         {/* Confirm */}
-        <button
+        <Button
           onClick={handleSubmit}
           disabled={!displayName.trim() || loading}
-          className={`w-full py-4 rounded-2xl text-sm font-bold tracking-wide transition-all active:scale-95 disabled:opacity-40 ${npcChar.btnBg}`}
+          className={`w-full py-4 h-auto rounded-2xl text-sm font-bold tracking-wide ${npcChar.btnBg}`}
           style={{
             boxShadow: displayName.trim() ? `0 0 30px rgba(${npcChar.glowRgb},0.2)` : undefined,
           }}
         >
-          {loading ? '준비 중...' : isJoining ? '참가하기' : '대화 시작'}
-        </button>
+          {loading ? <><Spinner className="size-4" /> 준비 중...</> : isJoining ? '참가하기' : '대화 시작'}
+        </Button>
       </div>
     </div>
   );

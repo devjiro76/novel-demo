@@ -1,4 +1,6 @@
 import type { Metadata, Viewport } from 'next';
+import { Toaster } from '@/components/ui/sonner';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import './globals.css';
 
 export const viewport: Viewport = {
@@ -20,7 +22,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ko">
-      <body>{children}</body>
+      <body>
+        <TooltipProvider>
+          {children}
+        </TooltipProvider>
+        <Toaster position="bottom-center" />
+      </body>
     </html>
   );
 }

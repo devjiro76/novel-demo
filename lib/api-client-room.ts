@@ -10,6 +10,7 @@ export interface RoomStateResponse {
     slug: string;
     villageId: string;
     npcCharacterId: string;
+    npcCharacterIds: string[];
     players: Array<{
       playerId: string;
       displayName: string;
@@ -68,7 +69,22 @@ export async function sendRoomMessage(
     npcCharacterId: string;
     displayName: string;
     characterId: string;
+    targetNpcId?: string;
   },
-): Promise<{ ok: boolean; playerMessage: RoomMessage; npcMessage: RoomMessage }> {
+): Promise<{ ok: boolean; playerMessage: RoomMessage; npcMessage: RoomMessage; npcMessages?: RoomMessage[] }> {
   return post(`/api/room/${roomId}/message`, { playerId, text, ...context });
+}
+
+export async function kickNpcAPI(
+  roomId: string,
+  npcCharacterId: string,
+): Promise<{ ok: boolean; npcCharacterIds: string[] }> {
+  return post(`/api/room/${roomId}/kick`, { npcCharacterId });
+}
+
+export async function inviteNpcAPI(
+  roomId: string,
+  npcCharacterId: string,
+): Promise<{ ok: boolean; npcCharacterIds: string[] }> {
+  return post(`/api/room/${roomId}/invite`, { npcCharacterId });
 }

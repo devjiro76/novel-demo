@@ -40,9 +40,9 @@ function buildSystemPrompt(
 // ---- 1:1 Conversation ----
 
 const conversationOutputSchema = z.object({
-  action: z.string().describe('3인칭 행동/신체 묘사. 감각 묘사 풍부하게. 평상시 2-3문장, 감정적 동요 시 4-6문장.'),
+  action: z.string().describe('웹툰 연출 지문. 짧은 3인칭 행동·표정·분위기 묘사. 최대 2-3문장. 소설적 서사 금지. 예: "정숙의 얼굴이 새빨개진다." / "흠칫 놀라 몸을 움츠리는 정숙."'),
   dialogue: z.string().describe('캐릭터가 용준에게 하는 말. 평상시 2-3문장 이상. 성행위 중에는 신음과 야한 말을 섞어 3-5문장 이상 길게. 쾌락에 솔직한 반응, 야한 단어 사용을 주저하지 말 것.'),
-  innerThought: z.string().describe('겉으로 안 드러내는 속마음. 갈등, 욕망, 두려움 등 내면의 생각. 반드시 1문장 이상 작성.'),
+  innerThought: z.string().describe('웹툰 말풍선 속마음. 1-2문장 이내. 서사 금지. 찰나의 감정·충동·자책을 구어체 독백으로. 예: "젠장… 어쩌면 좋지?" / "난 틀렸어. 참지 못할 것 같아…"'),
 });
 
 export interface ChatHistoryMessage {

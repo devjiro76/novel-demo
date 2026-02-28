@@ -25,6 +25,7 @@ export async function POST(
       npcCharacterId?: string;
       displayName?: string;
       characterId?: string;
+      targetNpcId?: string;
     };
 
     const { playerId, text } = body;
@@ -67,83 +68,122 @@ export async function POST(
       return NextResponse.json({ error: 'Failed to add message' }, { status: 500 });
     }
 
-    // 2. Generate NPC response
+    // 2. Generate NPC response(s)
     const pack = getStoryPack(room.slug);
     const village = await getVillage(env, room.villageId);
-    const npcId = room.npcCharacterId;
-    const npcDisplayName = pack.displayNames[npcId] ?? npcId;
+    const npcCharacterIds: string[] = (room as any).npcCharacterIds ?? [room.npcCharacterId];
 
-    // Re-read messages (includes the player message we just added)
+    // Determine responding NPCs: explicit target → single, otherwise → all active NPCs
+    const respondingNpcIds = (body.targetNpcId && npcCharacterIds.includes(body.targetNpcId))
+      ? [body.targetNpcId]
+      : npcCharacterIds;
+
+    // Re-read messages & room (shared context)
     const allMessages = await getMessages(roomId);
-    const chatHistory = buildChatHistory(allMessages, npcId);
-
-    // Re-read room for latest players
     const freshRoom = await getRoom(roomId);
     const allPlayers = freshRoom?.players ?? [];
     const senderPlayer = { playerId: player.playerId, displayName: player.displayName, characterId: player.characterId };
-
-    const situation = pack.defaultSituation.replace(
-      /\{\{charFullName\}\}/g,
-      pack.characters.find((c) => c.id === npcId)?.fullName ?? npcDisplayName,
-    );
-
     const stimulusDescription = `${player.displayName}이(가) 말했다: "${text.trim()}"`;
 
-    // Context enrichment: conversation summary (Tier 2) + long-term memory (Tier 3)
-    const [summary, longMemory] = await Promise.all([
-      updateSummaryIfNeeded(roomId, npcId, chatHistory, env).catch((err) => {
-        console.warn('[room/message] summary failed (non-fatal):', (err as Error).message);
-        return '';
-      }),
-      loadLongMemory(npcId).catch(() => ''),
-    ]);
-    if (summary) console.log(`[summary] room=${roomId} ${summary.length} chars`);
-    if (longMemory) console.log(`[long-memory] npc=${npcId} ${longMemory.length} chars`);
+    // Generate all NPC responses in parallel
+    const npcMessages = await Promise.all(
+      respondingNpcIds.map((npcId) =>
+        generateNpcResponse({
+          roomId, npcId, pack, village, env, allMessages,
+          allPlayers, senderPlayer, stimulusDescription, playerText: text.trim(), player,
+        }).catch((err) => {
+          console.error(`[room/message] NPC ${npcId} response failed:`, err);
+          return null;
+        })
+      )
+    );
 
-    const [appraisal, conversationResult] = await Promise.all([
-      generateAppraisal(npcId, stimulusDescription, village, env, player.characterId),
-      generateConversationResponse(
-        npcId, situation, text.trim(), village, env, pack, chatHistory,
-        senderPlayer, allPlayers, summary, longMemory,
-      ),
-    ]);
+    const validMessages = npcMessages.filter((m): m is RoomMessage => m !== null);
 
-    const persona = village.persona(npcId);
-
-    const { estimatedElapsedSeconds, ...appraisalVector } = appraisal;
-    if (estimatedElapsedSeconds >= 1) {
-      await persona.tick(estimatedElapsedSeconds).catch((err: any) => {
-        console.warn('[room/message] tick failed (non-fatal):', err.message);
-      });
-    }
-
-    await persona.interact('converse', {
-      actor: player.characterId,
-      actorType: 'user',
-      appraisal: appraisalVector,
-      stimulusDescription,
-    }).catch((err: any) => {
-      console.warn('[room/message] interact failed (non-fatal):', err.message);
+    return NextResponse.json({
+      ok: true,
+      playerMessage: playerMsg,
+      npcMessage: validMessages[0] ?? null,
+      npcMessages: validMessages,
     });
-
-    const updatedState = await persona.getState();
-    const rawEmotion = (updatedState.emotion.discrete?.primary ?? '').toLowerCase().trim();
-    const emotionLabel = resolveEmotionLabel(rawEmotion);
-
-    // 3. Add NPC response message
-    const npcMsg = await addMessage(roomId, {
-      sender: { type: 'npc', id: npcId, name: npcDisplayName },
-      text: conversationResult.dialogue,
-      action: conversationResult.action,
-      innerThought: conversationResult.innerThought,
-      emotion: emotionLabel,
-    });
-
-    return NextResponse.json({ ok: true, playerMessage: playerMsg, npcMessage: npcMsg });
   } catch (err: any) {
     console.error('[room/message] Error:', err);
     return NextResponse.json({ error: err.message ?? 'Internal error' }, { status: 500 });
   }
+}
+
+/** Generate a single NPC's response */
+async function generateNpcResponse(ctx: {
+  roomId: string;
+  npcId: string;
+  pack: ReturnType<typeof getStoryPack>;
+  village: Awaited<ReturnType<typeof getVillage>>;
+  env: ReturnType<typeof getEnv>;
+  allMessages: RoomMessage[];
+  allPlayers: { playerId: string; displayName: string; characterId: string }[];
+  senderPlayer: { playerId: string; displayName: string; characterId: string };
+  stimulusDescription: string;
+  playerText: string;
+  player: { playerId: string; displayName: string; characterId: string };
+}): Promise<RoomMessage | null> {
+  const { roomId, npcId, pack, village, env, allMessages, allPlayers, senderPlayer, stimulusDescription, playerText, player } = ctx;
+  const npcDisplayName = pack.displayNames[npcId] ?? npcId;
+  const chatHistory = buildChatHistory(allMessages, npcId);
+
+  const situation = pack.defaultSituation.replace(
+    /\{\{charFullName\}\}/g,
+    pack.characters.find((c) => c.id === npcId)?.fullName ?? npcDisplayName,
+  );
+
+  const [summary, longMemory] = await Promise.all([
+    updateSummaryIfNeeded(roomId, npcId, chatHistory, env).catch((err) => {
+      console.warn(`[room/message] summary failed for ${npcId} (non-fatal):`, (err as Error).message);
+      return '';
+    }),
+    loadLongMemory(npcId).catch(() => ''),
+  ]);
+
+  const [appraisal, conversationResult] = await Promise.all([
+    generateAppraisal(npcId, stimulusDescription, village, env, player.characterId),
+    generateConversationResponse(
+      npcId, situation, playerText, village, env, pack, chatHistory,
+      senderPlayer, allPlayers, summary, longMemory,
+    ),
+  ]);
+
+  const persona = village.persona(npcId);
+  const { estimatedElapsedSeconds, ...appraisalVector } = appraisal;
+  if (estimatedElapsedSeconds >= 1) {
+    await persona.tick(estimatedElapsedSeconds).catch((err: any) => {
+      console.warn(`[room/message] tick failed for ${npcId} (non-fatal):`, err.message);
+    });
+  }
+
+  let rawEmotion = '';
+  try {
+    const interactResult = await persona.interact('converse', {
+      actor: player.characterId,
+      actorType: 'user',
+      appraisal: appraisalVector,
+      stimulusDescription,
+    });
+    rawEmotion = (interactResult?.emotion?.discrete?.primary ?? '').toLowerCase().trim();
+  } catch (err: any) {
+    console.warn(`[room/message] interact failed for ${npcId} (non-fatal):`, err.message);
+    try {
+      const fallbackState = await persona.getState();
+      rawEmotion = (fallbackState.emotion.discrete?.primary ?? '').toLowerCase().trim();
+    } catch { /* keep empty */ }
+  }
+  const emotionLabel = resolveEmotionLabel(rawEmotion);
+
+  return addMessage(roomId, {
+    sender: { type: 'npc', id: npcId, name: npcDisplayName },
+    text: conversationResult.dialogue,
+    action: conversationResult.action,
+    innerThought: conversationResult.innerThought,
+    emotion: emotionLabel,
+  });
 }
 
 /** Convert room messages to chat history format for narrator */
