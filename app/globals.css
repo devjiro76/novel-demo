@@ -119,6 +119,11 @@ body {
   100% { background-position: 0% 50%; }
 }
 
+@keyframes dotBounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+  40% { transform: translateY(-6px); opacity: 1; }
+}
+
 @layer utilities {
   .fade-in { animation: fadeIn 0.5s ease-out; }
   .slide-up { animation: slideUp 0.4s ease-out both; }
@@ -127,6 +132,10 @@ body {
   .pulse-glow { animation: pulseGlow 2s ease-in-out infinite; }
   .float { animation: float 3s ease-in-out infinite; }
   .bg-pan { animation: bgPan 8s ease-in-out infinite; }
+  .dot-bounce { animation: dotBounce 1.4s ease-in-out infinite; }
+  .dot-bounce-1 { animation-delay: 0s; }
+  .dot-bounce-2 { animation-delay: 0.16s; }
+  .dot-bounce-3 { animation-delay: 0.32s; }
 }
 
 @theme inline {

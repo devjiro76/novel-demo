@@ -9,8 +9,10 @@ import type { RoomMessage } from '@/lib/room';
 import { saveSession, loadSession, clearSession } from '@/lib/session';
 import { useRoomPolling } from '@/hooks/useRoomPolling';
 import { RoomMessageBubble, CharAvatar } from './chat/MessageBubble';
+import { TypingIndicator } from './chat/TypingIndicator';
 import { InviteNpcPopover } from './chat/InviteNpcPopover';
 import { MentionInput } from './chat/MentionInput';
+import { RelationshipIndicator } from './chat/RelationshipIndicator';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import RoleSelectScreen from './RoleSelectScreen';
 import { toast } from 'sonner';
@@ -19,7 +21,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
-type Phase = 'title' | 'loading' | 'select' | 'roleSelect' | 'chat';
+type Phase = 'title' | 'loading' | 'select' | 'profile' | 'roleSelect' | 'chat';
 
 type Character = CharacterMeta;
 
@@ -183,8 +185,87 @@ function SelectScreen({ pack, chatCounts, onSelect, onReset }: {
   );
 }
 
+// ---- Profile Screen ----
+function ProfileScreen({ char, pack, onStart, onBack }: {
+  char: CharacterMeta;
+  pack: ClientStoryPack;
+  onStart: () => void;
+  onBack: () => void;
+}) {
+  return (
+    <div className="h-screen flex flex-col relative overflow-hidden">
+      {/* Back button */}
+      <button
+        onClick={onBack}
+        className="absolute top-5 left-5 z-20 size-10 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-sm text-white/70 hover:text-white transition-colors"
+        aria-label="뒤로가기"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M15 18l-6-6 6-6" />
+        </svg>
+      </button>
+
+      {/* Character image - top 45% */}
+      <div className="relative h-[45vh] shrink-0 overflow-hidden">
+        <img
+          src={`${pack.assetsBasePath}${char.image}`}
+          alt={char.fullName}
+          className="absolute inset-0 w-full h-full object-cover object-[50%_10%]"
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background: 'linear-gradient(to top, #08080d 0%, rgba(8,8,13,0.4) 50%, rgba(8,8,13,0.2) 100%)',
+          }}
+        />
+        {/* Glow accent at bottom */}
+        <div
+          className="absolute bottom-0 left-0 right-0 h-32 pointer-events-none"
+          style={{
+            background: `radial-gradient(ellipse at center bottom, rgba(${char.glowRgb},0.15), transparent 70%)`,
+          }}
+        />
+      </div>
+
+      {/* Character info */}
+      <div className="flex-1 px-5 -mt-16 relative z-10 overflow-y-auto pb-28">
+        <div className="slide-up">
+          <h1 className={`text-3xl font-black tracking-tight ${char.accentText}`}>
+            {char.fullName}
+          </h1>
+          <p className="text-sm text-[var(--color-text-dim)] mt-1">
+            {char.role} · {char.age}세
+          </p>
+          <div className="mt-4">
+            <p className="text-[15px] text-[var(--color-text-secondary)] leading-relaxed whitespace-pre-line">
+              {char.desc}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* CTA */}
+      <div
+        className="absolute bottom-0 left-0 right-0 px-5 pb-8 pt-12 z-20"
+        style={{ background: 'linear-gradient(to top, #08080d 60%, transparent)' }}
+      >
+        <button
+          onClick={onStart}
+          className="w-full py-4 rounded-2xl text-base font-bold text-white active:scale-[0.98] transition-transform"
+          style={{
+            background: `linear-gradient(135deg, ${char.glow}, #a855f7)`,
+            boxShadow: `0 0 30px rgba(${char.glowRgb},0.3), 0 4px 20px rgba(0,0,0,0.3)`,
+          }}
+        >
+          대화 시작하기
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ---- Chat Screen (Room-based) ----
-function RoomChatScreen({ npcChar, pack, messages, sending, input, onInputChange, onSend, onBack, onShare, playerCount, myPlayerId, inputRef, scrollRef, loading, activeNpcIds, npcChars, onInvite, onKickNpc, onMentionSelect, respondingNpcId, primaryNpcId }: {
+function RoomChatScreen({ npcChar, pack, messages, sending, input, onInputChange, onSend, onBack, onShare, playerCount, myPlayerId, inputRef, scrollRef, loading, activeNpcIds, npcChars, onInvite, onKickNpc, onMentionSelect, respondingNpcId, primaryNpcId, roomId }: {
   npcChar: Character;
   pack: ClientStoryPack;
   messages: RoomMessage[];
@@ -206,6 +287,7 @@ function RoomChatScreen({ npcChar, pack, messages, sending, input, onInputChange
   onMentionSelect: (charId: string) => void;
   respondingNpcId: string | null;
   primaryNpcId: string;
+  roomId: string;
 }) {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -229,6 +311,15 @@ function RoomChatScreen({ npcChar, pack, messages, sending, input, onInputChange
           borderBottom: `1px solid rgba(${npcChar.glowRgb},0.08)`,
         }}
       >
+        <button
+          onClick={onBack}
+          className="shrink-0 size-8 flex items-center justify-center rounded-lg text-white/40 hover:text-white/80 hover:bg-white/[0.06] transition-colors"
+          aria-label="뒤로가기"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+        </button>
         {activeChars.length <= 1 ? (
           <CharAvatar char={npcChar} size={36} imageSrc={`${pack.assetsBasePath}${npcChar.image}`} />
         ) : (
@@ -278,32 +369,29 @@ function RoomChatScreen({ npcChar, pack, messages, sending, input, onInputChange
             {playerCount}명
           </Badge>
         </div>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="outline"
-              size="xs"
-              onClick={onShare}
-              className="text-[10px] text-[var(--color-text-dim)] hover:text-white/60 border-white/[0.06]"
-            >
-              초대
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>초대 링크 복사</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="outline"
-              size="xs"
-              onClick={onBack}
-              className="text-[10px] text-[var(--color-text-dim)] hover:text-white/60 border-white/[0.06]"
-            >
-              ← 뒤로
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>캐릭터 선택으로</TooltipContent>
-        </Tooltip>
+        <div className="flex items-center gap-1.5 shrink-0">
+          {activeNpcIds.length === 1 && (
+            <RelationshipIndicator
+              roomId={roomId}
+              npcId={primaryNpcId}
+              glowRgb={npcChar.glowRgb}
+              glow={npcChar.glow}
+            />
+          )}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="xs"
+                onClick={onShare}
+                className="text-[10px] text-[var(--color-text-dim)] hover:text-white/60 border-white/[0.06]"
+              >
+                초대
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>초대 링크 복사</TooltipContent>
+          </Tooltip>
+        </div>
       </header>
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-5 space-y-6">
@@ -335,17 +423,11 @@ function RoomChatScreen({ npcChar, pack, messages, sending, input, onInputChange
         ))}
 
         {sending && (() => {
-          // Show responding NPC(s)' avatar(s) with spinner
           const respondingChars = respondingNpcId
             ? [npcChars.get(respondingNpcId) ?? npcChar]
             : activeChars;
           return respondingChars.map((c) => (
-            <div key={c.id} className="flex gap-2.5 items-start slide-up">
-              <CharAvatar char={c} size={32} imageSrc={`${pack.assetsBasePath}${c.image}`} />
-              <div className="flex items-center gap-1.5 pt-2">
-                <Spinner className="size-4" style={{ color: c.glow }} />
-              </div>
-            </div>
+            <TypingIndicator key={c.id} char={c} assetsBasePath={pack.assetsBasePath} />
           ));
         })()}
       </div>
@@ -384,6 +466,36 @@ function RoomChatScreen({ npcChar, pack, messages, sending, input, onInputChange
               boxShadow: input.trim() ? `0 0 15px rgba(${npcChar.glowRgb},0.05)` : undefined,
             }}
           />
+
+          {/* Voice — coming soon */}
+          <button
+            type="button"
+            onClick={() => toast.info('음성 대화 기능은 준비 중이에요')}
+            className="shrink-0 size-9 rounded-xl bg-[var(--color-surface-2)] border border-white/[0.06] flex items-center justify-center text-white/40 hover:text-white/60 transition-colors"
+            aria-label="음성 메시지"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" />
+              <path d="M19 10v2a7 7 0 01-14 0v-2" />
+              <line x1="12" y1="19" x2="12" y2="23" />
+              <line x1="8" y1="23" x2="16" y2="23" />
+            </svg>
+          </button>
+
+          {/* Image — coming soon */}
+          <button
+            type="button"
+            onClick={() => toast.info('이미지 생성 기능은 준비 중이에요')}
+            className="shrink-0 size-9 rounded-xl bg-[var(--color-surface-2)] border border-white/[0.06] flex items-center justify-center text-white/40 hover:text-white/60 transition-colors"
+            aria-label="이미지 생성"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <polyline points="21 15 16 10 5 21" />
+            </svg>
+          </button>
+
           <Button
             onClick={onSend}
             disabled={sending || !input.trim()}
@@ -495,9 +607,33 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
       }
     }
 
-    // 3) Normal flow: restore villageId
+    // 3) Normal flow: restore villageId or handle ?char= param
     try {
       const savedVillageId = localStorage.getItem(`${storageKey}:villageId`);
+
+      // 3.5) Direct character entry from landing page (?char=xxx)
+      const charParam = url.searchParams.get('char');
+      if (charParam) {
+        const char = pack.characters.find((c) => c.id === charParam);
+        if (char) {
+          setActiveChar(char);
+          if (savedVillageId) {
+            setVillageId(savedVillageId);
+            setPhase('profile');
+          } else {
+            setPhase('loading');
+            startGame(pack.slug).then((newVillageId) => {
+              setVillageId(newVillageId);
+              localStorage.setItem(`${storageKey}:villageId`, newVillageId);
+              setPhase('profile');
+            }).catch(() => {
+              setPhase('title');
+            });
+          }
+          return;
+        }
+      }
+
       if (savedVillageId) {
         setVillageId(savedVillageId);
         setPhase('select');
@@ -583,7 +719,7 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
       return;
     }
 
-    setPhase('roleSelect');
+    setPhase('profile');
   }, [pack.slug, storageKey]);
 
   const handleRoleConfirm = useCallback(async (displayName: string, characterId: string) => {
@@ -832,6 +968,15 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
         onReset={handleReset}
       />
     );
+  } else if (phase === 'profile' && activeChar) {
+    content = (
+      <ProfileScreen
+        char={activeChar}
+        pack={pack}
+        onStart={() => setPhase('roleSelect')}
+        onBack={handleBack}
+      />
+    );
   } else if (phase === 'roleSelect' && activeChar) {
     content = (
       <RoleSelectScreen
@@ -868,6 +1013,7 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
         onMentionSelect={handleMentionSelect}
         respondingNpcId={respondingNpcId}
         primaryNpcId={activeChar.id}
+        roomId={roomId ?? ''}
       />
     );
   }

@@ -162,6 +162,7 @@ async function generateNpcResponse(ctx: {
   }
 
   let rawEmotion = '';
+  let emotionDetail: import('@/lib/types').EmotionDetail | undefined;
   try {
     const interactResult = await persona.interact('converse', {
       actor: player.characterId,
@@ -169,7 +170,17 @@ async function generateNpcResponse(ctx: {
       appraisal: appraisalVector,
       stimulusDescription,
     });
-    rawEmotion = (interactResult?.emotion?.discrete?.primary ?? '').toLowerCase().trim();
+    const discrete = interactResult?.emotion?.discrete;
+    const vad = interactResult?.emotion?.vad as { V: number; A: number; D: number } | undefined;
+    rawEmotion = (discrete?.primary ?? '').toLowerCase().trim();
+    if (vad) {
+      emotionDetail = {
+        primary: rawEmotion,
+        secondary: (discrete?.secondary ?? '').toLowerCase().trim() || undefined,
+        vad: { V: vad.V ?? 0, A: vad.A ?? 0, D: vad.D ?? 0 },
+        intensity: (discrete as any)?.intensity ?? undefined,
+      };
+    }
   } catch (err: any) {
     console.warn(`[room/message] interact failed for ${npcId} (non-fatal):`, err.message);
     try {
@@ -185,6 +196,7 @@ async function generateNpcResponse(ctx: {
     action: conversationResult.action,
     innerThought: conversationResult.innerThought,
     emotion: emotionLabel,
+    emotionDetail,
   });
 }
 

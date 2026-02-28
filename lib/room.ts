@@ -1,5 +1,7 @@
 // ---- Room system types ----
 
+import type { EmotionDetail } from './types';
+
 export interface Player {
   playerId: string;
   displayName: string;
@@ -20,4 +22,5 @@ export interface RoomMessage {
   action?: string;
   innerThought?: string;
   emotion?: string;
+  emotionDetail?: EmotionDetail;
 }

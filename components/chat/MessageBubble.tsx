@@ -5,8 +5,18 @@ import type { RoomMessage } from '@/lib/room';
 import type { CharacterMeta } from '@/lib/story-pack';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { EmotionEvolution } from './EmotionEvolution';
 
 type Character = CharacterMeta;
+
+const EMOTION_EMOJI: Record<string, string> = {
+  joy: '😊', excitement: '✨', contentment: '😌',
+  anger: '😠', fear: '😨', sadness: '😢',
+  anxiety: '😰', surprise: '😲', disgust: '🤢',
+  trust: '🤝', calm: '😶', shame: '😳',
+  guilt: '😔', numbness: '😶‍🌫️',
+};
 
 function formatTime(ts: number): string {
   const d = new Date(ts);
@@ -166,16 +176,57 @@ function RoomMessageBubbleInner({ msg, npcChar, npcChars, myPlayerId, assetsBase
 
             <div className="flex items-center gap-2 mt-1.5 ml-1">
               {msg.emotion && (
-                <Badge
-                  variant="outline"
-                  className="text-[10px] font-normal border-transparent"
-                  style={{ color: resolvedChar.glow, background: `rgba(${resolvedChar.glowRgb},0.1)` }}
-                >
-                  {msg.emotion}
-                </Badge>
+                msg.emotionDetail?.vad ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] font-normal border-transparent gap-1 cursor-default"
+                        style={{
+                          color: resolvedChar.glow,
+                          background: `rgba(${resolvedChar.glowRgb},0.12)`,
+                          boxShadow: `0 0 8px rgba(${resolvedChar.glowRgb},${0.15 + (msg.emotionDetail.intensity ?? 0.5) * 0.25})`,
+                          opacity: 0.7 + (msg.emotionDetail.intensity ?? 0.5) * 0.3,
+                        }}
+                      >
+                        {EMOTION_EMOJI[msg.emotionDetail.primary] && (
+                          <span className="text-[11px]">{EMOTION_EMOJI[msg.emotionDetail.primary]}</span>
+                        )}
+                        {msg.emotion}
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-[10px] space-y-0.5 p-2">
+                      <p className="font-medium mb-1">감정 상태 (VAD)</p>
+                      <p>Valence: {msg.emotionDetail.vad.V.toFixed(2)}</p>
+                      <p>Arousal: {msg.emotionDetail.vad.A.toFixed(2)}</p>
+                      <p>Dominance: {msg.emotionDetail.vad.D.toFixed(2)}</p>
+                      {msg.emotionDetail.secondary && (
+                        <p className="text-white/40 mt-1">보조: {msg.emotionDetail.secondary}</p>
+                      )}
+                    </TooltipContent>
+                  </Tooltip>
+                ) : (
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] font-normal border-transparent gap-1"
+                    style={{
+                      color: resolvedChar.glow,
+                      background: `rgba(${resolvedChar.glowRgb},0.12)`,
+                      boxShadow: `0 0 8px rgba(${resolvedChar.glowRgb},0.2)`,
+                    }}
+                  >
+                    {EMOTION_EMOJI[msg.emotion] && (
+                      <span className="text-[11px]">{EMOTION_EMOJI[msg.emotion]}</span>
+                    )}
+                    {msg.emotion}
+                  </Badge>
+                )
               )}
               <span className="text-[9px] text-[var(--color-text-dim)]">{formatTime(msg.timestamp)}</span>
             </div>
+            {msg.emotionDetail && (
+              <EmotionEvolution emotionDetail={msg.emotionDetail} glowRgb={resolvedChar.glowRgb} />
+            )}
           </div>
         </div>
       )}

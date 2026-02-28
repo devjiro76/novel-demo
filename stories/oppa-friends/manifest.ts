@@ -37,6 +37,8 @@ const manifest: StoryManifest = {
       gradient: 'from-blue-950/80 via-blue-900/40 to-transparent',
       accentText: 'text-blue-400',
       btnBg: 'bg-blue-600 hover:bg-blue-500',
+      tags: ['로맨스', '성인', '지배'],
+      chatBackground: 'linear-gradient(180deg, rgba(59,130,246,0.04) 0%, rgba(8,8,13,1) 30%)',
     },
     {
       id: 'b',
@@ -51,6 +53,8 @@ const manifest: StoryManifest = {
       gradient: 'from-red-950/80 via-rose-900/40 to-transparent',
       accentText: 'text-red-400',
       btnBg: 'bg-red-600 hover:bg-red-500',
+      tags: ['성인', '지배', '갈등'],
+      chatBackground: 'linear-gradient(180deg, rgba(239,68,68,0.04) 0%, rgba(8,8,13,1) 30%)',
     },
     {
       id: 'c',
@@ -65,6 +69,8 @@ const manifest: StoryManifest = {
       gradient: 'from-green-950/80 via-emerald-900/40 to-transparent',
       accentText: 'text-green-400',
       btnBg: 'bg-green-600 hover:bg-green-500',
+      tags: ['갈등', '성인', '순수'],
+      chatBackground: 'linear-gradient(180deg, rgba(34,197,94,0.04) 0%, rgba(8,8,13,1) 30%)',
     },
     {
       id: 'sohyuk',
@@ -79,6 +85,8 @@ const manifest: StoryManifest = {
       gradient: 'from-amber-950/80 via-yellow-900/40 to-transparent',
       accentText: 'text-amber-400',
       btnBg: 'bg-amber-600 hover:bg-amber-500',
+      tags: ['가족', '드라마'],
+      chatBackground: 'linear-gradient(180deg, rgba(245,158,11,0.04) 0%, rgba(8,8,13,1) 30%)',
     },
   ],
   assetsBasePath: '/stories/oppa-friends',

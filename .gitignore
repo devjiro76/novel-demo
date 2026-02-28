@@ -7,3 +7,6 @@ node_modules/
 tsconfig.tsbuildinfo
 stories/*/raw/
 data/kb/
+.claude/
+.serena/
+.wrangler/

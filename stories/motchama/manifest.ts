@@ -38,6 +38,8 @@ const manifest: StoryManifest = {
       gradient: 'from-pink-950/80 via-rose-900/40 to-transparent',
       accentText: 'text-pink-400',
       btnBg: 'bg-pink-600 hover:bg-pink-500',
+      tags: ['로맨스', '비밀연애', '성인'],
+      chatBackground: 'linear-gradient(180deg, rgba(255,107,157,0.04) 0%, rgba(8,8,13,1) 30%)',
     },
     {
       id: 'eunhye',
@@ -52,6 +54,8 @@ const manifest: StoryManifest = {
       gradient: 'from-purple-950/80 via-violet-900/40 to-transparent',
       accentText: 'text-purple-400',
       btnBg: 'bg-purple-600 hover:bg-purple-500',
+      tags: ['로맨스', '학교', '순수'],
+      chatBackground: 'linear-gradient(180deg, rgba(168,85,247,0.04) 0%, rgba(8,8,13,1) 30%)',
     },
     {
       id: 'mina',
@@ -66,6 +70,8 @@ const manifest: StoryManifest = {
       gradient: 'from-red-950/80 via-rose-900/40 to-transparent',
       accentText: 'text-red-400',
       btnBg: 'bg-red-600 hover:bg-red-500',
+      tags: ['갈등', '로맨스', '성인'],
+      chatBackground: 'linear-gradient(180deg, rgba(239,68,68,0.04) 0%, rgba(8,8,13,1) 30%)',
     },
     {
       id: 'jeongjung',
@@ -80,6 +86,8 @@ const manifest: StoryManifest = {
       gradient: 'from-slate-950/80 via-slate-900/40 to-transparent',
       accentText: 'text-slate-400',
       btnBg: 'bg-slate-600 hover:bg-slate-500',
+      tags: ['가족', '드라마'],
+      chatBackground: 'linear-gradient(180deg, rgba(59,130,246,0.04) 0%, rgba(8,8,13,1) 30%)',
     },
     {
       id: 'deokhui',
@@ -94,6 +102,8 @@ const manifest: StoryManifest = {
       gradient: 'from-cyan-950/80 via-cyan-900/40 to-transparent',
       accentText: 'text-cyan-400',
       btnBg: 'bg-cyan-600 hover:bg-cyan-500',
+      tags: ['우정', '로맨스'],
+      chatBackground: 'linear-gradient(180deg, rgba(34,197,94,0.04) 0%, rgba(8,8,13,1) 30%)',
     },
   ],
   assetsBasePath: '/stories/motchama',

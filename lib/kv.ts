@@ -2,14 +2,21 @@
  * Shared KV access layer — Cloudflare KV with in-memory fallback for local dev.
  */
 
+let _kvCache: KVNamespace | null | undefined;
+
 async function getKV(): Promise<KVNamespace | null> {
+  if (_kvCache !== undefined) return _kvCache;
   try {
     const { getCloudflareContext } = await import('@opennextjs/cloudflare');
-    const ctx = await getCloudflareContext({ async: true });
-    return (ctx.env as any).ROOM_KV ?? null;
+    const ctx = await Promise.race([
+      getCloudflareContext({ async: true }),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 500)),
+    ]);
+    _kvCache = (ctx.env as any).ROOM_KV ?? null;
   } catch {
-    return null;
+    _kvCache = null;
   }
+  return _kvCache;
 }
 
 const memStore = new Map<string, string>();

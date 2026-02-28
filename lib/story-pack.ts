@@ -13,6 +13,8 @@ export interface CharacterMeta {
   gradient: string;
   accentText: string;
   btnBg: string;
+  tags?: string[];          // e.g., ['로맨스', '판타지', '성인']
+  chatBackground?: string;  // CSS gradient or color for chat background theme
 }
 
 export interface RelSeed {
@@ -114,4 +116,66 @@ export function toClientPack(pack: StoryManifest): ClientStoryPack {
 
 export function getAllClientPacks(): ClientStoryPack[] {
   return Object.values(STORY_PACKS).map(toClientPack);
+}
+
+// ---- World Card ----
+
+export interface WorldCardData {
+  id: string;
+  type: 'builtin' | 'user';
+  name: string;
+  description: string;
+  tags: string[];
+  themeColor: string;
+  themeColorRgb: string;
+  characters: { id: string; name: string; image?: string; glow: string }[];
+  relationshipCount: number;
+  slug?: string;            // builtin worlds only
+  assetsBasePath?: string;  // builtin worlds only
+  isAdult?: boolean;
+}
+
+/** Convert a StoryManifest into a WorldCardData for display */
+export function storyToWorldCard(pack: StoryManifest): WorldCardData {
+  const firstChar = pack.characters[0];
+  const themeColor = firstChar?.glow ?? '#a855f7';
+  const themeColorRgb = firstChar?.glowRgb ?? '168,85,247';
+
+  return {
+    id: pack.slug,
+    type: 'builtin',
+    name: pack.title,
+    description: pack.description ?? pack.subtitle ?? '',
+    tags: Array.from(new Set(pack.characters.flatMap((c) => c.tags ?? []))),
+    themeColor,
+    themeColorRgb,
+    characters: pack.characters.map((c) => ({
+      id: c.id,
+      name: c.name,
+      image: c.image ? `${pack.assetsBasePath}${c.image}` : undefined,
+      glow: c.glow,
+    })),
+    relationshipCount: pack.initialRelationships.length,
+    slug: pack.slug,
+    assetsBasePath: pack.assetsBasePath,
+  };
+}
+
+/** Get all builtin stories as WorldCardData */
+export function getAllWorldCards(): WorldCardData[] {
+  return Object.values(STORY_PACKS).map(storyToWorldCard);
+}
+
+/** 모든 스토리팩에서 사용 가능한 태그 목록 추출 */
+export function getAllTags(): string[] {
+  const packs = getAllClientPacks();
+  const tagSet = new Set<string>();
+  for (const pack of packs) {
+    for (const char of pack.characters) {
+      if (char.tags) {
+        for (const tag of char.tags) tagSet.add(tag);
+      }
+    }
+  }
+  return Array.from(tagSet).sort((a, b) => a.localeCompare(b, 'ko'));
 }

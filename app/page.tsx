@@ -1,7 +1,8 @@
-import StorySelector from '@/components/StorySelector';
-import { getAllClientPacks } from '@/lib/story-pack';
+import Landing from '@/components/Landing';
+import { getAllClientPacks, getAllWorldCards } from '@/lib/story-pack';
 
 export default function Page() {
   const packs = getAllClientPacks();
-  return <StorySelector packs={packs} />;
+  const worlds = getAllWorldCards();
+  return <Landing packs={packs} worlds={worlds} />;
 }
