@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import GameClient from '@/components/GameClient';
+import { AppShell } from '@/components/layout';
 import { getStoryPack, toClientPack } from '@/lib/story-pack';
 import { STORY_PACKS } from '@/stories';
 
@@ -21,5 +22,9 @@ export default async function StoryPage({
 
   const pack = getStoryPack(slug);
   const clientPack = toClientPack(pack);
-  return <GameClient pack={clientPack} initialCharId={char} />;
+  return (
+    <AppShell hideNav fullHeight>
+      <GameClient pack={clientPack} initialCharId={char} />
+    </AppShell>
+  );
 }

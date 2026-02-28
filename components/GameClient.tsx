@@ -294,7 +294,7 @@ export default function GameClient({ pack, initialCharId }: { pack: ClientStoryP
   else if (phase === 'chat' && activeChar) { content = <RoomChatScreen npcChar={activeChar} pack={pack} messages={roomMessages} sending={sending} input={input} onInputChange={setInput} onSend={handleSend} onBack={handleBack} onShare={handleShare} playerCount={playerCount} myPlayerId={playerId ?? ''} inputRef={inputRef} scrollRef={scrollRef} loading={!chatReady} activeNpcIds={activeNpcIds} npcChars={npcCharsMap} onInvite={handleInviteNpc} onKickNpc={handleKickNpc} onMentionSelect={handleMentionSelect} respondingNpcId={respondingNpcId} primaryNpcId={activeChar.id} roomId={roomId ?? ''} />; }
 
   return (
-    <div className="h-screen w-screen bg-black flex justify-center">
+    <div className="h-full w-full flex justify-center overflow-hidden">
       <div className="w-full max-w-2xl h-full bg-[var(--color-bg)] relative md:border-x md:border-white/[0.06] md:shadow-[0_0_80px_rgba(0,0,0,0.8)]">{content}</div>
     </div>
   );
