@@ -109,7 +109,7 @@ function DesktopLanding({ worlds }: { worlds: WorldCardData[] }) {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="캐릭터, 세계 검색..."
+              placeholder="월드, 캐릭터 검색..."
               className="w-full bg-[var(--color-surface)] border border-white/[0.06] rounded-xl pl-10 pr-4 py-3 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-brand-primary)]/30 transition-colors"
             />
           </div>
@@ -194,7 +194,7 @@ function DesktopLanding({ worlds }: { worlds: WorldCardData[] }) {
           {searchedWorlds.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20">
               <p className="text-[var(--color-text-muted)]">
-                {searchQuery ? `'${searchQuery}' 검색 결과 없음` : '세계가 없습니다.'}
+                {searchQuery ? `'${searchQuery}' 검색 결과 없음` : '월드가 없습니다.'}
               </p>
             </div>
           ) : (
@@ -387,7 +387,7 @@ function MobileLanding({ worlds }: { worlds: WorldCardData[] }) {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="캐릭터, 세계 검색..."
+            placeholder="월드, 캐릭터 검색..."
             autoFocus
             className="w-full bg-[var(--color-surface)] border border-white/[0.06] rounded-xl px-4 py-3 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-brand-primary)]/30 transition-colors"
           />
@@ -462,7 +462,7 @@ function MobileLanding({ worlds }: { worlds: WorldCardData[] }) {
             {searched.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20">
                 <p className="text-[var(--color-text-muted)] text-sm">
-                  {searchQuery ? `'${searchQuery}' 검색 결과 없음` : '세계가 없습니다.'}
+                  {searchQuery ? `'${searchQuery}' 검색 결과 없음` : '월드가 없습니다.'}
                 </p>
               </div>
             ) : (

@@ -82,13 +82,13 @@ export default function RankingPage({ packs, worlds }: RankingPageProps) {
       {isDesktop ? (
         <>
           <h1 className="text-3xl font-black text-gradient">인기 랭킹</h1>
-          <p className="text-[var(--color-text-secondary)] mt-2">인기 있는 캐릭터와 월드</p>
+          <p className="text-[var(--color-text-secondary)] mt-2">인기 있는 월드와 캐릭터</p>
         </>
       ) : (
         <>
           <Link href="/" className="text-[10px] text-[var(--color-text-dim)]">← 홈</Link>
           <h1 className="text-2xl font-bold mt-2">인기 랭킹</h1>
-          <p className="text-[11px] text-[var(--color-text-dim)] mt-1">인기 있는 캐릭터와 월드</p>
+          <p className="text-[11px] text-[var(--color-text-dim)] mt-1">인기 있는 월드와 캐릭터</p>
         </>
       )}
     </header>
@@ -338,7 +338,7 @@ export default function RankingPage({ packs, worlds }: RankingPageProps) {
           border: '1px solid rgba(255,255,255,0.06)',
         } : {}}>
           <p className="text-[var(--color-text-muted)]">
-            {rankType === 'characters' ? '캐릭터가 없습니다.' : '월드가 없습니다.'}
+            {rankType === 'worlds' ? '월드가 없습니다.' : '캐릭터가 없습니다.'}
           </p>
         </div>
       ) : (
