@@ -1,5 +1,4 @@
 import type { Player, RoomMessage } from './room';
-import { emitRoomEvent } from './room-events';
 
 /**
  * Room store — KV-backed for Cloudflare Workers, in-memory fallback for local dev.
@@ -155,7 +154,6 @@ export async function addPlayer(
     text: `${player.displayName}님이 입장했습니다.`,
   });
 
-  emitRoomEvent(roomId, 'player_joined', { player, playerCount: data.players.length });
   return player;
 }
 
@@ -175,7 +173,6 @@ export async function removePlayer(roomId: string, playerId: string): Promise<bo
     text: `${player.displayName}님이 퇴장했습니다.`,
   });
 
-  emitRoomEvent(roomId, 'player_left', { player, playerCount: data.players.length });
   return true;
 }
 
@@ -200,7 +197,6 @@ export async function addMessage(
   // Keep last 200 messages to avoid KV value size limit
   const trimmed = msgs.slice(-200);
   await saveRoomMessages(roomId, trimmed);
-  emitRoomEvent(roomId, 'message', msg);
   return msg;
 }
 

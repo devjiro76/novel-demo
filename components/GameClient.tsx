@@ -414,61 +414,53 @@ function RoomChatScreen({ npcChar, pack, messages, sending, input, onInputChange
   );
 }
 
-// ---- useRoomSSE Hook ----
-// Subscribes to SSE for real-time room updates (replaces polling)
-function useRoomSSE(
+// ---- useRoomPolling Hook ----
+// Polls GET /api/room/{roomId} for room updates (KV is source of truth)
+function useRoomPolling(
   roomId: string | null,
   enabled: boolean,
-  onMessage: (msg: RoomMessage) => void,
-  onStateSync: (state: { messages: RoomMessage[]; playerCount: number }) => void,
-  onPlayerCountChange?: (count: number) => void,
+  sendingRef: React.RefObject<boolean>,
+  setMessages: React.Dispatch<React.SetStateAction<RoomMessage[]>>,
+  setPlayerCount: React.Dispatch<React.SetStateAction<number>>,
+  interval = 2000,
 ) {
-  const onMessageRef = useRef(onMessage);
-  onMessageRef.current = onMessage;
-  const onStateSyncRef = useRef(onStateSync);
-  onStateSyncRef.current = onStateSync;
-  const onPlayerCountChangeRef = useRef(onPlayerCountChange);
-  onPlayerCountChangeRef.current = onPlayerCountChange;
-
   useEffect(() => {
     if (!roomId || !enabled) return;
 
-    const es = new EventSource(`/api/room/${roomId}/events`);
+    let timer: ReturnType<typeof setInterval>;
 
-    es.addEventListener('room_state', (e) => {
+    const poll = async () => {
+      if (sendingRef.current) return; // skip while sending — POST result handles it
       try {
-        const data = JSON.parse(e.data);
-        onStateSyncRef.current(data);
-      } catch {}
-    });
+        const res = await fetch(`/api/room/${roomId}`);
+        if (!res.ok) return;
+        const data: { messages?: RoomMessage[]; room?: { players?: unknown[] } } = await res.json();
+        const polledMessages: RoomMessage[] = data.messages ?? [];
+        const polledPlayerCount: number = data.room?.players?.length ?? 1;
 
-    es.addEventListener('message', (e) => {
-      try {
-        const msg = JSON.parse(e.data) as RoomMessage;
-        onMessageRef.current(msg);
-      } catch {}
-    });
+        setMessages((prev) => {
+          const prevIds = new Set(
+            prev.filter((m) => !m.id.startsWith('pending-')).map((m) => m.id),
+          );
+          const hasNew = polledMessages.some((m) => !prevIds.has(m.id));
+          if (!hasNew && polledMessages.length === prev.filter((m) => !m.id.startsWith('pending-')).length) {
+            return prev; // no change → skip re-render
+          }
+          return polledMessages; // KV is source of truth → replace entirely
+        });
 
-    es.addEventListener('player_joined', (e) => {
-      try {
-        const data = JSON.parse(e.data);
-        onPlayerCountChangeRef.current?.(data.playerCount);
-      } catch {}
-    });
-
-    es.addEventListener('player_left', (e) => {
-      try {
-        const data = JSON.parse(e.data);
-        onPlayerCountChangeRef.current?.(data.playerCount);
-      } catch {}
-    });
-
-    es.onerror = () => {
-      // EventSource auto-reconnects; no action needed
+        setPlayerCount(polledPlayerCount);
+      } catch {
+        // network error — will retry next interval
+      }
     };
 
-    return () => es.close();
-  }, [roomId, enabled]);
+    // Initial fetch
+    poll();
+    timer = setInterval(poll, interval);
+
+    return () => clearInterval(timer);
+  }, [roomId, enabled, interval, sendingRef, setMessages, setPlayerCount]);
 }
 
 // ---- Main ----
@@ -580,34 +572,12 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
     } catch {}
   }, [storageKey, pack.characters]);
 
-  // SSE: receive real-time room events (replaces polling)
-  useRoomSSE(
-    roomId,
-    phase === 'chat',
-    (msg) => {
-      setRoomMessages((prev) => {
-        // Already have this exact message → skip
-        if (prev.some((m) => m.id === msg.id)) return prev;
-        // If SSE delivers a player message that matches a pending optimistic one, replace it
-        if (msg.sender.type === 'player') {
-          const pendingIdx = prev.findIndex(
-            (m) => m.id.startsWith('pending-') && m.sender.type === 'player' && m.text === msg.text,
-          );
-          if (pendingIdx !== -1) {
-            const next = [...prev];
-            next[pendingIdx] = msg;
-            return next;
-          }
-        }
-        return [...prev, msg];
-      });
-    },
-    (state) => {
-      setRoomMessages(state.messages);
-      setPlayerCount(state.playerCount);
-    },
-    (count) => setPlayerCount(count),
-  );
+  // Ref to let polling hook skip while sending (POST result handles it)
+  const sendingRef = useRef(false);
+  sendingRef.current = sending;
+
+  // Polling: fetch room state periodically (KV is source of truth)
+  useRoomPolling(roomId, phase === 'chat', sendingRef, setRoomMessages, setPlayerCount);
 
   // Auto-scroll
   useEffect(() => {

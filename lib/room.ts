@@ -32,11 +32,3 @@ export interface Room {
   sseClients: Map<string, ReadableStreamDefaultController>;
   createdAt: number;
 }
-
-// SSE event types
-export type SSEEventType =
-  | 'message'
-  | 'player_joined'
-  | 'player_left'
-  | 'typing'
-  | 'room_state';
