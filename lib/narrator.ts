@@ -117,12 +117,11 @@ export async function generateConversationResponse(
     dynamicSuffix,
   );
 
-  // Build conversation messages from chat history
+  // Build conversation messages from chat history (keep window small — summary handles older context)
   const conversationMessages: { role: 'user' | 'assistant'; content: string }[] = [];
 
   if (chatHistory && chatHistory.length > 0) {
-    // Keep last 20 messages to avoid context overflow
-    const recent = chatHistory.slice(-50);
+    const recent = chatHistory.slice(-15);
     for (const msg of recent) {
       if (msg.role === 'user') {
         conversationMessages.push({ role: 'user', content: msg.text });
@@ -136,40 +135,31 @@ export async function generateConversationResponse(
     }
   }
 
-  // Reminder before current message to prevent pattern copying from history
-  if (conversationMessages.length > 0) {
-    const recentNpc = (chatHistory ?? []).filter(m => m.role === 'character').slice(-5);
-    const usedStarters = recentNpc.map(m => m.text.split(/[.!?\n]/)[0]?.trim().slice(0, 15)).filter(Boolean);
-    const usedThoughts = recentNpc.map(m => (m.innerThought ?? '').split(/[.!?\n]/)[0]?.trim().slice(0, 15)).filter(Boolean);
-    // 행동 패턴에서 반복되는 동사구 추출
-    const usedActions = recentNpc
-      .map(m => (m.action ?? '').match(/(움켜쥐|잡아|누르|응시|씹|깨물|끌어당[기겨]|밀어|돌[리려]|쳐다보)/g))
-      .flat()
-      .filter(Boolean);
-    const actionSet = [...new Set(usedActions)];
-
-    let antiRepMsg = '[시스템] 반복 금지 — 이전 대화와 완전히 다른 응답을 생성하세요.\n';
-    if (usedStarters.length)
-      antiRepMsg += `- 금지된 대사 첫 마디: ${usedStarters.map(s => `"${s}…"`).join(', ')} → 완전히 다른 표현으로 시작\n`;
-    if (usedThoughts.length)
-      antiRepMsg += `- 금지된 속마음 패턴: ${usedThoughts.map(s => `"${s}…"`).join(', ')} → 다른 관점(감각, 미래 계획, 과거 기억, 신체 반응)으로\n`;
-    if (actionSet.length)
-      antiRepMsg += `- 금지된 행동 동사: ${actionSet.map(s => `"${s}"`).join(', ')} → 이 동작들을 쓰지 말고 새로운 신체 묘사를 사용\n`;
-    antiRepMsg += '- 위협/경고만 반복하지 말 것. 장면을 실질적으로 다음 단계로 진행하세요.';
-
-    conversationMessages.push({ role: 'user', content: antiRepMsg });
+  // Anti-repetition: feed last 3 NPC responses so LLM avoids alternating patterns
+  const recentNpcs = (chatHistory ?? []).filter(m => m.role === 'character').slice(-3);
+  if (recentNpcs.length > 0) {
+    const forbidden = recentNpcs.map((m, i) =>
+      `[${i + 1}] 대사: "${m.text}" / 행동: "${m.action ?? ''}" / 속마음: "${m.innerThought ?? ''}"`,
+    ).join('\n');
+    conversationMessages.push({ role: 'user', content:
+      `[시스템] 아래는 최근 ${recentNpcs.length}개의 내 응답입니다. 이 응답들과 겹치는 표현·문장 구조·감탄사 패턴·감정 흐름을 절대 반복하지 마세요.\n`
+      + `${forbidden}\n`
+      + `→ 완전히 새로운 대사, 새로운 행동, 새로운 관점의 속마음으로 응답하세요. 장면을 다음 단계로 진행하세요.`,
+    });
   }
 
   // Add current user message
   conversationMessages.push({ role: 'user', content: userMessage });
 
   const model = primaryModel(env);
+  const timeout = AbortSignal.timeout(60_000);
   const { object } = await generateObject({
     model,
     schema: conversationOutputSchema,
     system: systemPrompt,
     messages: conversationMessages,
     temperature: 0.9,
+    abortSignal: timeout,
   });
 
   return {

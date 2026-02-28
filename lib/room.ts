@@ -21,14 +21,3 @@ export interface RoomMessage {
   innerThought?: string;
   emotion?: string;
 }
-
-export interface Room {
-  roomId: string;
-  slug: string;
-  villageId: string;
-  npcCharacterId: string;
-  players: Map<string, Player>;
-  messages: RoomMessage[];
-  sseClients: Map<string, ReadableStreamDefaultController>;
-  createdAt: number;
-}

@@ -1,4 +1,5 @@
 import type { Player, RoomMessage } from './room';
+import { kvGet, kvPut } from './kv';
 
 /**
  * Room store — KV-backed for Cloudflare Workers, in-memory fallback for local dev.
@@ -7,33 +8,6 @@ import type { Player, RoomMessage } from './room';
  *   room:{roomId}        → JSON RoomData
  *   room:{roomId}:msgs   → JSON RoomMessage[]
  */
-
-// ---- KV access ----
-
-async function getKV(): Promise<KVNamespace | null> {
-  try {
-    const { getCloudflareContext } = await import('@opennextjs/cloudflare');
-    const ctx = await getCloudflareContext({ async: true });
-    return (ctx.env as any).ROOM_KV ?? null;
-  } catch {
-    return null;
-  }
-}
-
-// In-memory fallback for local dev
-const memStore = new Map<string, string>();
-
-async function kvGet(key: string): Promise<string | null> {
-  const kv = await getKV();
-  if (kv) return kv.get(key);
-  return memStore.get(key) ?? null;
-}
-
-async function kvPut(key: string, value: string): Promise<void> {
-  const kv = await getKV();
-  if (kv) return kv.put(key, value);
-  memStore.set(key, value);
-}
 
 // ---- Serializable types (no Map, no controllers) ----
 
@@ -192,9 +166,13 @@ export async function addMessage(
     ...opts,
   };
 
+  // Re-read right before write to narrow the race window.
+  // KV has no transactions, but since addMessage calls are serialized per
+  // request (player msg → NPC msg), the realistic race is two different
+  // players sending at the exact same moment — re-reading minimises that gap.
   const msgs = await getRoomMessages(roomId);
+  if (msgs.some((m) => m.id === msg.id)) return msg; // dedup guard
   msgs.push(msg);
-  // Keep last 200 messages to avoid KV value size limit
   const trimmed = msgs.slice(-200);
   await saveRoomMessages(roomId, trimmed);
   return msg;

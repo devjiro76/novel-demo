@@ -7,13 +7,7 @@ import { generateAppraisal } from '@/lib/appraisal';
 import { getStoryPack } from '@/lib/story-pack';
 import { updateSummaryIfNeeded, loadLongMemory } from '@/lib/memory';
 import type { RoomMessage } from '@/lib/room';
-
-const EMOTION_KO: Record<string, string> = {
-  joy: '기쁨', excitement: '설렘', contentment: '만족', anger: '분노',
-  fear: '두려움', sadness: '슬픔', anxiety: '불안', surprise: '놀라움',
-  disgust: '혐오', trust: '신뢰', calm: '평온', shame: '수치심',
-  guilt: '죄책감', numbness: '무감각',
-};
+import { resolveEmotionLabel } from '@/lib/emotion';
 
 export async function POST(
   request: Request,
@@ -134,7 +128,7 @@ export async function POST(
 
     const updatedState = await persona.getState();
     const rawEmotion = (updatedState.emotion.discrete?.primary ?? '').toLowerCase().trim();
-    const emotionLabel = EMOTION_KO[rawEmotion] ?? EMOTION_KO[rawEmotion.replace(/\s+/g, '_')] ?? '';
+    const emotionLabel = resolveEmotionLabel(rawEmotion);
 
     // 3. Add NPC response message
     const npcMsg = await addMessage(roomId, {

@@ -12,37 +12,12 @@
 import { primaryModel, generateText, z, generateObject } from './llm';
 import type { Env } from './types';
 import type { ChatHistoryMessage } from './narrator';
-
-// ---- KV access (same pattern as room-store.ts) ----
-
-async function getKV(): Promise<KVNamespace | null> {
-  try {
-    const { getCloudflareContext } = await import('@opennextjs/cloudflare');
-    const ctx = await getCloudflareContext({ async: true });
-    return (ctx.env as any).ROOM_KV ?? null;
-  } catch {
-    return null;
-  }
-}
-
-const memStore = new Map<string, string>();
-
-async function kvGet(key: string): Promise<string | null> {
-  const kv = await getKV();
-  if (kv) return kv.get(key);
-  return memStore.get(key) ?? null;
-}
-
-async function kvPut(key: string, value: string): Promise<void> {
-  const kv = await getKV();
-  if (kv) return kv.put(key, value);
-  memStore.set(key, value);
-}
+import { kvGet, kvPut } from './kv';
 
 // ---- Tier 2: Medium-term (Room conversation summary) ----
 
-const SUMMARY_THRESHOLD = 50;
-const RECENT_KEEP = 50;
+const SUMMARY_THRESHOLD = 20;
+const RECENT_KEEP = 15;
 
 interface SummaryData {
   summary: string;
@@ -94,7 +69,7 @@ async function saveLongMemory(npcId: string, facts: string[]): Promise<void> {
     facts: facts.slice(-MAX_LONG_MEMORY_FACTS),
     updatedAt: Date.now(),
   };
-  await kvPut(longMemoryKey(npcId), JSON.stringify(data));
+  await kvPut(longMemoryKey(npcId), JSON.stringify(data), { expirationTtl: 30 * 86400 });
 }
 
 // ---- Update Tier 2 + 3 together ----
@@ -133,10 +108,12 @@ export async function updateSummaryIfNeeded(
     : [];
 
   try {
+    const timeout = AbortSignal.timeout(30_000);
     const { object } = await generateObject({
       model: primaryModel(env),
+      abortSignal: timeout,
       schema: z.object({
-        summary: z.string().describe('대화 요약. 3-5문장. 핵심 사건, 감정 변화, 관계 진전 중심.'),
+        summary: z.string().describe('대화 요약. 5-10문장. 누가 무엇을 했는지, 핵심 사건, 감정 변화, 관계 진전, 신체적 행위를 구체적으로 서술.'),
         newFacts: z.array(z.string()).describe(
           '이 대화에서 새로 발견된, 장기적으로 기억할 만한 사실들. '
           + '예: "용준과 정숙의 관계가 시작됨", "미나는 용준에게 질투를 느낌". '
@@ -145,7 +122,7 @@ export async function updateSummaryIfNeeded(
       }),
       system: `당신은 소설 캐릭터의 기억을 관리하는 시스템입니다.
 주어진 대화를 분석하여:
-1. 대화 요약 (3-5문장)
+1. 대화 요약 (5-10문장, 구체적으로)
 2. 장기 기억으로 저장할 새로운 사실 추출
 
 기존에 이미 알고 있는 사실:
@@ -153,7 +130,7 @@ ${existingFacts.length > 0 ? existingFacts.map((f, i) => `${i + 1}. ${f}`).join(
 
 중복되는 사실은 newFacts에 넣지 마세요. 한국어로 작성.`,
       prompt: textToSummarize,
-      maxOutputTokens: 500,
+      maxOutputTokens: 800,
     });
 
     // Save Tier 2: summary
@@ -162,7 +139,7 @@ ${existingFacts.length > 0 ? existingFacts.map((f, i) => `${i + 1}. ${f}`).join(
       coveredUpTo: Date.now(),
       updatedAt: Date.now(),
     };
-    await kvPut(summaryKey(roomId, npcId), JSON.stringify(summaryData));
+    await kvPut(summaryKey(roomId, npcId), JSON.stringify(summaryData), { expirationTtl: 30 * 86400 });
 
     // Save Tier 3: merge new facts
     if (object.newFacts.length > 0) {

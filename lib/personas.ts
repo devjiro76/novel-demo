@@ -32,16 +32,15 @@ export interface VillageEvent {
   created_at: number;
 }
 
-let _village: Village | null = null;
-let _villageKey = '';
+const _villageCache = new Map<string, Village>();
 
 export async function getVillage(env: Env, villageId: string): Promise<Village> {
-  const key = villageId;
-  if (_village && _villageKey === key) return _village;
+  const cached = _villageCache.get(villageId);
+  if (cached) return cached;
   const world = new World({ apiKey: env.WORLD_API_KEY, baseUrl: env.WORLD_API_URL });
-  _village = await world.getVillage(key);
-  _villageKey = key;
-  return _village;
+  const village = await world.getVillage(villageId);
+  _villageCache.set(villageId, village);
+  return village;
 }
 
 export async function getRelationships(village: Village): Promise<Relationship[]> {

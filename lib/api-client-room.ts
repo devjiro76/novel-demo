@@ -1,28 +1,5 @@
 import type { RoomMessage, Player } from './room';
-
-const JSON_HEADERS = { 'Content-Type': 'application/json' };
-
-async function post<T>(path: string, body?: unknown): Promise<T> {
-  const res = await fetch(path, {
-    method: 'POST',
-    headers: JSON_HEADERS,
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`API error ${res.status}: ${text}`);
-  }
-  return res.json() as Promise<T>;
-}
-
-async function get<T>(path: string): Promise<T> {
-  const res = await fetch(path);
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`API error ${res.status}: ${text}`);
-  }
-  return res.json() as Promise<T>;
-}
+import { post, get } from './fetch-utils';
 
 // ---- Room API ----
 
@@ -59,8 +36,7 @@ export async function joinRoomAPI(opts: {
   roomId: string;
   displayName: string;
   characterId: string;
-  playerId?: string; // If provided, reuse existing player (rejoin)
-  // Context for re-creating room if server lost it
+  playerId?: string;
   slug?: string;
   villageId?: string;
   npcCharacterId?: string;

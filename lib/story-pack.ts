@@ -90,7 +90,10 @@ export interface ClientStoryPack {
 }
 
 export function getStoryPack(slug?: string): StoryManifest {
-  return STORY_PACKS[slug ?? DEFAULT_STORY] ?? STORY_PACKS[DEFAULT_STORY];
+  const key = slug ?? DEFAULT_STORY;
+  const pack = STORY_PACKS[key];
+  if (!pack) throw new Error(`Unknown story pack: "${key}"`);
+  return pack;
 }
 
 export function toClientPack(pack: StoryManifest): ClientStoryPack {

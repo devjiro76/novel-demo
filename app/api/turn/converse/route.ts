@@ -6,24 +6,7 @@ import { generateConversationResponse } from '@/lib/narrator';
 import { generateAppraisal } from '@/lib/appraisal';
 import { DebugLog } from '@/lib/debug';
 import { getStoryPack } from '@/lib/story-pack';
-
-// Engine emotionCenters: 14 discrete labels only
-const EMOTION_KO: Record<string, string> = {
-  joy: '기쁨',
-  excitement: '설렘',
-  contentment: '만족',
-  anger: '분노',
-  fear: '두려움',
-  sadness: '슬픔',
-  anxiety: '불안',
-  surprise: '놀라움',
-  disgust: '혐오',
-  trust: '신뢰',
-  calm: '평온',
-  shame: '수치심',
-  guilt: '죄책감',
-  numbness: '무감각',
-};
+import { resolveEmotionLabel } from '@/lib/emotion';
 
 export async function POST(request: Request) {
   const env = getEnv();
@@ -82,7 +65,7 @@ export async function POST(request: Request) {
     // Read updated emotion state from engine (after appraisal applied)
     const updatedState = await persona.getState();
     const rawEmotion = (updatedState.emotion.discrete?.primary ?? '').toLowerCase().trim();
-    const emotionLabel = EMOTION_KO[rawEmotion] ?? EMOTION_KO[rawEmotion.replace(/\s+/g, '_')] ?? '';
+    const emotionLabel = resolveEmotionLabel(rawEmotion);
     const updatedVad = updatedState.emotion.vad;
 
     dbg.add('converse_result', {
@@ -103,6 +86,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ ...response, _debug: dbg.finalize() });
   } catch (err: any) {
     console.error('[converse] Error:', err);
-    return NextResponse.json({ error: err.message ?? 'Internal error', stack: err.stack?.slice(0, 500) }, { status: 500 });
+    return NextResponse.json({ error: err.message ?? 'Internal error' }, { status: 500 });
   }
 }

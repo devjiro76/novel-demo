@@ -44,13 +44,14 @@ export async function generateAppraisal(
 - urgency: 0.0 ~ 1.0`;
 
   const model = engineModel(env);
+  const timeout = AbortSignal.timeout(30_000);
   const { object } = await generateObject({
     model,
-
     system: systemPrompt,
     messages: [{ role: 'user', content: stimulusDescription }],
     schema: appraisalSchema,
     temperature: 0.3,
+    abortSignal: timeout,
   });
 
   const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, +v.toFixed(2)));

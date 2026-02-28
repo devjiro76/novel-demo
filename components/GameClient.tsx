@@ -6,27 +6,14 @@ import type { ClientStoryPack, CharacterMeta } from '@/lib/story-pack';
 import { startGame } from '@/lib/api-client';
 import { createRoomAPI, joinRoomAPI, sendRoomMessage } from '@/lib/api-client-room';
 import type { RoomMessage } from '@/lib/room';
+import { saveSession, loadSession, clearSession } from '@/lib/session';
+import { useRoomPolling } from '@/hooks/useRoomPolling';
+import { RoomMessageBubble, CharAvatar } from './chat/MessageBubble';
 import RoleSelectScreen from './RoleSelectScreen';
 
 type Phase = 'title' | 'loading' | 'select' | 'roleSelect' | 'chat';
 
 type Character = CharacterMeta;
-
-// ---- Avatar ----
-function CharAvatar({ char, pack, size = 40 }: { char: Character; pack: ClientStoryPack; size?: number }) {
-  return (
-    <div
-      className="rounded-full overflow-hidden shrink-0 border border-white/10"
-      style={{ width: size, height: size }}
-    >
-      <img
-        src={`${pack.assetsBasePath}${char.image}`}
-        alt={char.name}
-        className="object-cover object-[50%_15%] w-full h-full"
-      />
-    </div>
-  );
-}
 
 // ---- Title Screen ----
 function TitleScreen({ pack, onStart, loading }: { pack: ClientStoryPack; onStart: () => void; loading: boolean }) {
@@ -183,104 +170,8 @@ function SelectScreen({ pack, chatCounts, onSelect, onReset }: {
   );
 }
 
-// ---- Chat Message (Room-based) ----
-function RoomMessageBubble({ msg, npcChar, pack, myPlayerId }: {
-  msg: RoomMessage;
-  npcChar: Character;
-  pack: ClientStoryPack;
-  myPlayerId: string;
-}) {
-  // System message
-  if (msg.sender.type === 'system') {
-    return (
-      <div className="flex justify-center slide-up">
-        <span className="text-[11px] text-[var(--color-text-dim)] bg-white/[0.03] px-3 py-1 rounded-full">
-          {msg.text}
-        </span>
-      </div>
-    );
-  }
-
-  // Player message (mine)
-  if (msg.sender.type === 'player' && msg.sender.id === myPlayerId) {
-    return (
-      <div className="flex justify-end slide-up">
-        <div className="max-w-[78%] rounded-2xl rounded-br-md bg-white/[0.06] backdrop-blur-sm px-4 py-2.5 border border-white/[0.04]">
-          <p className="text-[13px] leading-relaxed">{msg.text}</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Player message (other)
-  if (msg.sender.type === 'player') {
-    return (
-      <div className="flex gap-2.5 items-start max-w-[85%] slide-up">
-        <div className="w-7 h-7 rounded-full bg-white/[0.08] flex items-center justify-center shrink-0 text-[10px] font-bold text-white/60">
-          {msg.sender.name.charAt(0)}
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-[10px] text-[var(--color-text-dim)] mb-1">{msg.sender.name}</p>
-          <div className="rounded-2xl rounded-tl-md bg-white/[0.04] backdrop-blur-sm px-4 py-2.5 border border-white/[0.04]">
-            <p className="text-[13px] leading-relaxed">{msg.text}</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // NPC message
-  return (
-    <div className="slide-up space-y-3">
-      {msg.action && (
-        <p className="text-[12px] text-white/70 italic leading-relaxed px-6">
-          {msg.action}
-        </p>
-      )}
-
-      {(msg.text || msg.innerThought) && (
-        <div className="flex gap-2.5 items-start max-w-[92%]">
-          <CharAvatar char={npcChar} pack={pack} size={32} />
-          <div className="flex-1 min-w-0">
-            <div
-              className="rounded-2xl rounded-tl-md px-4 py-3 space-y-2"
-              style={{
-                background: `linear-gradient(135deg, rgba(${npcChar.glowRgb},0.07), rgba(${npcChar.glowRgb},0.02))`,
-                border: `1px solid rgba(${npcChar.glowRgb},0.1)`,
-              }}
-            >
-              {msg.text && (
-                <p className="text-[13px] leading-relaxed">{msg.text}</p>
-              )}
-              {msg.innerThought && (
-                <p
-                  className="text-[12px] italic leading-relaxed pl-2.5 mt-1 opacity-75"
-                  style={{
-                    borderLeft: `2px solid rgba(${npcChar.glowRgb},0.4)`,
-                  }}
-                >
-                  {msg.innerThought}
-                </p>
-              )}
-            </div>
-
-            {msg.emotion && (
-              <span
-                className="inline-block text-[10px] px-2 py-0.5 rounded-full mt-1.5 ml-1"
-                style={{ color: npcChar.glow, background: `rgba(${npcChar.glowRgb},0.1)` }}
-              >
-                {msg.emotion}
-              </span>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ---- Chat Screen (Room-based) ----
-function RoomChatScreen({ npcChar, pack, messages, sending, input, onInputChange, onSend, onBack, onShare, playerCount, myPlayerId, inputRef, scrollRef }: {
+function RoomChatScreen({ npcChar, pack, messages, sending, input, onInputChange, onSend, onBack, onShare, playerCount, myPlayerId, inputRef, scrollRef, loading }: {
   npcChar: Character;
   pack: ClientStoryPack;
   messages: RoomMessage[];
@@ -294,6 +185,7 @@ function RoomChatScreen({ npcChar, pack, messages, sending, input, onInputChange
   myPlayerId: string;
   inputRef: React.RefObject<HTMLInputElement | null>;
   scrollRef: React.RefObject<HTMLDivElement | null>;
+  loading?: boolean;
 }) {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -333,7 +225,25 @@ function RoomChatScreen({ npcChar, pack, messages, sending, input, onInputChange
       </header>
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-5 space-y-6">
-        {messages.length === 0 && (
+        {loading && messages.length === 0 && (
+          <div className="flex flex-col items-center justify-center h-full text-center px-8 opacity-50">
+            <CharAvatar char={npcChar} pack={pack} size={56} />
+            <div className="flex items-center gap-1.5 mt-4">
+              {[0, 1, 2].map((i) => (
+                <div
+                  key={i}
+                  className="w-1.5 h-1.5 rounded-full"
+                  style={{
+                    background: npcChar.glow,
+                    animation: `breathe 1s ease-in-out ${i * 0.15}s infinite`,
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {!loading && messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center px-8 opacity-50">
             <CharAvatar char={npcChar} pack={pack} size={56} />
             <p className="text-xs text-[var(--color-text-dim)] mt-4 leading-relaxed">
@@ -414,55 +324,6 @@ function RoomChatScreen({ npcChar, pack, messages, sending, input, onInputChange
   );
 }
 
-// ---- useRoomPolling Hook ----
-// Polls GET /api/room/{roomId} for room updates (KV is source of truth)
-function useRoomPolling(
-  roomId: string | null,
-  enabled: boolean,
-  sendingRef: React.RefObject<boolean>,
-  setMessages: React.Dispatch<React.SetStateAction<RoomMessage[]>>,
-  setPlayerCount: React.Dispatch<React.SetStateAction<number>>,
-  interval = 2000,
-) {
-  useEffect(() => {
-    if (!roomId || !enabled) return;
-
-    let timer: ReturnType<typeof setInterval>;
-
-    const poll = async () => {
-      if (sendingRef.current) return; // skip while sending — POST result handles it
-      try {
-        const res = await fetch(`/api/room/${roomId}`);
-        if (!res.ok) return;
-        const data: { messages?: RoomMessage[]; room?: { players?: unknown[] } } = await res.json();
-        const polledMessages: RoomMessage[] = data.messages ?? [];
-        const polledPlayerCount: number = data.room?.players?.length ?? 1;
-
-        setMessages((prev) => {
-          const prevIds = new Set(
-            prev.filter((m) => !m.id.startsWith('pending-')).map((m) => m.id),
-          );
-          const hasNew = polledMessages.some((m) => !prevIds.has(m.id));
-          if (!hasNew && polledMessages.length === prev.filter((m) => !m.id.startsWith('pending-')).length) {
-            return prev; // no change → skip re-render
-          }
-          return polledMessages; // KV is source of truth → replace entirely
-        });
-
-        setPlayerCount(polledPlayerCount);
-      } catch {
-        // network error — will retry next interval
-      }
-    };
-
-    // Initial fetch
-    poll();
-    timer = setInterval(poll, interval);
-
-    return () => clearInterval(timer);
-  }, [roomId, enabled, interval, sendingRef, setMessages, setPlayerCount]);
-}
-
 // ---- Main ----
 export default function GameClient({ pack }: { pack: ClientStoryPack }) {
   const [phase, setPhase] = useState<Phase>('title');
@@ -471,6 +332,7 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
   const [chatCounts, setChatCounts] = useState<Record<string, number>>({});
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
+  const [chatReady, setChatReady] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -486,35 +348,10 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
 
   const storageKey = `novel:${pack.slug}`;
 
-  // ---- Single session storage ----
-  interface Session {
-    roomId: string;
-    playerId: string;
-    npcId: string;
-    villageId: string;
-    displayName: string;
-    characterId: string;
-  }
-
-  function saveSession(s: Session) {
-    try { localStorage.setItem(`${storageKey}:session`, JSON.stringify(s)); } catch {}
-  }
-
-  function loadSession(): Session | null {
-    try {
-      const raw = localStorage.getItem(`${storageKey}:session`);
-      return raw ? JSON.parse(raw) as Session : null;
-    } catch { return null; }
-  }
-
-  function clearSession() {
-    try { localStorage.removeItem(`${storageKey}:session`); } catch {}
-  }
-
   // Restore state on mount
   useEffect(() => {
     // 1) Check localStorage session first (covers refresh + re-entry)
-    const session = loadSession();
+    const session = loadSession(storageKey);
     if (session) {
       const char = pack.characters.find((c) => c.id === session.npcId);
       if (char) {
@@ -531,7 +368,7 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
         url.searchParams.set('v', session.villageId);
         url.searchParams.set('npc', session.npcId);
         window.history.replaceState({}, '', url.toString());
-        // Background: ensure player in KV
+        // Restore: join + fetch messages immediately
         joinRoomAPI({
           roomId: session.roomId,
           playerId: session.playerId,
@@ -540,7 +377,13 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
           slug: pack.slug,
           villageId: session.villageId,
           npcCharacterId: session.npcId,
-        }).catch(() => {});
+        }).then((result) => {
+          setRoomMessages(result.messages);
+          setPlayerCount(result.room.players.length);
+          setChatReady(true);
+        }).catch(() => {
+          setChatReady(true);
+        });
         return;
       }
     }
@@ -570,18 +413,22 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
         setPhase('select');
       }
     } catch {}
-  }, [storageKey, pack.characters]);
+  }, [storageKey, pack.characters, pack.slug]);
 
   // Ref to let polling hook skip while sending (POST result handles it)
   const sendingRef = useRef(false);
   sendingRef.current = sending;
 
-  // Polling: fetch room state periodically (KV is source of truth)
+  // Polling: fetch room state periodically with adaptive interval
   useRoomPolling(roomId, phase === 'chat', sendingRef, setRoomMessages, setPlayerCount);
 
-  // Auto-scroll
+  // Auto-scroll: instant on initial load, smooth during conversation
+  const hasScrolledRef = useRef(false);
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+    if (!scrollRef.current) return;
+    const behavior = hasScrolledRef.current ? 'smooth' : 'instant';
+    scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior });
+    if (roomMessages.length > 0) hasScrolledRef.current = true;
   }, [roomMessages, sending]);
 
   // Focus input on chat phase
@@ -607,7 +454,7 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
     setActiveChar(char);
 
     // Check if we have a saved session for this NPC
-    const session = loadSession();
+    const session = loadSession(storageKey);
     if (session && session.npcId === char.id) {
       // Restore from session → straight to chat
       setMyDisplayName(session.displayName);
@@ -623,7 +470,7 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
 
       setPhase('chat');
 
-      // Background: ensure player in KV
+      // Restore: join + fetch messages immediately
       joinRoomAPI({
         roomId: session.roomId,
         playerId: session.playerId,
@@ -632,8 +479,12 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
         slug: pack.slug,
         villageId: session.villageId,
         npcCharacterId: session.npcId,
+      }).then((result) => {
+        setRoomMessages(result.messages);
+        setPlayerCount(result.room.players.length);
+        setChatReady(true);
       }).catch(() => {
-        clearSession();
+        clearSession(storageKey);
         setRoomId(null);
         setPlayerId(null);
         setPhase('roleSelect');
@@ -642,7 +493,7 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
     }
 
     setPhase('roleSelect');
-  }, [pack.slug]);
+  }, [pack.slug, storageKey]);
 
   const handleRoleConfirm = useCallback(async (displayName: string, characterId: string) => {
     if (!activeChar) return;
@@ -665,10 +516,11 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
         setPlayerId(result.playerId);
         setRoomMessages(result.messages);
         setPlayerCount(result.room.players.length);
-        saveSession({
+        saveSession(storageKey, {
           roomId: joiningRoomId, playerId: result.playerId, npcId: activeChar.id,
           villageId: villageId ?? '', displayName, characterId,
         });
+        setChatReady(true);
         setPhase('chat');
       } else {
         if (!villageId) { setRoleLoading(false); return; }
@@ -682,7 +534,7 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
         setPlayerId(result.playerId);
         setRoomMessages([]);
         setPlayerCount(1);
-        saveSession({
+        saveSession(storageKey, {
           roomId: result.roomId, playerId: result.playerId, npcId: activeChar.id,
           villageId, displayName, characterId,
         });
@@ -693,6 +545,7 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
         url.searchParams.set('npc', activeChar.id);
         window.history.replaceState({}, '', url.toString());
 
+        setChatReady(true);
         setPhase('chat');
       }
     } catch (err) {
@@ -700,15 +553,16 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
     } finally {
       setRoleLoading(false);
     }
-  }, [activeChar, joiningRoomId, villageId, pack.slug]);
+  }, [activeChar, joiningRoomId, villageId, pack.slug, storageKey]);
 
   const handleBack = useCallback(() => {
-    // Session stays in localStorage — re-entering will auto-restore
     setRoomId(null);
     setPlayerId(null);
     setRoomMessages([]);
     setActiveChar(null);
     setJoiningRoomId(null);
+    setChatReady(false);
+    hasScrolledRef.current = false;
 
     const url = new URL(window.location.href);
     url.searchParams.delete('room');
@@ -732,9 +586,11 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
     setRoomMessages([]);
     setChatCounts({});
     setJoiningRoomId(null);
+    setChatReady(false);
+    hasScrolledRef.current = false;
     try {
       localStorage.removeItem(`${storageKey}:villageId`);
-      clearSession();
+      clearSession(storageKey);
     } catch {}
     const url = new URL(window.location.href);
     url.searchParams.delete('room');
@@ -772,7 +628,6 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
         displayName: myDisplayName ?? pack.playerDisplayName,
         characterId: myCharacterId ?? pack.playerCharacterId,
       });
-      // Replace temp message with real ones (dedup against SSE)
       setRoomMessages((prev) => {
         const without = prev.filter((m) => m.id !== tempId);
         const ids = new Set(without.map((m) => m.id));
@@ -802,7 +657,6 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
     const url = new URL(window.location.href);
     url.searchParams.set('room', roomId);
     navigator.clipboard.writeText(url.toString()).then(() => {
-      // Visual feedback: could add a toast but keeping it simple
       alert('방 링크가 클립보드에 복사되었습니다!');
     }).catch(() => {});
   }, [roomId]);
@@ -850,6 +704,7 @@ export default function GameClient({ pack }: { pack: ClientStoryPack }) {
         myPlayerId={playerId ?? ''}
         inputRef={inputRef}
         scrollRef={scrollRef}
+        loading={!chatReady}
       />
     );
   }
