@@ -1,10 +1,9 @@
 'use client';
 
-import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import type { ClientStoryPack } from '@/lib/story-pack';
 import type { WorldCardData } from '@/lib/story-pack';
-import WorldCard from '@/components/WorldCard';
+import CharacterCard from '@/components/CharacterCard';
 
 interface LandingProps {
   packs: ClientStoryPack[];
@@ -30,27 +29,60 @@ function CommunityWorlds() {
   if (worlds.length === 0) return null;
 
   return (
-    <div className="mt-8">
-      <div className="flex items-center gap-2 mb-3">
+    <section className="mt-6">
+      <div className="flex items-center gap-2 mb-3 px-4">
         <h2 className="text-base font-bold text-[var(--color-text)]">커뮤니티 월드</h2>
         <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20">
           NEW
         </span>
       </div>
-      <div className="space-y-3">
-        {worlds.map((world, i) => (
-          <WorldCard key={world.id} world={world} index={i} />
+      {worlds.map((world) => (
+        <WorldSection key={world.id} world={world} />
+      ))}
+    </section>
+  );
+}
+
+/** A single world section: title + horizontal character carousel */
+function WorldSection({ world }: { world: WorldCardData }) {
+  const slug = world.slug ?? world.id;
+  const npcChars = world.characters.filter(c => c.role);
+
+  return (
+    <section className="mb-6">
+      <div className="flex items-center justify-between px-4 mb-2.5">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-base">🌏</span>
+          <h3 className="text-sm font-bold text-[var(--color-text)] truncate">{world.name}</h3>
+        </div>
+        <span className="text-[11px] text-[var(--color-text-dim)] shrink-0">{npcChars.length}캐릭터</span>
+      </div>
+
+      <div className="flex gap-3 overflow-x-auto scrollbar-hide px-4 pb-1">
+        {npcChars.map((char) => (
+          <CharacterCard
+            key={char.id}
+            charId={char.id}
+            name={char.name}
+            fullName={char.fullName}
+            role={char.role}
+            age={char.age}
+            image={char.image}
+            glow={char.glow}
+            glowRgb={char.glowRgb}
+            slug={slug}
+          />
         ))}
       </div>
-    </div>
+    </section>
   );
 }
 
 export default function Landing({ packs, worlds }: LandingProps) {
   const [activeTab, setActiveTab] = useState<TabId>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
 
-  // Collect all unique tags from worlds for tab filtering
   const allTags = Array.from(
     new Set(worlds.flatMap((w) => w.tags))
   ).sort((a, b) => a.localeCompare(b, 'ko'));
@@ -60,13 +92,11 @@ export default function Landing({ packs, worlds }: LandingProps) {
     ...allTags.slice(0, 5).map((tag) => ({ id: tag, label: tag })),
   ];
 
-  // Filter by tab (tag-based)
   const filtered =
     activeTab === 'all'
       ? worlds
       : worlds.filter((w) => w.tags.includes(activeTab));
 
-  // Search filter
   const searched = searchQuery.trim()
     ? filtered.filter((w) => {
         const q = searchQuery.toLowerCase();
@@ -80,71 +110,61 @@ export default function Landing({ packs, worlds }: LandingProps) {
     : filtered;
 
   return (
-    <div className="h-screen w-screen bg-black flex justify-center overflow-hidden">
-      <div className="w-full max-w-[480px] h-full bg-[#08080d] relative md:border-x md:border-white/[0.06] md:shadow-[0_0_80px_rgba(0,0,0,0.8)] flex flex-col">
+    <div className="h-screen w-screen bg-[var(--color-bg)] flex justify-center overflow-hidden">
+      <div className="w-full max-w-2xl h-full bg-[var(--color-bg)] relative md:border-x md:border-[var(--color-border-subtle)] md:shadow-[0_0_80px_rgba(0,0,0,0.8)] flex flex-col overflow-y-auto">
 
-        {/* Hero section */}
-        <div
-          className="relative shrink-0 px-5 pt-12 pb-8 overflow-hidden"
-          style={{
-            background:
-              'linear-gradient(160deg, rgba(168,85,247,0.12) 0%, rgba(236,72,153,0.08) 40%, transparent 70%)',
-          }}
-        >
-          {/* Ambient blobs */}
-          <div
-            className="absolute top-0 right-0 w-48 h-48 rounded-full opacity-20 blur-3xl pointer-events-none"
-            style={{ background: 'radial-gradient(circle, #a855f7 0%, transparent 70%)' }}
-          />
-          <div
-            className="absolute bottom-0 left-0 w-32 h-32 rounded-full opacity-15 blur-3xl pointer-events-none"
-            style={{ background: 'radial-gradient(circle, #ec4899 0%, transparent 70%)' }}
-          />
-
-          <div className="relative">
-            {/* Logo / App name */}
-            <div className="flex items-center gap-2 mb-3">
-              <div
-                className="w-8 h-8 rounded-xl flex items-center justify-center"
-                style={{
-                  background: 'linear-gradient(135deg, #a855f7 0%, #ec4899 100%)',
-                  boxShadow: '0 0 20px rgba(168,85,247,0.4)',
-                }}
-              >
-                <span className="text-white text-sm font-black tracking-tight">N</span>
-              </div>
-              <span
-                className="text-xl font-black tracking-tight"
-                style={{
-                  background: 'linear-gradient(135deg, #c084fc 0%, #f472b6 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                }}
-              >
-                Novel
-              </span>
+        {/* Simple header */}
+        <header className="shrink-0 px-4 pt-6 pb-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div
+              className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+              style={{
+                background: 'var(--color-brand-gradient)',
+                boxShadow: '0 0 20px rgba(168,85,247,0.4)',
+              }}
+            >
+              <span className="text-white text-sm font-black tracking-tight">N</span>
             </div>
-
-            <h1 className="text-[22px] font-bold text-[var(--color-text)] leading-tight mb-1.5">
-              <span
-                style={{
-                  background: 'linear-gradient(135deg, #c084fc 0%, #f472b6 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                }}
-              >
-                살아있는 세계
-              </span>
-              에 들어가세요
-            </h1>
-            <p className="text-[12px] text-[var(--color-text-dim)] leading-relaxed">
-              감정과 기억을 가진 캐릭터들이 만드는 몰입형 세계
-            </p>
+            <span
+              className="text-xl font-black tracking-tight"
+              style={{
+                background: 'var(--color-brand-gradient-text)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}
+            >
+              Novel
+            </span>
           </div>
-        </div>
+
+          <button
+            onClick={() => setSearchOpen(!searchOpen)}
+            className="size-9 rounded-xl flex items-center justify-center text-[var(--color-text-dim)] hover:text-white/60 hover:bg-white/[0.06] transition-colors"
+            aria-label="검색"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <path d="M21 21l-4.35-4.35" />
+            </svg>
+          </button>
+        </header>
+
+        {/* Search (inline, toggled) */}
+        {searchOpen && (
+          <div className="shrink-0 px-4 pb-3">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="캐릭터, 세계 검색..."
+              autoFocus
+              className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border-subtle)] rounded-xl px-4 py-2.5 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-dim)] focus:outline-none focus:border-purple-500/30"
+            />
+          </div>
+        )}
 
         {/* Category tabs */}
-        <div className="shrink-0 px-5 py-3 border-b border-white/[0.05]">
+        <div className="shrink-0 px-4 pb-3">
           <div className="flex gap-2 overflow-x-auto scrollbar-none pb-0.5">
             {tabs.map((tab) => {
               const isActive = activeTab === tab.id;
@@ -156,8 +176,7 @@ export default function Landing({ packs, worlds }: LandingProps) {
                   style={
                     isActive
                       ? {
-                          background:
-                            'linear-gradient(135deg, rgba(168,85,247,0.3) 0%, rgba(236,72,153,0.3) 100%)',
+                          background: 'linear-gradient(135deg, rgba(168,85,247,0.3) 0%, rgba(236,72,153,0.3) 100%)',
                           color: '#e2b8ff',
                           border: '1px solid rgba(168,85,247,0.4)',
                           boxShadow: '0 0 12px rgba(168,85,247,0.2)',
@@ -165,7 +184,7 @@ export default function Landing({ packs, worlds }: LandingProps) {
                       : {
                           background: 'rgba(255,255,255,0.05)',
                           color: 'var(--color-text-dim)',
-                          border: '1px solid rgba(255,255,255,0.06)',
+                          border: '1px solid var(--color-border-subtle)',
                         }
                   }
                 >
@@ -176,35 +195,8 @@ export default function Landing({ packs, worlds }: LandingProps) {
           </div>
         </div>
 
-        {/* Search bar */}
-        <div className="shrink-0 px-4 pt-3 pb-2">
-          <div className="flex gap-2">
-            <div className="flex-1 relative">
-              <svg
-                className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-[var(--color-text-dim)]"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="11" cy="11" r="8" />
-                <path d="M21 21l-4.35-4.35" />
-              </svg>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="세계 검색..."
-                className="w-full bg-[var(--color-surface-2)] border border-white/[0.06] rounded-xl pl-9 pr-4 py-2.5 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-dim)] focus:outline-none focus:border-purple-500/30"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* World card list */}
-        <main className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+        {/* World sections (character carousel per world) */}
+        <main className="flex-1 overflow-y-auto pb-24">
           {searched.length === 0 && searchQuery.trim() ? (
             <div className="flex flex-col items-center justify-center h-40">
               <p className="text-[var(--color-text-dim)] text-sm">
@@ -216,83 +208,16 @@ export default function Landing({ packs, worlds }: LandingProps) {
               <p className="text-[var(--color-text-dim)] text-sm">세계가 없습니다.</p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {searched.map((world, i) => (
-                <WorldCard key={world.id} world={world} index={i} />
-              ))}
-            </div>
+            searched.map((world) => (
+              <WorldSection key={world.id} world={world} />
+            ))
           )}
-          {/* Community worlds section */}
+
           <CommunityWorlds />
         </main>
 
-        {/* Bottom navigation */}
-        <nav
-          className="absolute bottom-0 left-0 right-0 h-16 flex items-center justify-around px-2"
-          style={{
-            background:
-              'linear-gradient(to top, rgba(8,8,13,0.98) 70%, rgba(8,8,13,0.85) 100%)',
-            borderTop: '1px solid rgba(255,255,255,0.05)',
-            backdropFilter: 'blur(12px)',
-          }}
-        >
-          {/* Home — active */}
-          <Link href="/" className="flex flex-col items-center gap-1 px-4 py-1">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"
-                stroke="#c084fc"
-                strokeWidth="1.8"
-                strokeLinejoin="round"
-                fill="rgba(192,132,252,0.12)"
-              />
-            </svg>
-            <span className="text-[10px] font-semibold" style={{ color: '#c084fc' }}>
-              홈
-            </span>
-          </Link>
-
-          {/* Chat — inactive */}
-          <Link href="/chats" className="flex flex-col items-center gap-1 px-4 py-1 opacity-50">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z"
-                stroke="var(--color-text-dim)"
-                strokeWidth="1.8"
-                strokeLinejoin="round"
-              />
-            </svg>
-            <span className="text-[10px] font-medium text-[var(--color-text-dim)]">채팅</span>
-          </Link>
-
-          {/* Create — inactive */}
-          <Link href="/create" className="flex flex-col items-center gap-1 px-4 py-1 opacity-50">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="9" stroke="var(--color-text-dim)" strokeWidth="1.8" />
-              <path
-                d="M12 8v8M8 12h8"
-                stroke="var(--color-text-dim)"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-              />
-            </svg>
-            <span className="text-[10px] font-medium text-[var(--color-text-dim)]">만들기</span>
-          </Link>
-
-          {/* My — inactive */}
-          <Link href="/my" className="flex flex-col items-center gap-1 px-4 py-1 opacity-50">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="8" r="3.5" stroke="var(--color-text-dim)" strokeWidth="1.8" />
-              <path
-                d="M5 20c0-3.866 3.134-7 7-7s7 3.134 7 7"
-                stroke="var(--color-text-dim)"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-              />
-            </svg>
-            <span className="text-[10px] font-medium text-[var(--color-text-dim)]">마이</span>
-          </Link>
-        </nav>
+        {/* Spacer for fixed BottomNav */}
+        <div className="shrink-0 h-16" />
       </div>
     </div>
   );

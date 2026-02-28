@@ -7,6 +7,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { EmotionEvolution } from './EmotionEvolution';
+import { getEmotionGlow, emotionGlowShadow } from '@/lib/emotion-color';
 
 type Character = CharacterMeta;
 
@@ -27,11 +28,33 @@ function formatTime(ts: number): string {
   return `${period} ${h12}:${m}`;
 }
 
-function CharAvatar({ char, size = 40, imageSrc }: { char: Character; size?: number; imageSrc?: string }) {
+const EMOTION_ANIMATION_STYLE: Record<string, React.CSSProperties> = {
+  pulse:   { animation: 'emotionPulse 1.5s ease-in-out infinite' },
+  flash:   { animation: 'emotionFlash 0.3s ease-out' },
+  tremble: { animation: 'emotionTremble 0.3s ease-in-out 3' },
+};
+
+function CharAvatar({ char, size = 40, imageSrc, emotionKey }: { char: Character; size?: number; imageSrc?: string; emotionKey?: string }) {
   const sizeClass = size <= 32 ? 'size-8' : size <= 40 ? 'size-10' : 'size-14';
   const fontSize = size <= 32 ? 'text-xs' : size <= 40 ? 'text-sm' : 'text-lg';
+
+  const emotionGlow = emotionKey ? getEmotionGlow(emotionKey) : null;
+  const boxShadow = emotionKey
+    ? emotionGlowShadow(emotionKey, char.glowRgb)
+    : undefined;
+  const animationStyle = emotionGlow?.animation
+    ? EMOTION_ANIMATION_STYLE[emotionGlow.animation]
+    : undefined;
+
   return (
-    <Avatar className={`${sizeClass} border border-white/10`}>
+    <Avatar
+      className={`${sizeClass} border border-white/10`}
+      style={{
+        boxShadow,
+        transition: 'box-shadow 0.4s ease',
+        ...animationStyle,
+      }}
+    >
       {imageSrc && char.image && (
         <AvatarImage
           src={imageSrc}
@@ -149,7 +172,7 @@ function RoomMessageBubbleInner({ msg, npcChar, npcChars, myPlayerId, assetsBase
 
       {(msg.text || msg.innerThought) && (
         <div className="flex gap-2.5 items-start max-w-[92%]">
-          <CharAvatar char={resolvedChar} size={32} imageSrc={assetsBasePath ? `${assetsBasePath}${resolvedChar.image}` : undefined} />
+          <CharAvatar char={resolvedChar} size={32} imageSrc={assetsBasePath ? `${assetsBasePath}${resolvedChar.image}` : undefined} emotionKey={msg.emotionDetail?.primary} />
           <div className="flex-1 min-w-0">
             <p className={`text-[10px] font-medium mb-1 ${resolvedChar.accentText}`}>{resolvedChar.name}</p>
             <div
@@ -196,12 +219,13 @@ function RoomMessageBubbleInner({ msg, npcChar, npcChars, myPlayerId, assetsBase
                       </Badge>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="text-[10px] space-y-0.5 p-2">
-                      <p className="font-medium mb-1">감정 상태 (VAD)</p>
-                      <p>Valence: {msg.emotionDetail.vad.V.toFixed(2)}</p>
-                      <p>Arousal: {msg.emotionDetail.vad.A.toFixed(2)}</p>
-                      <p>Dominance: {msg.emotionDetail.vad.D.toFixed(2)}</p>
+                      <p className="font-medium mb-1">감정 상태</p>
+                      <p>{EMOTION_EMOJI[msg.emotionDetail.primary] ?? '😐'} {msg.emotion}</p>
                       {msg.emotionDetail.secondary && (
-                        <p className="text-white/40 mt-1">보조: {msg.emotionDetail.secondary}</p>
+                        <p className="text-white/40 mt-1">보조: {EMOTION_EMOJI[msg.emotionDetail.secondary] ?? ''} {msg.emotionDetail.secondary}</p>
+                      )}
+                      {msg.emotionDetail.intensity !== undefined && (
+                        <p className="text-white/30 mt-1">강도: {Math.round(msg.emotionDetail.intensity * 100)}%</p>
                       )}
                     </TooltipContent>
                   </Tooltip>
@@ -229,6 +253,31 @@ function RoomMessageBubbleInner({ msg, npcChar, npcChars, myPlayerId, assetsBase
             )}
           </div>
         </div>
+      )}
+
+      {msg.relationshipDelta && (
+        (() => {
+          const { trust, strength } = msg.relationshipDelta;
+          const isPositive = trust > 0.02 || strength > 0.02;
+          const isNegative = trust < -0.02 || strength < -0.02;
+          if (!isPositive && !isNegative) return null;
+          return (
+            <div className="flex justify-center">
+              <span
+                className="text-[10px] px-2.5 py-1 rounded-full"
+                style={{
+                  background: isPositive ? 'rgba(52,211,153,0.1)' : 'rgba(248,113,113,0.1)',
+                  color: isPositive ? '#34d399' : '#f87171',
+                  border: isPositive ? '1px solid rgba(52,211,153,0.2)' : '1px solid rgba(248,113,113,0.2)',
+                }}
+              >
+                {isPositive
+                  ? `\u{1F495} ${resolvedChar.name}와(과) 더 가까워졌습니다`
+                  : `\u{1F494} ${resolvedChar.name}와(과) 거리가 멀어졌습니다`}
+              </span>
+            </div>
+          );
+        })()
       )}
     </div>
   );

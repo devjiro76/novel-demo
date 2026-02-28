@@ -128,7 +128,16 @@ export interface WorldCardData {
   tags: string[];
   themeColor: string;
   themeColorRgb: string;
-  characters: { id: string; name: string; image?: string; glow: string }[];
+  characters: {
+    id: string;
+    name: string;
+    fullName: string;
+    role: string;
+    age: number;
+    image?: string;
+    glow: string;
+    glowRgb: string;
+  }[];
   relationshipCount: number;
   slug?: string;            // builtin worlds only
   assetsBasePath?: string;  // builtin worlds only
@@ -152,10 +161,16 @@ export function storyToWorldCard(pack: StoryManifest): WorldCardData {
     characters: pack.characters.map((c) => ({
       id: c.id,
       name: c.name,
+      fullName: c.fullName,
+      role: c.role,
+      age: c.age,
       image: c.image ? `${pack.assetsBasePath}${c.image}` : undefined,
       glow: c.glow,
+      glowRgb: c.glowRgb,
     })),
-    relationshipCount: pack.initialRelationships.length,
+    relationshipCount: pack.initialRelationships.filter(
+      (r) => r.source.type === 'persona' && r.target.type === 'persona'
+    ).length,
     slug: pack.slug,
     assetsBasePath: pack.assetsBasePath,
   };

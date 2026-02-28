@@ -2,7 +2,42 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import type { UserWorldCharacter, UserWorldRelationship } from '@/lib/types';
+import { ArrowLeft } from 'lucide-react';
+import type { UserWorldRelationship } from '@/lib/types';
+import { Switch } from '@/components/ui/switch';
+
+// ---- Types ----
+
+type SpeakingPreset = 'polite' | 'casual' | 'rough' | 'warm' | 'custom';
+
+interface Big5 {
+  E: number; // Extraversion
+  N: number; // Neuroticism (inverse: emotional <-> rational)
+  C: number; // Conscientiousness
+  A: number; // Agreeableness
+  O: number; // Openness
+}
+
+interface WizardCharacter {
+  id: string;
+  name: string;
+  fullName: string;
+  age: number;
+  role: string;
+  desc: string;
+  personality: string;
+  speakingStyle: string;
+  glow: string;
+  big5: Big5;
+  speakingPreset: SpeakingPreset;
+}
+
+interface WizardForm {
+  situation: string;
+  isAdult: boolean;
+}
+
+// ---- Constants ----
 
 const COLOR_PRESETS = [
   { label: '핑크', value: '#ff6b9d' },
@@ -13,11 +48,37 @@ const COLOR_PRESETS = [
   { label: '앰버', value: '#f59e0b' },
 ];
 
+const BIG5_LABELS: { key: keyof Big5; left: string; right: string }[] = [
+  { key: 'E', left: '내성적', right: '외향적' },
+  { key: 'N', left: '감정적', right: '이성적' },
+  { key: 'C', left: '자유로운', right: '계획적' },
+  { key: 'A', left: '경쟁적', right: '협조적' },
+  { key: 'O', left: '보수적', right: '개방적' },
+];
+
+const SPEAKING_PRESETS: { key: SpeakingPreset; label: string; value: string }[] = [
+  { key: 'polite', label: '존댓말', value: '~요, ~습니다' },
+  { key: 'casual', label: '반말', value: '~야, ~이야' },
+  { key: 'rough', label: '거침', value: '~거든, ~하든가' },
+  { key: 'warm', label: '다정', value: '~네, ~구나' },
+  { key: 'custom', label: '직접 입력', value: '' },
+];
+
+const RELATIONSHIP_TYPE_PRESETS = ['연인', '친구', '라이벌', '가족', '비밀'];
+
+const stepLabels = ['상황', '캐릭터', '관계'];
+
+// ---- Helpers ----
+
 function makeId() {
   return Math.random().toString(36).slice(2, 10);
 }
 
-function emptyCharacter(): UserWorldCharacter {
+function defaultBig5(): Big5 {
+  return { E: 0.5, N: 0.5, C: 0.5, A: 0.5, O: 0.5 };
+}
+
+function emptyCharacter(): WizardCharacter {
   return {
     id: makeId(),
     name: '',
@@ -28,67 +89,84 @@ function emptyCharacter(): UserWorldCharacter {
     personality: '',
     speakingStyle: '',
     glow: '#a855f7',
+    big5: defaultBig5(),
+    speakingPreset: 'polite',
   };
 }
 
-interface WorldForm {
-  name: string;
-  description: string;
-  lore: string;
-  tags: string[];
-  themeColor: string;
-  isAdult: boolean;
+function resolvedSpeakingStyle(char: WizardCharacter): string {
+  if (char.speakingPreset === 'custom') return char.speakingStyle;
+  const preset = SPEAKING_PRESETS.find(p => p.key === char.speakingPreset);
+  return preset ? preset.value : char.speakingStyle;
 }
 
-// ---- Toggle ----
-function Toggle({
-  checked,
+// ---- Sub-components ----
+
+function Big5Sliders({
+  big5,
   onChange,
-  color = 'bg-purple-500',
 }: {
-  checked: boolean;
-  onChange: () => void;
-  color?: string;
+  big5: Big5;
+  onChange: (key: keyof Big5, v: number) => void;
 }) {
   return (
-    <div
-      role="checkbox"
-      aria-checked={checked}
-      onClick={onChange}
-      className={`w-10 h-6 rounded-full transition-colors relative cursor-pointer ${checked ? color : 'bg-[var(--color-surface-3)]'}`}
-    >
-      <span
-        className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${checked ? 'translate-x-5' : 'translate-x-1'}`}
-      />
+    <div className="space-y-2.5">
+      {BIG5_LABELS.map(({ key, left, right }) => (
+        <div key={key} className="flex items-center gap-2">
+          <span className="w-16 text-xs text-right text-[var(--color-text-secondary)] shrink-0">
+            {left}
+          </span>
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.01}
+            value={big5[key]}
+            onChange={e => onChange(key, Number(e.target.value))}
+            aria-label={`${left} ↔ ${right}`}
+            className="flex-1 accent-purple-500"
+          />
+          <span className="w-16 text-xs text-[var(--color-text-secondary)] shrink-0">
+            {right}
+          </span>
+        </div>
+      ))}
     </div>
   );
 }
 
-// ---- Slider ----
-function Slider({
-  label,
-  value,
+function SpeakingPresetButtons({
+  preset,
   onChange,
 }: {
-  label: string;
-  value: number;
-  onChange: (v: number) => void;
+  preset: SpeakingPreset;
+  onChange: (p: SpeakingPreset) => void;
 }) {
   return (
-    <div>
-      <div className="flex justify-between text-xs text-[var(--color-text-secondary)] mb-1">
-        <span>{label}</span>
-        <span>{Math.round(value * 100)}%</span>
-      </div>
-      <input
-        type="range"
-        min={0}
-        max={1}
-        step={0.01}
-        value={value}
-        onChange={e => onChange(Number(e.target.value))}
-        className="w-full accent-purple-500"
-      />
+    <div className="flex flex-wrap gap-2">
+      {SPEAKING_PRESETS.map(p => (
+        <button
+          key={p.key}
+          type="button"
+          onClick={() => onChange(p.key)}
+          className="px-3 py-1 rounded-full text-xs font-medium transition-colors"
+          style={
+            preset === p.key
+              ? {
+                  background: 'rgba(168,85,247,0.25)',
+                  color: '#d8b4fe',
+                  border: '1px solid rgba(168,85,247,0.5)',
+                }
+              : {
+                  background: 'var(--color-surface-2)',
+                  color: 'var(--color-text-secondary)',
+                  border: '1px solid transparent',
+                }
+          }
+        >
+          {p.label}
+        </button>
+      ))}
     </div>
   );
 }
@@ -97,9 +175,11 @@ function Slider({
 function RelationshipGraph({
   characters,
   relationships,
+  themeColor = '#a855f7',
 }: {
-  characters: UserWorldCharacter[];
+  characters: { id: string; name: string; glow: string }[];
   relationships: UserWorldRelationship[];
+  themeColor?: string;
 }) {
   if (characters.length === 0) return null;
   const cx = 160;
@@ -115,13 +195,7 @@ function RelationshipGraph({
   const charIndex = Object.fromEntries(characters.map((c, i) => [c.id, i]));
 
   return (
-    <svg
-      width="320"
-      height="320"
-      viewBox="0 0 320 320"
-      className="mx-auto"
-    >
-      {/* Relationship lines */}
+    <svg width="320" height="320" viewBox="0 0 320 320" className="mx-auto">
       {relationships.map(rel => {
         const si = charIndex[rel.sourceId];
         const ti = charIndex[rel.targetId];
@@ -136,18 +210,17 @@ function RelationshipGraph({
               y1={sp.y}
               x2={tp.x}
               y2={tp.y}
-              stroke="#a855f7"
+              stroke={themeColor}
               strokeWidth={1 + rel.strength * 2}
               strokeOpacity={opacity}
             />
-            {/* Label at midpoint */}
             {rel.relationshipType && (
               <text
                 x={(sp.x + tp.x) / 2}
                 y={(sp.y + tp.y) / 2 - 4}
                 textAnchor="middle"
                 fontSize="9"
-                fill="#a855f7"
+                fill={themeColor}
                 fillOpacity={0.9}
               >
                 {rel.relationshipType}
@@ -157,10 +230,9 @@ function RelationshipGraph({
         );
       })}
 
-      {/* Character nodes */}
       {characters.map((char, i) => {
         const pos = positions[i];
-        const color = char.glow || '#a855f7';
+        const color = char.glow || themeColor;
         return (
           <g key={char.id}>
             <circle
@@ -199,23 +271,19 @@ function RelationshipGraph({
 }
 
 // ---- Main component ----
+
 export default function WorldWizard() {
+  const TOTAL_STEPS = 3;
   const [step, setStep] = useState(1);
-  const TOTAL_STEPS = 4;
 
   // Step 1
-  const [form, setForm] = useState<WorldForm>({
-    name: '',
-    description: '',
-    lore: '',
-    tags: [],
-    themeColor: '#a855f7',
+  const [form, setForm] = useState<WizardForm>({
+    situation: '',
     isAdult: false,
   });
-  const [tagInput, setTagInput] = useState('');
 
   // Step 2
-  const [characters, setCharacters] = useState<UserWorldCharacter[]>([emptyCharacter(), emptyCharacter()]);
+  const [characters, setCharacters] = useState<WizardCharacter[]>([emptyCharacter()]);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
   // Step 3
@@ -231,33 +299,15 @@ export default function WorldWizard() {
     'w-full bg-[var(--color-surface-2)] border border-white/[0.06] rounded-xl px-4 py-3 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-dim)] outline-none focus:border-white/20 transition-colors';
   const labelClass = 'block text-sm font-medium text-[var(--color-text-secondary)] mb-1.5';
 
-  // ---- World form helpers ----
-  function setF<K extends keyof WorldForm>(key: K, value: WorldForm[K]) {
-    setForm(prev => ({ ...prev, [key]: value }));
-  }
-
-  function handleTagKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === ',' || e.key === 'Enter') {
-      e.preventDefault();
-      addTag();
-    }
-  }
-
-  function addTag() {
-    const trimmed = tagInput.trim().replace(/,$/, '');
-    if (trimmed && !form.tags.includes(trimmed)) {
-      setF('tags', [...form.tags, trimmed]);
-    }
-    setTagInput('');
-  }
-
-  function removeTag(tag: string) {
-    setF('tags', form.tags.filter(t => t !== tag));
-  }
-
   // ---- Character helpers ----
-  function updateChar(id: string, patch: Partial<UserWorldCharacter>) {
-    setCharacters(prev => prev.map(c => c.id === id ? { ...c, ...patch } : c));
+  function updateChar(id: string, patch: Partial<WizardCharacter>) {
+    setCharacters(prev => prev.map(c => (c.id === id ? { ...c, ...patch } : c)));
+  }
+
+  function updateCharBig5(id: string, key: keyof Big5, v: number) {
+    setCharacters(prev =>
+      prev.map(c => (c.id === id ? { ...c, big5: { ...c.big5, [key]: v } } : c))
+    );
   }
 
   function addCharacter() {
@@ -266,7 +316,6 @@ export default function WorldWizard() {
 
   function removeCharacter(id: string) {
     setCharacters(prev => prev.filter(c => c.id !== id));
-    // remove relationships involving this character
     setRelationships(prev => prev.filter(r => r.sourceId !== id && r.targetId !== id));
   }
 
@@ -275,10 +324,14 @@ export default function WorldWizard() {
   }
 
   // ---- Relationship helpers ----
-  function getRelationship(sourceId: string, targetId: string): UserWorldRelationship | undefined {
+  function getRelationship(
+    sourceId: string,
+    targetId: string
+  ): UserWorldRelationship | undefined {
     return relationships.find(
-      r => (r.sourceId === sourceId && r.targetId === targetId) ||
-           (r.sourceId === targetId && r.targetId === sourceId)
+      r =>
+        (r.sourceId === sourceId && r.targetId === targetId) ||
+        (r.sourceId === targetId && r.targetId === sourceId)
     );
   }
 
@@ -291,35 +344,41 @@ export default function WorldWizard() {
   }
 
   function removeRelationship(sourceId: string, targetId: string) {
-    setRelationships(prev => prev.filter(
-      r => !(
-        (r.sourceId === sourceId && r.targetId === targetId) ||
-        (r.sourceId === targetId && r.targetId === sourceId)
+    setRelationships(prev =>
+      prev.filter(
+        r =>
+          !(
+            (r.sourceId === sourceId && r.targetId === targetId) ||
+            (r.sourceId === targetId && r.targetId === sourceId)
+          )
       )
-    ));
+    );
   }
 
-  function updateRelationship(sourceId: string, targetId: string, patch: Partial<UserWorldRelationship>) {
-    setRelationships(prev => prev.map(r => {
-      const match =
-        (r.sourceId === sourceId && r.targetId === targetId) ||
-        (r.sourceId === targetId && r.targetId === sourceId);
-      return match ? { ...r, ...patch } : r;
-    }));
+  function updateRelationship(
+    sourceId: string,
+    targetId: string,
+    patch: Partial<UserWorldRelationship>
+  ) {
+    setRelationships(prev =>
+      prev.map(r => {
+        const match =
+          (r.sourceId === sourceId && r.targetId === targetId) ||
+          (r.sourceId === targetId && r.targetId === sourceId);
+        return match ? { ...r, ...patch } : r;
+      })
+    );
   }
 
   // ---- Validation ----
   function validateStep(): string | null {
     if (step === 1) {
-      if (!form.name.trim()) return '월드 이름을 입력해주세요.';
-      if (!form.description.trim()) return '월드 설명을 입력해주세요.';
+      if (!form.situation.trim()) return '어떤 이야기인지 설명해주세요.';
     }
     if (step === 2) {
-      if (characters.length < 2) return '캐릭터를 최소 2명 추가해주세요.';
       for (const c of characters) {
         if (!c.name.trim()) return '모든 캐릭터의 이름을 입력해주세요.';
         if (!c.role.trim()) return '모든 캐릭터의 역할을 입력해주세요.';
-        if (!c.personality.trim()) return '모든 캐릭터의 성격을 입력해주세요.';
       }
     }
     return null;
@@ -327,7 +386,10 @@ export default function WorldWizard() {
 
   function handleNext() {
     const err = validateStep();
-    if (err) { setError(err); return; }
+    if (err) {
+      setError(err);
+      return;
+    }
     setError('');
     setStep(s => s + 1);
   }
@@ -336,9 +398,19 @@ export default function WorldWizard() {
     setSubmitting(true);
     setError('');
     try {
+      const themeColor = characters[0]?.glow ?? '#a855f7';
       const payload = {
-        ...form,
-        characters,
+        name: form.situation.slice(0, 30),
+        description: form.situation,
+        lore: '',
+        tags: [],
+        themeColor,
+        isAdult: form.isAdult,
+        characters: characters.map(c => ({
+          ...c,
+          speakingStyle: resolvedSpeakingStyle(c),
+          personality: `Big5: E=${c.big5.E} N=${c.big5.N} C=${c.big5.C} A=${c.big5.A} O=${c.big5.O}. ${c.personality}`,
+        })),
         relationships,
         isPublic: true,
       };
@@ -347,7 +419,7 @@ export default function WorldWizard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      const data = await res.json() as { ok: boolean; id?: string; error?: string };
+      const data = (await res.json()) as { ok: boolean; id?: string; error?: string };
       if (!data.ok) throw new Error(data.error || '알 수 없는 오류');
       setNewWorldId(data.id || '');
       setDone(true);
@@ -358,10 +430,8 @@ export default function WorldWizard() {
     }
   }
 
-  const stepLabels = ['월드 기본', '캐릭터 추가', '관계 정의', '리뷰 + 발행'];
-
   // ---- Pairs for Step 3 ----
-  const pairs: [UserWorldCharacter, UserWorldCharacter][] = [];
+  const pairs: [WizardCharacter, WizardCharacter][] = [];
   for (let i = 0; i < characters.length; i++) {
     for (let j = i + 1; j < characters.length; j++) {
       pairs.push([characters[i], characters[j]]);
@@ -370,18 +440,19 @@ export default function WorldWizard() {
 
   // ---- Done screen ----
   if (done) {
+    const themeColor = characters[0]?.glow ?? '#a855f7';
     return (
-      <div className="min-h-screen bg-[#08080d] flex items-center justify-center px-4">
+      <div className="min-h-screen bg-[var(--color-bg)] flex items-center justify-center px-4">
         <div className="max-w-[480px] w-full text-center space-y-6">
           <div
             className="w-20 h-20 rounded-full mx-auto flex items-center justify-center text-3xl"
-            style={{ background: `${form.themeColor}22`, border: `2px solid ${form.themeColor}66` }}
+            style={{ background: `${themeColor}22`, border: `2px solid ${themeColor}66` }}
           >
-            {form.name.charAt(0)}
+            {form.situation.charAt(0)}
           </div>
           <div>
             <h2 className="text-2xl font-bold text-[var(--color-text)] mb-2">
-              {form.name} 월드 생성 완료!
+              월드 생성 완료!
             </h2>
             <p className="text-[var(--color-text-secondary)] text-sm">
               월드가 성공적으로 만들어졌습니다.
@@ -390,9 +461,9 @@ export default function WorldWizard() {
           <div className="flex gap-3 justify-center">
             {newWorldId && (
               <Link
-                href={`/my`}
+                href="/my"
                 className="inline-block px-6 py-3 rounded-xl text-sm font-semibold text-white"
-                style={{ background: 'linear-gradient(135deg, #ff6b9d, #a855f7)' }}
+                style={{ background: 'var(--color-brand-gradient)' }}
               >
                 내 월드 보기
               </Link>
@@ -410,12 +481,21 @@ export default function WorldWizard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#08080d] flex flex-col items-center px-4 py-8">
+    <div className="min-h-screen bg-[var(--color-bg)] flex flex-col items-center px-4 pt-4 pb-24">
       <div className="max-w-[520px] w-full space-y-6">
         {/* Header */}
-        <div className="space-y-1">
-          <h1 className="text-xl font-bold text-[var(--color-text)]">월드 만들기</h1>
-          <p className="text-sm text-[var(--color-text-secondary)]">나만의 AI 스토리 월드를 생성하세요</p>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/"
+            className="flex items-center justify-center w-9 h-9 rounded-full transition-colors"
+            style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.2)' }}
+          >
+            <ArrowLeft size={18} className="text-purple-400" />
+          </Link>
+          <div>
+            <h1 className="text-xl font-bold text-[var(--color-text)]">월드 만들기</h1>
+            <p className="text-sm text-[var(--color-text-secondary)]">나만의 AI 스토리 월드를 생성하세요</p>
+          </div>
         </div>
 
         {/* Step indicator */}
@@ -429,103 +509,61 @@ export default function WorldWizard() {
               className="h-full rounded-full transition-all duration-300"
               style={{
                 width: `${(step / TOTAL_STEPS) * 100}%`,
-                background: 'linear-gradient(90deg, #ff6b9d, #a855f7)',
+                background: 'var(--color-brand-gradient)',
               }}
             />
           </div>
+          <div className="flex justify-between mt-1">
+            {stepLabels.map((label, i) => (
+              <span
+                key={label}
+                className="text-xs"
+                style={{
+                  color: i + 1 <= step ? 'var(--color-text)' : 'var(--color-text-dim)',
+                  fontWeight: i + 1 === step ? 600 : 400,
+                }}
+              >
+                {label}
+              </span>
+            ))}
+          </div>
         </div>
 
-        {/* ---- Step 1: 월드 기본 ---- */}
+        {/* ---- Step 1: 상황 ---- */}
         {step === 1 && (
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div>
-              <label className={labelClass}>월드 이름 *</label>
-              <input
-                className={inputClass}
-                placeholder="예: 달빛 아카데미"
-                value={form.name}
-                onChange={e => setF('name', e.target.value)}
-              />
-            </div>
-            <div>
-              <label className={labelClass}>월드 설명 *</label>
+              <label className={labelClass}>어떤 이야기? *</label>
               <textarea
                 className={`${inputClass} resize-none`}
-                rows={3}
-                placeholder="이 월드의 분위기와 핵심 설정을 2-3문장으로 소개해주세요."
-                value={form.description}
-                onChange={e => setF('description', e.target.value)}
+                rows={5}
+                placeholder="예: 달빛 아카데미에서 벌어지는 마법사들의 이야기. 경쟁과 우정, 숨겨진 비밀이 얽혀 있다."
+                value={form.situation}
+                onChange={e => setForm(prev => ({ ...prev, situation: e.target.value }))}
+                autoFocus
               />
+              <p className="text-xs text-[var(--color-text-dim)] mt-1.5">
+                상황, 배경, 분위기를 자유롭게 설명하세요. 이것이 월드의 핵심이 됩니다.
+              </p>
             </div>
-            <div>
-              <label className={labelClass}>로어 (선택)</label>
-              <textarea
-                className={`${inputClass} resize-none`}
-                rows={4}
-                placeholder="세계관 설정, 역사적 배경, 마법 시스템 등 자세한 설정을 입력해주세요."
-                value={form.lore}
-                onChange={e => setF('lore', e.target.value)}
-              />
-            </div>
-            <div>
-              <label className={labelClass}>태그</label>
-              <input
-                className={inputClass}
-                placeholder="태그 입력 후 쉼표 또는 Enter"
-                value={tagInput}
-                onChange={e => setTagInput(e.target.value)}
-                onKeyDown={handleTagKeyDown}
-                onBlur={addTag}
-              />
-              {form.tags.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {form.tags.map(tag => (
-                    <button
-                      key={tag}
-                      type="button"
-                      onClick={() => removeTag(tag)}
-                      className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-[var(--color-surface-3)] text-[var(--color-text-secondary)] hover:bg-white/10 transition-colors"
-                    >
-                      {tag}
-                      <span className="text-[var(--color-text-dim)] ml-0.5">x</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div>
-              <label className={labelClass}>테마 색상</label>
-              <div className="flex gap-3 mt-1">
-                {COLOR_PRESETS.map(preset => (
-                  <button
-                    key={preset.value}
-                    type="button"
-                    title={preset.label}
-                    onClick={() => setF('themeColor', preset.value)}
-                    className="w-9 h-9 rounded-full transition-transform hover:scale-110"
-                    style={{
-                      background: preset.value,
-                      outline: form.themeColor === preset.value ? `3px solid ${preset.value}` : '3px solid transparent',
-                      outlineOffset: '2px',
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
+
             <label className="flex items-center gap-3 cursor-pointer">
-              <Toggle
+              <Switch
                 checked={form.isAdult}
-                onChange={() => setF('isAdult', !form.isAdult)}
-                color="bg-red-500"
+                onCheckedChange={checked => setForm(prev => ({ ...prev, isAdult: checked }))}
               />
               <span className="text-sm text-[var(--color-text-secondary)]">성인 콘텐츠 포함</span>
             </label>
           </div>
         )}
 
-        {/* ---- Step 2: 캐릭터 추가 ---- */}
+        {/* ---- Step 2: 캐릭터 (SDK Core) ---- */}
         {step === 2 && (
           <div className="space-y-4">
+            <p className="text-sm text-[var(--color-text-secondary)]">
+              캐릭터의 성격을 Big5 슬라이더로 설정하세요. World SDK가 이 값을 바탕으로 살아있는 페르소나를 구성합니다.
+            </p>
+
             {characters.map((char, idx) => (
               <div
                 key={char.id}
@@ -543,7 +581,7 @@ export default function WorldWizard() {
                     {char.name || `캐릭터 ${idx + 1}`}
                   </span>
                   <div className="flex items-center gap-2">
-                    {characters.length > 2 && (
+                    {characters.length > 1 && (
                       <button
                         type="button"
                         onClick={() => removeCharacter(char.id)}
@@ -564,7 +602,8 @@ export default function WorldWizard() {
 
                 {/* Card body */}
                 {!collapsed[char.id] && (
-                  <div className="px-4 pb-4 space-y-3 border-t border-white/[0.04]">
+                  <div className="px-4 pb-4 space-y-4 border-t border-white/[0.04]">
+                    {/* Name + Full Name */}
                     <div className="grid grid-cols-2 gap-3 pt-3">
                       <div>
                         <label className={labelClass}>표시 이름 *</label>
@@ -585,6 +624,8 @@ export default function WorldWizard() {
                         />
                       </div>
                     </div>
+
+                    {/* Age + Role */}
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className={labelClass}>나이</label>
@@ -601,42 +642,41 @@ export default function WorldWizard() {
                         <label className={labelClass}>역할 *</label>
                         <input
                           className={inputClass}
-                          placeholder="예: 바리스타"
+                          placeholder="예: 마법사"
                           value={char.role}
                           onChange={e => updateChar(char.id, { role: e.target.value })}
                         />
                       </div>
                     </div>
+
+                    {/* Big5 personality sliders */}
                     <div>
-                      <label className={labelClass}>캐릭터 설명</label>
-                      <textarea
-                        className={`${inputClass} resize-none`}
-                        rows={2}
-                        placeholder="간단한 소개"
-                        value={char.desc}
-                        onChange={e => updateChar(char.id, { desc: e.target.value })}
+                      <label className={labelClass}>성격 (Big5)</label>
+                      <Big5Sliders
+                        big5={char.big5}
+                        onChange={(key, v) => updateCharBig5(char.id, key, v)}
                       />
                     </div>
+
+                    {/* Speaking style presets */}
                     <div>
-                      <label className={labelClass}>성격 프롬프트 *</label>
-                      <textarea
-                        className={`${inputClass} resize-none`}
-                        rows={2}
-                        placeholder="예: 따뜻하고 공감 능력이 뛰어난 성격."
-                        value={char.personality}
-                        onChange={e => updateChar(char.id, { personality: e.target.value })}
+                      <label className={labelClass}>말투</label>
+                      <SpeakingPresetButtons
+                        preset={char.speakingPreset}
+                        onChange={p => updateChar(char.id, { speakingPreset: p })}
                       />
+                      {char.speakingPreset === 'custom' && (
+                        <textarea
+                          className={`${inputClass} resize-none mt-2`}
+                          rows={2}
+                          placeholder="예: 오늘 하루 어떠셨어요? (말투 예시를 입력하세요)"
+                          value={char.speakingStyle}
+                          onChange={e => updateChar(char.id, { speakingStyle: e.target.value })}
+                        />
+                      )}
                     </div>
-                    <div>
-                      <label className={labelClass}>말투 예시</label>
-                      <textarea
-                        className={`${inputClass} resize-none`}
-                        rows={2}
-                        placeholder="예: 오늘 하루 어떠셨어요?"
-                        value={char.speakingStyle}
-                        onChange={e => updateChar(char.id, { speakingStyle: e.target.value })}
-                      />
-                    </div>
+
+                    {/* Theme color */}
                     <div>
                       <label className={labelClass}>테마 색상</label>
                       <div className="flex gap-2 mt-1">
@@ -649,7 +689,10 @@ export default function WorldWizard() {
                             className="w-7 h-7 rounded-full transition-transform hover:scale-110"
                             style={{
                               background: preset.value,
-                              outline: char.glow === preset.value ? `2px solid ${preset.value}` : '2px solid transparent',
+                              outline:
+                                char.glow === preset.value
+                                  ? `2px solid ${preset.value}`
+                                  : '2px solid transparent',
                               outlineOffset: '2px',
                             }}
                           />
@@ -671,7 +714,7 @@ export default function WorldWizard() {
           </div>
         )}
 
-        {/* ---- Step 3: 관계 정의 ---- */}
+        {/* ---- Step 3: 관계 ---- */}
         {step === 3 && (
           <div className="space-y-4">
             <p className="text-sm text-[var(--color-text-secondary)]">
@@ -688,17 +731,11 @@ export default function WorldWizard() {
                   {/* Pair header */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span
-                        className="text-sm font-semibold"
-                        style={{ color: a.glow || '#a855f7' }}
-                      >
+                      <span className="text-sm font-semibold" style={{ color: a.glow || '#a855f7' }}>
                         {a.name || '이름없음'}
                       </span>
                       <span className="text-xs text-[var(--color-text-dim)]">↔</span>
-                      <span
-                        className="text-sm font-semibold"
-                        style={{ color: b.glow || '#a855f7' }}
-                      >
+                      <span className="text-sm font-semibold" style={{ color: b.glow || '#a855f7' }}>
                         {b.name || '이름없음'}
                       </span>
                     </div>
@@ -723,27 +760,85 @@ export default function WorldWizard() {
 
                   {rel && (
                     <div className="space-y-3">
+                      {/* Relationship type presets */}
                       <div>
-                        <label className={labelClass}>관계 유형</label>
+                        <label className={`${labelClass} mb-2`}>관계 유형</label>
+                        <div className="flex flex-wrap gap-2 mb-2">
+                          {RELATIONSHIP_TYPE_PRESETS.map(type => (
+                            <button
+                              key={type}
+                              type="button"
+                              onClick={() =>
+                                updateRelationship(a.id, b.id, { relationshipType: type })
+                              }
+                              className="px-3 py-1 rounded-full text-xs font-medium transition-colors"
+                              style={
+                                rel.relationshipType === type
+                                  ? {
+                                      background: 'rgba(168,85,247,0.25)',
+                                      color: '#d8b4fe',
+                                      border: '1px solid rgba(168,85,247,0.5)',
+                                    }
+                                  : {
+                                      background: 'var(--color-surface-2)',
+                                      color: 'var(--color-text-secondary)',
+                                      border: '1px solid transparent',
+                                    }
+                              }
+                            >
+                              {type}
+                            </button>
+                          ))}
+                        </div>
                         <input
                           className={inputClass}
-                          placeholder="예: 연인, 라이벌, 형제, 스승"
+                          placeholder="직접 입력 (예: 스승, 형제, 숙적)"
                           value={rel.relationshipType}
                           onChange={e =>
                             updateRelationship(a.id, b.id, { relationshipType: e.target.value })
                           }
                         />
                       </div>
-                      <Slider
-                        label="관계 강도"
-                        value={rel.strength}
-                        onChange={v => updateRelationship(a.id, b.id, { strength: v })}
-                      />
-                      <Slider
-                        label="신뢰도"
-                        value={rel.trust}
-                        onChange={v => updateRelationship(a.id, b.id, { trust: v })}
-                      />
+
+                      {/* Strength slider */}
+                      <div>
+                        <div className="flex justify-between text-xs text-[var(--color-text-secondary)] mb-1">
+                          <span>관계 강도</span>
+                          <span>{Math.round(rel.strength * 100)}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min={0}
+                          max={1}
+                          step={0.01}
+                          value={rel.strength}
+                          onChange={e =>
+                            updateRelationship(a.id, b.id, { strength: Number(e.target.value) })
+                          }
+                          aria-label="관계 강도"
+                          className="w-full accent-purple-500"
+                        />
+                      </div>
+
+                      {/* Trust slider */}
+                      <div>
+                        <div className="flex justify-between text-xs text-[var(--color-text-secondary)] mb-1">
+                          <span>신뢰도</span>
+                          <span>{Math.round(rel.trust * 100)}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min={0}
+                          max={1}
+                          step={0.01}
+                          value={rel.trust}
+                          onChange={e =>
+                            updateRelationship(a.id, b.id, { trust: Number(e.target.value) })
+                          }
+                          aria-label="신뢰도"
+                          className="w-full accent-purple-500"
+                        />
+                      </div>
                     </div>
                   )}
                 </div>
@@ -752,92 +847,26 @@ export default function WorldWizard() {
 
             {pairs.length === 0 && (
               <p className="text-sm text-[var(--color-text-dim)] text-center py-4">
-                캐릭터가 2명 이상이어야 관계를 정의할 수 있습니다.
+                캐릭터를 2명 이상 추가하면 관계를 정의할 수 있습니다.
               </p>
             )}
-          </div>
-        )}
 
-        {/* ---- Step 4: 리뷰 + 발행 ---- */}
-        {step === 4 && (
-          <div className="space-y-6">
-            {/* World summary */}
-            <div className="rounded-xl border border-white/[0.06] bg-[var(--color-surface)] p-4 space-y-3">
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold"
-                  style={{ background: `${form.themeColor}33`, color: form.themeColor }}
-                >
-                  {form.name.charAt(0) || '?'}
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-[var(--color-text)]">{form.name || '이름 없음'}</p>
-                  <p className="text-xs text-[var(--color-text-secondary)]">
-                    캐릭터 {characters.length}명 · 관계 {relationships.length}개
-                    {form.isAdult ? ' · 성인' : ''}
-                  </p>
-                </div>
-              </div>
-              {form.description && (
-                <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
-                  {form.description}
-                </p>
-              )}
-              {form.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {form.tags.map(tag => (
-                    <span
-                      key={tag}
-                      className="px-2 py-0.5 rounded-full text-xs"
-                      style={{ background: `${form.themeColor}22`, color: form.themeColor }}
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Character list */}
-            <div>
-              <p className={labelClass}>캐릭터</p>
-              <div className="space-y-2">
-                {characters.map(char => (
-                  <div
-                    key={char.id}
-                    className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-[var(--color-surface)] px-4 py-2.5"
-                  >
-                    <div
-                      className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
-                      style={{ background: `${char.glow}33`, color: char.glow }}
-                    >
-                      {char.name.charAt(0) || '?'}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-[var(--color-text)]">{char.name}</p>
-                      <p className="text-xs text-[var(--color-text-secondary)]">
-                        {char.role}{char.age ? ` · ${char.age}세` : ''}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* SVG relationship preview */}
-            {relationships.length > 0 && (
+            {/* Relationship graph preview */}
+            {characters.length > 0 && (
               <div>
                 <p className={labelClass}>관계 미리보기</p>
                 <div className="rounded-xl border border-white/[0.06] bg-[var(--color-surface)] p-4">
-                  <RelationshipGraph characters={characters} relationships={relationships} />
+                  <RelationshipGraph
+                    characters={characters}
+                    relationships={relationships}
+                    themeColor={characters[0]?.glow ?? '#a855f7'}
+                  />
+                  {relationships.length === 0 && (
+                    <p className="text-xs text-center text-[var(--color-text-dim)] mt-2">
+                      정의된 관계가 없습니다.
+                    </p>
+                  )}
                 </div>
-              </div>
-            )}
-
-            {relationships.length === 0 && (
-              <div className="rounded-xl border border-white/[0.04] bg-[var(--color-surface)] p-4">
-                <RelationshipGraph characters={characters} relationships={relationships} />
-                <p className="text-xs text-center text-[var(--color-text-dim)] mt-2">정의된 관계가 없습니다.</p>
               </div>
             )}
           </div>
@@ -855,7 +884,10 @@ export default function WorldWizard() {
           {step > 1 && (
             <button
               type="button"
-              onClick={() => { setError(''); setStep(s => s - 1); }}
+              onClick={() => {
+                setError('');
+                setStep(s => s - 1);
+              }}
               className="flex-1 py-3 rounded-xl text-sm font-semibold text-[var(--color-text-secondary)] bg-[var(--color-surface-2)] hover:bg-[var(--color-surface-3)] transition-colors"
             >
               이전
@@ -866,7 +898,7 @@ export default function WorldWizard() {
               type="button"
               onClick={handleNext}
               className="flex-1 py-3 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90"
-              style={{ background: 'linear-gradient(135deg, #ff6b9d, #a855f7)' }}
+              style={{ background: 'var(--color-brand-gradient)' }}
             >
               다음
             </button>
@@ -876,7 +908,7 @@ export default function WorldWizard() {
               onClick={handleSubmit}
               disabled={submitting}
               className="flex-1 py-3 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-              style={{ background: 'linear-gradient(135deg, #ff6b9d, #a855f7)' }}
+              style={{ background: 'var(--color-brand-gradient)' }}
             >
               {submitting ? '생성 중...' : '월드 만들기'}
             </button>

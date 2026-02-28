@@ -23,4 +23,5 @@ export interface RoomMessage {
   innerThought?: string;
   emotion?: string;
   emotionDetail?: EmotionDetail;
+  relationshipDelta?: { trust: number; strength: number };
 }

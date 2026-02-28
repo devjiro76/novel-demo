@@ -161,6 +161,13 @@ async function generateNpcResponse(ctx: {
     });
   }
 
+  // Capture relationship state before interact
+  let relationshipBefore: { trust: number; strength: number } | undefined;
+  try {
+    const rel = await (persona as any).getRelationship(player.characterId);
+    if (rel) relationshipBefore = { trust: rel.trust, strength: rel.strength };
+  } catch {}
+
   let rawEmotion = '';
   let emotionDetail: import('@/lib/types').EmotionDetail | undefined;
   try {
@@ -190,6 +197,21 @@ async function generateNpcResponse(ctx: {
   }
   const emotionLabel = resolveEmotionLabel(rawEmotion);
 
+  // Compute relationship delta after interact
+  let relationshipDelta: { trust: number; strength: number } | undefined;
+  if (relationshipBefore) {
+    try {
+      const relAfter = await (persona as any).getRelationship(player.characterId);
+      if (relAfter) {
+        const dt = relAfter.trust - relationshipBefore.trust;
+        const ds = relAfter.strength - relationshipBefore.strength;
+        if (Math.abs(dt) > 0.001 || Math.abs(ds) > 0.001) {
+          relationshipDelta = { trust: dt, strength: ds };
+        }
+      }
+    } catch {}
+  }
+
   return addMessage(roomId, {
     sender: { type: 'npc', id: npcId, name: npcDisplayName },
     text: conversationResult.dialogue,
@@ -197,6 +219,7 @@ async function generateNpcResponse(ctx: {
     innerThought: conversationResult.innerThought,
     emotion: emotionLabel,
     emotionDetail,
+    relationshipDelta,
   });
 }
 
