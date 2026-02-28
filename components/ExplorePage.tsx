@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
+import { PageLayout } from '@/components/layout';
 import { useIsDesktop } from '@/hooks/useMediaQuery';
-import { Search, Filter, TrendingUp, Clock, Sparkles, ChevronRight } from 'lucide-react';
+import { Search, Filter, TrendingUp, Clock, Sparkles } from 'lucide-react';
 import type { WorldCardData } from '@/lib/story-pack';
 import CharacterCard from '@/components/CharacterCard';
 
@@ -61,43 +61,11 @@ export default function ExplorePage({ worlds }: ExplorePageProps) {
   const sortedCharacters = [...filteredCharacters].sort((a, b) => {
     if (sortBy === 'name') return a.char.name.localeCompare(b.char.name, 'ko');
     if (sortBy === 'recent') return b.char.age - a.char.age;
-    return 0; // popular - random for now
+    return 0;
   });
 
-  const header = (
-    <header className={isDesktop ? 'mb-8' : 'px-4 pt-10 pb-4'}>
-      {isDesktop ? (
-        <>
-          <h1 className="text-3xl font-black text-gradient">탐색</h1>
-          <p className="text-[var(--color-text-secondary)] mt-2">다양한 캐릭터를 발견하세요</p>
-        </>
-      ) : (
-        <>
-          <Link href="/" className="text-[10px] text-[var(--color-text-dim)]">← 홈</Link>
-          <h1 className="text-2xl font-bold mt-2">탐색</h1>
-          <p className="text-[11px] text-[var(--color-text-dim)] mt-1">다양한 캐릭터를 발견하세요</p>
-        </>
-      )}
-    </header>
-  );
-
-  const searchBar = (
-    <div className={isDesktop ? 'mb-6' : 'px-4 mb-4'}>
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-muted)]" />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="캐릭터 검색..."
-          className="w-full bg-[var(--color-surface)] border border-white/[0.06] rounded-xl pl-10 pr-4 py-3 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-brand-primary)]/30 transition-colors"
-        />
-      </div>
-    </div>
-  );
-
   const filterSection = (
-    <div className={`flex gap-2 overflow-x-auto scrollbar-hide pb-2 ${isDesktop ? 'mb-6' : 'px-4 mb-4'}`}>
+    <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 mb-4">
       <button
         onClick={() => setSelectedTag('all')}
         className="shrink-0 px-4 py-2 rounded-full text-xs font-medium transition-all"
@@ -127,7 +95,7 @@ export default function ExplorePage({ worlds }: ExplorePageProps) {
   );
 
   const sortSection = (
-    <div className={`flex items-center gap-2 ${isDesktop ? 'mb-6' : 'px-4 mb-4'}`}>
+    <div className="flex items-center gap-2 mb-4">
       <Filter className="w-4 h-4 text-[var(--color-text-muted)]" />
       <div className="flex gap-2">
         {[
@@ -153,57 +121,62 @@ export default function ExplorePage({ worlds }: ExplorePageProps) {
     </div>
   );
 
-  const characterGrid = (
-    <div className={isDesktop ? '' : 'px-4'}>
-      {sortedCharacters.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20">
-          <p className="text-[var(--color-text-muted)]">
-            {searchQuery ? `'${searchQuery}' 검색 결과 없음` : '캐릭터가 없습니다.'}
-          </p>
-        </div>
-      ) : (
-        <div className={isDesktop ? 'flex flex-wrap gap-4' : 'flex flex-wrap gap-3'}>
-          {sortedCharacters.map(({ char, world, slug }, index) => (
-            <CharacterCard
-              key={char.id}
-              charId={char.id}
-              name={char.name}
-              fullName={char.fullName}
-              role={char.role}
-              age={char.age}
-              image={char.image}
-              glow={char.glow}
-              glowRgb={char.glowRgb}
-              slug={slug}
-              index={index}
-            />
-          ))}
-        </div>
-      )}
+  const searchBar = (
+    <div className="relative mb-4">
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-muted)]" />
+      <input
+        type="text"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        placeholder="캐릭터 검색..."
+        className="w-full bg-[var(--color-surface)] border border-white/[0.06] rounded-xl pl-10 pr-4 py-3 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-brand-primary)]/30 transition-colors"
+      />
     </div>
   );
 
-  // Desktop Layout
-  if (isDesktop) {
-    return (
-      <div className="min-h-screen p-8">
-        {header}
-        {searchBar}
-        {filterSection}
-        {sortSection}
-        {characterGrid}
-      </div>
-    );
-  }
+  const characterGrid = sortedCharacters.length === 0 ? (
+    <div className="flex flex-col items-center justify-center py-20">
+      <p className="text-[var(--color-text-muted)]">
+        {searchQuery ? `'${searchQuery}' 검색 결과 없음` : '캐릭터가 없습니다.'}
+      </p>
+    </div>
+  ) : (
+    <div className={isDesktop ? 'flex flex-wrap gap-4' : 'flex flex-wrap gap-3'}>
+      {sortedCharacters.map(({ char, world, slug }, index) => (
+        <CharacterCard
+          key={char.id}
+          charId={char.id}
+          name={char.name}
+          fullName={char.fullName}
+          role={char.role}
+          age={char.age}
+          image={char.image}
+          glow={char.glow}
+          glowRgb={char.glowRgb}
+          slug={slug}
+          index={index}
+        />
+      ))}
+    </div>
+  );
 
-  // Mobile Layout
-  return (
-    <div className="min-h-screen pb-24">
-      {header}
+  const content = (
+    <>
       {searchBar}
       {filterSection}
       {sortSection}
       {characterGrid}
-    </div>
+    </>
+  );
+
+  return (
+    <PageLayout 
+      title="탐색" 
+      subtitle="다양한 캐릭터를 발견하세요" 
+      width="lg"
+      showBackButton={!isDesktop}
+    >
+      {content}
+    </PageLayout>
   );
 }

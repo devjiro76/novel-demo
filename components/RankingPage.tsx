@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { useMemo, useState, useEffect } from 'react';
 import { useIsDesktop } from '@/hooks/useMediaQuery';
-import { Trophy, Medal, Award, Users, Globe, ChevronRight } from 'lucide-react';
+import { PageLayout, PageCard } from '@/components/layout';
+import { Trophy, Medal, Award, Users, Globe } from 'lucide-react';
 import type { ClientStoryPack, WorldCardData } from '@/lib/story-pack';
 import { getAllCharacterStats } from '@/lib/character-stats';
 
@@ -77,37 +78,8 @@ export default function RankingPage({ packs, worlds }: RankingPageProps) {
     }).sort((a, b) => b.totalMessages - a.totalMessages);
   }, [worlds, stats]);
 
-  const header = (
-    <header className={isDesktop ? 'mb-8' : 'px-5 pt-10 pb-4'}>
-      {isDesktop ? (
-        <>
-          <h1 className="text-3xl font-black text-gradient">인기 랭킹</h1>
-          <p className="text-[var(--color-text-secondary)] mt-2">인기 있는 월드와 캐릭터</p>
-        </>
-      ) : (
-        <>
-          <Link href="/" className="text-[10px] text-[var(--color-text-dim)]">← 홈</Link>
-          <h1 className="text-2xl font-bold mt-2">인기 랭킹</h1>
-          <p className="text-[11px] text-[var(--color-text-dim)] mt-1">인기 있는 월드와 캐릭터</p>
-        </>
-      )}
-    </header>
-  );
-
   const typeToggle = (
-    <div className={`flex gap-2 ${isDesktop ? 'mb-6' : 'px-5 mb-4'}`}>
-      <button
-        onClick={() => setRankType('characters')}
-        className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all"
-        style={{
-          background: rankType === 'characters' ? 'var(--color-surface)' : 'transparent',
-          border: '1px solid rgba(255,255,255,0.06)',
-          color: rankType === 'characters' ? 'var(--color-text)' : 'var(--color-text-muted)',
-        }}
-      >
-        <Users className="w-4 h-4" />
-        캐릭터
-      </button>
+    <div className="flex gap-2 mb-6">
       <button
         onClick={() => setRankType('worlds')}
         className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all"
@@ -120,17 +92,42 @@ export default function RankingPage({ packs, worlds }: RankingPageProps) {
         <Globe className="w-4 h-4" />
         월드
       </button>
+      <button
+        onClick={() => setRankType('characters')}
+        className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all"
+        style={{
+          background: rankType === 'characters' ? 'var(--color-surface)' : 'transparent',
+          border: '1px solid rgba(255,255,255,0.06)',
+          color: rankType === 'characters' ? 'var(--color-text)' : 'var(--color-text-muted)',
+        }}
+      >
+        <Users className="w-4 h-4" />
+        캐릭터
+      </button>
     </div>
   );
 
-  const renderCharacterRank = (entry: CharacterRankEntry, index: number) => {
-    const charStats = stats[entry.char.id];
+  const renderRankItem = (entry: RankEntry, index: number) => {
     const rank = index + 1;
     const isTop3 = index < 3;
     const RankIcon = RANK_ICONS[index];
     const rankColor = RANK_COLORS[index] || 'var(--color-text-muted)';
 
-    if (isDesktop) {
+    const rankBadge = (
+      <div 
+        className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
+        style={{ background: isTop3 ? `${rankColor}15` : 'var(--color-surface-2)' }}
+      >
+        {isTop3 && RankIcon ? (
+          <RankIcon className="w-6 h-6" style={{ color: rankColor }} />
+        ) : (
+          <span className="text-lg font-bold text-[var(--color-text-muted)]">{rank}</span>
+        )}
+      </div>
+    );
+
+    if (entry.type === 'character') {
+      const charStats = stats[entry.char.id];
       return (
         <Link
           href={`/${entry.pack.slug}?char=${entry.char.id}`}
@@ -142,17 +139,7 @@ export default function RankingPage({ packs, worlds }: RankingPageProps) {
             animationDelay: `${index * 30}ms`,
           }}
         >
-          <div 
-            className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
-            style={{ background: isTop3 ? `${rankColor}15` : 'var(--color-surface-2)' }}
-          >
-            {isTop3 && RankIcon ? (
-              <RankIcon className="w-6 h-6" style={{ color: rankColor }} />
-            ) : (
-              <span className="text-lg font-bold text-[var(--color-text-muted)]">{rank}</span>
-            )}
-          </div>
-
+          {rankBadge}
           <div 
             className="size-14 rounded-xl overflow-hidden shrink-0"
             style={{ border: `2px solid ${isTop3 ? rankColor : 'rgba(255,255,255,0.1)'}` }}
@@ -163,7 +150,6 @@ export default function RankingPage({ packs, worlds }: RankingPageProps) {
               className="w-full h-full object-cover object-[50%_10%]"
             />
           </div>
-
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <span className="font-bold text-base">{entry.char.fullName}</span>
@@ -179,7 +165,6 @@ export default function RankingPage({ packs, worlds }: RankingPageProps) {
             <p className="text-sm text-[var(--color-text-secondary)] mt-0.5">{entry.char.role}</p>
             <p className="text-xs text-[var(--color-text-muted)]">{entry.pack.title}</p>
           </div>
-
           <div className="text-right shrink-0">
             <p className="text-xl font-bold" style={{ color: isTop3 ? rankColor : 'var(--color-text)' }}>
               {charStats?.totalMessages ?? 0}
@@ -188,44 +173,8 @@ export default function RankingPage({ packs, worlds }: RankingPageProps) {
           </div>
         </Link>
       );
-    }
-
-    // Mobile
-    return (
-      <Link
-        href={`/${entry.pack.slug}?char=${entry.char.id}`}
-        key={entry.char.id}
-        className="flex items-center gap-3 py-3 border-b border-white/[0.04]"
-      >
-        <span className="w-8 text-center text-lg font-black shrink-0" style={{ color: rankColor }}>
-          {rank}
-        </span>
-        <div className="size-12 rounded-full overflow-hidden shrink-0">
-          <img
-            src={`${entry.pack.assetsBasePath}${entry.char.image}`}
-            alt={entry.char.name}
-            className="w-full h-full object-cover object-[50%_10%]"
-          />
-        </div>
-        <div className="flex-1 min-w-0">
-          <span className="text-sm font-bold">{entry.char.fullName}</span>
-          <span className="text-[11px] text-[var(--color-text-dim)] ml-2">{entry.char.role}</span>
-        </div>
-        <span className="text-[11px] text-[var(--color-text-dim)] shrink-0">
-          {charStats?.totalMessages ?? 0}회
-        </span>
-      </Link>
-    );
-  };
-
-  const renderWorldRank = (entry: WorldRankEntry, index: number) => {
-    const rank = index + 1;
-    const isTop3 = index < 3;
-    const RankIcon = RANK_ICONS[index];
-    const rankColor = RANK_COLORS[index] || 'var(--color-text-muted)';
-    const firstChar = entry.world.characters.find(c => c.role);
-
-    if (isDesktop) {
+    } else {
+      const firstChar = entry.world.characters.find(c => c.role);
       return (
         <Link
           href={`/world/${entry.world.id}`}
@@ -237,17 +186,7 @@ export default function RankingPage({ packs, worlds }: RankingPageProps) {
             animationDelay: `${index * 30}ms`,
           }}
         >
-          <div 
-            className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
-            style={{ background: isTop3 ? `${rankColor}15` : 'var(--color-surface-2)' }}
-          >
-            {isTop3 && RankIcon ? (
-              <RankIcon className="w-6 h-6" style={{ color: rankColor }} />
-            ) : (
-              <span className="text-lg font-bold text-[var(--color-text-muted)]">{rank}</span>
-            )}
-          </div>
-
+          {rankBadge}
           <div 
             className="size-14 rounded-xl overflow-hidden shrink-0 flex items-center justify-center text-2xl"
             style={{ 
@@ -257,11 +196,8 @@ export default function RankingPage({ packs, worlds }: RankingPageProps) {
           >
             {firstChar?.image ? (
               <img src={firstChar.image} alt="" className="w-full h-full object-cover" />
-            ) : (
-              '🌏'
-            )}
+            ) : '🌏'}
           </div>
-
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <span className="font-bold text-base">{entry.world.name}</span>
@@ -281,7 +217,6 @@ export default function RankingPage({ packs, worlds }: RankingPageProps) {
               {entry.characterCount}개 캐릭터
             </p>
           </div>
-
           <div className="text-right shrink-0">
             <p className="text-xl font-bold" style={{ color: isTop3 ? rankColor : 'var(--color-text)' }}>
               {entry.totalMessages}
@@ -291,87 +226,35 @@ export default function RankingPage({ packs, worlds }: RankingPageProps) {
         </Link>
       );
     }
-
-    // Mobile
-    return (
-      <Link
-        href={`/world/${entry.world.id}`}
-        key={entry.world.id}
-        className="flex items-center gap-3 py-3 border-b border-white/[0.04]"
-      >
-        <span className="w-8 text-center text-lg font-black shrink-0" style={{ color: rankColor }}>
-          {rank}
-        </span>
-        <div 
-          className="size-12 rounded-full overflow-hidden shrink-0 flex items-center justify-center"
-          style={{ background: firstChar ? `rgba(${firstChar.glowRgb},0.2)` : 'var(--color-surface-2)' }}
-        >
-          {firstChar?.image ? (
-            <img src={firstChar.image} alt="" className="w-full h-full object-cover" />
-          ) : (
-            '🌏'
-          )}
-        </div>
-        <div className="flex-1 min-w-0">
-          <span className="text-sm font-bold">{entry.world.name}</span>
-          <span className="text-[11px] text-[var(--color-text-dim)] ml-2">
-            {entry.characterCount}캐릭터
-          </span>
-        </div>
-        <span className="text-[11px] text-[var(--color-text-dim)] shrink-0">
-          {entry.totalMessages}회
-        </span>
-      </Link>
-    );
   };
 
   const currentRankings = rankType === 'characters' ? characterRankings : worldRankings;
 
   const content = (
-    <main className={isDesktop ? '' : 'px-5 pb-8'}>
+    <>
+      {typeToggle}
       {currentRankings.length === 0 ? (
-        <div className={isDesktop 
-          ? 'flex items-center justify-center py-20 rounded-2xl' 
-          : 'flex items-center justify-center h-40'
-        } style={isDesktop ? {
-          background: 'var(--color-surface)',
-          border: '1px solid rgba(255,255,255,0.06)',
-        } : {}}>
+        <div className="flex items-center justify-center py-20">
           <p className="text-[var(--color-text-muted)]">
             {rankType === 'worlds' ? '월드가 없습니다.' : '캐릭터가 없습니다.'}
           </p>
         </div>
       ) : (
-        <div className={isDesktop ? 'space-y-3' : 'space-y-1'}>
-          {currentRankings.map((entry, index) => 
-            entry.type === 'character' 
-              ? renderCharacterRank(entry, index)
-              : renderWorldRank(entry, index)
-          )}
+        <div className="space-y-3">
+          {currentRankings.map((entry, index) => renderRankItem(entry, index))}
         </div>
       )}
-    </main>
+    </>
   );
 
-  // Desktop Layout
-  if (isDesktop) {
-    return (
-      <div className="min-h-screen p-8">
-        <div className="max-w-3xl mx-auto">
-          {header}
-          {typeToggle}
-          {content}
-        </div>
-      </div>
-    );
-  }
-
-  // Mobile Layout
   return (
-    <div className="min-h-screen">
-      {header}
-      {typeToggle}
+    <PageLayout 
+      title="인기 랭킹" 
+      subtitle="인기 있는 월드와 캐릭터" 
+      width="lg"
+      showBackButton={!isDesktop}
+    >
       {content}
-    </div>
+    </PageLayout>
   );
 }
