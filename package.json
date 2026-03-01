@@ -12,8 +12,7 @@
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.47",
     "@ai-sdk/openai": "^3.0.31",
-    "@molroo-ai/adapter-llm": "^0.1.0",
-    "@molroo-ai/world-sdk": "^0.3.0",
+    "@molroo-io/sdk": "^0.4.0",
     "@radix-ui/react-use-controllable-state": "^1.2.2",
     "ai": "^6.0.97",
     "class-variance-authority": "^0.7.1",

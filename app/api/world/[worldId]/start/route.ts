@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { World } from '@molroo-ai/world-sdk';
+import { World } from '@molroo-io/sdk/world';
 import { getEnv } from '@/lib/types';
 import { kvGet, kvPut } from '@/lib/kv';
 import type { UserWorld } from '@/lib/types';

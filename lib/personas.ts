@@ -1,5 +1,5 @@
-import { World, Village } from '@molroo-ai/world-sdk';
-import type { ActionData } from '@molroo-ai/world-sdk';
+import { World, Village } from '@molroo-io/sdk/world';
+import type { ActionData } from '@molroo-io/sdk/world';
 import type { Env } from './types';
 
 export type { Village, ActionData };

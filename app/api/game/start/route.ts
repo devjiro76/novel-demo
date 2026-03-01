@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { World } from '@molroo-ai/world-sdk';
+import { World } from '@molroo-io/sdk/world';
 import { getEnv } from '@/lib/types';
 import { getStoryPack } from '@/lib/story-pack';
 

@@ -1,6 +1,6 @@
 import { engineModel, generateObject, z } from './llm';
 import type { Village } from './personas';
-import type { AppraisalVector } from '@molroo-ai/world-sdk';
+import type { AppraisalVector } from '@molroo-io/sdk/world';
 import type { Env } from './types';
 
 const appraisalSchema = z.object({
