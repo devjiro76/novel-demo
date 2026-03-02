@@ -6,7 +6,6 @@ import type { CharacterMeta } from '@/lib/story-pack';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
-import { EmotionEvolution } from './EmotionEvolution';
 import { getEmotionGlow, emotionGlowShadow } from '@/lib/emotion-color';
 
 type Character = CharacterMeta;
@@ -248,9 +247,6 @@ function RoomMessageBubbleInner({ msg, npcChar, npcChars, myPlayerId, assetsBase
               )}
               <span className="text-[9px] text-[var(--color-text-dim)]">{formatTime(msg.timestamp)}</span>
             </div>
-            {msg.emotionDetail && (
-              <EmotionEvolution emotionDetail={msg.emotionDetail} glowRgb={resolvedChar.glowRgb} />
-            )}
           </div>
         </div>
       )}

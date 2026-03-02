@@ -9,11 +9,11 @@ export async function POST(request: Request) {
       characterId: string;
       playerId?: string; // If provided, reuse existing player (rejoin)
       slug?: string;
-      villageId?: string;
+      worldId?: string;
       npcCharacterId?: string;
     };
 
-    const { roomId, displayName, characterId, playerId: existingPlayerId, slug, villageId, npcCharacterId } = body;
+    const { roomId, displayName, characterId, playerId: existingPlayerId, slug, worldId, npcCharacterId } = body;
 
     if (!roomId || !displayName || !characterId) {
       return NextResponse.json(
@@ -26,10 +26,10 @@ export async function POST(request: Request) {
 
     // Room not found — re-create if we have context
     if (!room) {
-      if (!slug || !villageId || !npcCharacterId) {
+      if (!slug || !worldId || !npcCharacterId) {
         return NextResponse.json({ error: 'Room not found and missing context to recreate' }, { status: 404 });
       }
-      await createRoomWithId(roomId, { slug, villageId, npcCharacterId });
+      await createRoomWithId(roomId, { slug, worldId, npcCharacterId });
       room = await getRoom(roomId);
     }
 

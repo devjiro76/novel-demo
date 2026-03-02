@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, MessageCircle, PlusCircle, User } from 'lucide-react';
+import { Home, Search, MessageCircle, PlusCircle, User } from 'lucide-react';
 
 const NAV_ITEMS = [
   {
@@ -12,9 +12,9 @@ const NAV_ITEMS = [
     isPrimary: false as const,
   },
   {
-    href: '/chats',
-    label: '채팅',
-    icon: MessageCircle,
+    href: '/explore',
+    label: '탐색',
+    icon: Search,
     isPrimary: false as const,
   },
   {
@@ -22,6 +22,12 @@ const NAV_ITEMS = [
     label: '만들기',
     icon: PlusCircle,
     isPrimary: true as const,
+  },
+  {
+    href: '/chats',
+    label: '채팅',
+    icon: MessageCircle,
+    isPrimary: false as const,
   },
   {
     href: '/my',

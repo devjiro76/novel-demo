@@ -5,14 +5,14 @@ export async function POST(request: Request) {
   try {
     const body = await request.json() as {
       slug: string;
-      villageId: string;
+      worldId: string;
       npcCharacterId: string;
       player: { displayName: string; characterId: string };
     };
 
-    const { slug, villageId, npcCharacterId, player } = body;
+    const { slug, worldId, npcCharacterId, player } = body;
 
-    if (!slug || !villageId || !npcCharacterId || !player?.displayName || !player?.characterId) {
+    if (!slug || !worldId || !npcCharacterId || !player?.displayName || !player?.characterId) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 },
@@ -21,7 +21,7 @@ export async function POST(request: Request) {
 
     const result = await createRoom({
       slug,
-      villageId,
+      worldId,
       npcCharacterId,
       player: { displayName: player.displayName, characterId: player.characterId },
     });

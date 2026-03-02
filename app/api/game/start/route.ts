@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { World } from '@molroo-io/sdk/world';
+import { Molroo } from '@molroo-io/sdk/world';
 import { getEnv } from '@/lib/types';
 import { getStoryPack } from '@/lib/story-pack';
 
@@ -9,10 +9,10 @@ export async function POST(request: Request) {
   const env = getEnv();
 
   try {
-    const world = new World({ apiKey: env.WORLD_API_KEY, baseUrl: env.WORLD_API_URL });
+    const molroo = new Molroo({ apiKey: env.WORLD_API_KEY, baseUrl: env.WORLD_API_URL });
 
-    // 1. Create Village
-    const village = await world.createVillage({
+    // 1. Create World
+    const world = await molroo.createWorld({
       name: `${pack.title} — ${Date.now()}`,
       description: pack.description,
       accessPolicy: 'closed',
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     // 2. Create Personas
     await Promise.all(
       pack.personas.map((p) =>
-        village.addPersona({
+        world.addPersona({
           configId: p.persona_config_id,
           displayName: p.display_name,
           config: p.config,
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     // 3. Create Actions
     await Promise.all(
       pack.actions.map((a) =>
-        village.createAction({
+        world.createAction({
           name: a.name,
           description: a.description,
           appraisalVector: {
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
     // 4. Seed Relationships
     await Promise.all(
       pack.initialRelationships.map((rel) =>
-        village.setRelationship({
+        world.setRelationship({
           source: rel.source,
           target: rel.target,
           relationshipType: rel.relationshipType,
@@ -65,9 +65,9 @@ export async function POST(request: Request) {
       ),
     );
 
-    return NextResponse.json({ ok: true, villageId: village.id });
+    return NextResponse.json({ ok: true, worldId: world.id });
   } catch (err: any) {
     console.error('[start] Error:', err);
-    return NextResponse.json({ error: err.message ?? 'Failed to create village' }, { status: 500 });
+    return NextResponse.json({ error: err.message ?? 'Failed to create world' }, { status: 500 });
   }
 }

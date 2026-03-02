@@ -1,5 +1,5 @@
 import type { RoomMessage, Player } from './room';
-import { post, get } from './fetch-utils';
+import { post, get, del } from './fetch-utils';
 
 // ---- Room API ----
 
@@ -8,7 +8,7 @@ export interface RoomStateResponse {
   room: {
     roomId: string;
     slug: string;
-    villageId: string;
+    worldId: string;
     npcCharacterId: string;
     npcCharacterIds: string[];
     players: Array<{
@@ -26,7 +26,7 @@ export interface RoomStateResponse {
 
 export async function createRoomAPI(opts: {
   slug: string;
-  villageId: string;
+  worldId: string;
   npcCharacterId: string;
   player: { displayName: string; characterId: string };
 }): Promise<{ roomId: string; playerId: string }> {
@@ -39,7 +39,7 @@ export async function joinRoomAPI(opts: {
   characterId: string;
   playerId?: string;
   slug?: string;
-  villageId?: string;
+  worldId?: string;
   npcCharacterId?: string;
 }): Promise<{
   ok: boolean;
@@ -65,7 +65,7 @@ export async function sendRoomMessage(
   text: string,
   context?: {
     slug: string;
-    villageId: string;
+    worldId: string;
     npcCharacterId: string;
     displayName: string;
     characterId: string;
@@ -80,6 +80,18 @@ export async function kickNpcAPI(
   npcCharacterId: string,
 ): Promise<{ ok: boolean; npcCharacterIds: string[] }> {
   return post(`/api/room/${roomId}/kick`, { npcCharacterId });
+}
+
+export async function deleteRoomAPI(roomId: string): Promise<{ ok: boolean }> {
+  return del(`/api/room/${roomId}`);
+}
+
+export async function deleteWorldAPI(
+  worldId: string,
+  worldInstanceId?: string,
+): Promise<{ ok: boolean }> {
+  const params = worldInstanceId ? `?worldInstanceId=${encodeURIComponent(worldInstanceId)}` : '';
+  return del(`/api/world/${worldId}${params}`);
 }
 
 export async function inviteNpcAPI(

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { ConversationResponse } from '@/lib/types';
 import { getEnv } from '@/lib/types';
-import { getVillage } from '@/lib/personas';
+import { getWorld } from '@/lib/personas';
 import { generateConversationResponse } from '@/lib/narrator';
 import { generateAppraisal } from '@/lib/appraisal';
 import { DebugLog } from '@/lib/debug';
@@ -15,20 +15,20 @@ export async function POST(request: Request) {
   try {
     const body = await request.json() as {
       slug?: string;
-      villageId: string;
+      worldId: string;
       characterId: string;
       userMessage: string;
       situation: string;
       chatHistory?: { role: 'user' | 'character'; text: string; action?: string; innerThought?: string }[];
     };
-    const { slug, villageId, characterId, userMessage, situation, chatHistory } = body;
+    const { slug, worldId, characterId, userMessage, situation, chatHistory } = body;
     const pack = getStoryPack(slug);
 
-    if (!villageId || !characterId || !userMessage || !situation) {
-      return NextResponse.json({ error: 'Missing villageId, characterId, userMessage, or situation' }, { status: 400 });
+    if (!worldId || !characterId || !userMessage || !situation) {
+      return NextResponse.json({ error: 'Missing worldId, characterId, userMessage, or situation' }, { status: 400 });
     }
 
-    const village = await getVillage(env, villageId);
+    const world = await getWorld(env, worldId);
 
     dbg.add('converse_start', { characterId, userMessage: userMessage.slice(0, 80) });
 
@@ -36,14 +36,14 @@ export async function POST(request: Request) {
 
     const [appraisal, conversationResult] = await Promise.all([
       dbg.time('converse_appraisal', { characterId }, () =>
-        generateAppraisal(characterId, stimulusDescription, village, env),
+        generateAppraisal(characterId, stimulusDescription, world, env),
       ),
       dbg.time('converse_narrate', { characterId }, () =>
-        generateConversationResponse(characterId, situation, userMessage, village, env, pack, chatHistory),
+        generateConversationResponse(characterId, situation, userMessage, world, env, pack, chatHistory),
       ),
     ]);
 
-    const persona = village.persona(characterId);
+    const persona = world.persona(characterId);
 
     // Tick: advance simulation time by LLM-estimated narrative elapsed seconds
     const { estimatedElapsedSeconds, ...appraisalVector } = appraisal;

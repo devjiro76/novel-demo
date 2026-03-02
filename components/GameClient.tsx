@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { ClientStoryPack, CharacterMeta } from '@/lib/story-pack';
 import { startGame } from '@/lib/api-client';
-import { createRoomAPI, joinRoomAPI, sendRoomMessage, inviteNpcAPI, kickNpcAPI } from '@/lib/api-client-room';
+import { createRoomAPI, joinRoomAPI, sendRoomMessage, inviteNpcAPI, kickNpcAPI, deleteRoomAPI } from '@/lib/api-client-room';
 import type { RoomMessage } from '@/lib/room';
 import { saveSession, loadSession, clearSession } from '@/lib/session';
 import { useRoomPolling } from '@/hooks/useRoomPolling';
@@ -20,6 +20,11 @@ import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import {
+  AlertDialog, AlertDialogTrigger, AlertDialogContent,
+  AlertDialogHeader, AlertDialogFooter, AlertDialogTitle,
+  AlertDialogDescription, AlertDialogAction, AlertDialogCancel,
+} from '@/components/ui/alert-dialog';
 
 type Phase = 'title' | 'loading' | 'select' | 'chat';
 type Character = CharacterMeta;
@@ -94,7 +99,7 @@ function SelectScreen({ pack, chatCounts, onSelect, selectingCharId }: { pack: C
   );
 }
 
-function RoomChatScreen({ npcChar, pack, messages, sending, input, onInputChange, onSend, onBack, onShare, playerCount, myPlayerId, inputRef, scrollRef, loading, activeNpcIds, npcChars, onInvite, onKickNpc, onMentionSelect, respondingNpcId, primaryNpcId, roomId }: { npcChar: Character; pack: ClientStoryPack; messages: RoomMessage[]; sending: boolean; input: string; onInputChange: (v: string) => void; onSend: () => void; onBack: () => void; onShare: () => void; playerCount: number; myPlayerId: string; inputRef: React.RefObject<HTMLInputElement | null>; scrollRef: React.RefObject<HTMLDivElement | null>; loading?: boolean; activeNpcIds: string[]; npcChars: Map<string, Character>; onInvite: (charId: string) => void; onKickNpc: (charId: string) => void; onMentionSelect: (charId: string) => void; respondingNpcId: string | null; primaryNpcId: string; roomId: string }) {
+function RoomChatScreen({ npcChar, pack, messages, sending, input, onInputChange, onSend, onBack, onShare, onDeleteRoom, playerCount, myPlayerId, inputRef, scrollRef, loading, activeNpcIds, npcChars, onInvite, onKickNpc, onMentionSelect, respondingNpcId, primaryNpcId, roomId }: { npcChar: Character; pack: ClientStoryPack; messages: RoomMessage[]; sending: boolean; input: string; onInputChange: (v: string) => void; onSend: () => void; onBack: () => void; onShare: () => void; onDeleteRoom: () => void; playerCount: number; myPlayerId: string; inputRef: React.RefObject<HTMLInputElement | null>; scrollRef: React.RefObject<HTMLDivElement | null>; loading?: boolean; activeNpcIds: string[]; npcChars: Map<string, Character>; onInvite: (charId: string) => void; onKickNpc: (charId: string) => void; onMentionSelect: (charId: string) => void; respondingNpcId: string | null; primaryNpcId: string; roomId: string }) {
   const handleKeyDown = (e: React.KeyboardEvent) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSend(); } };
   const activeChars = activeNpcIds.map((id) => npcChars.get(id)).filter((c): c is Character => !!c);
   const mentionNpcChars = activeChars.length > 1 ? activeChars : [];
@@ -135,6 +140,28 @@ function RoomChatScreen({ npcChar, pack, messages, sending, input, onInputChange
         <div className="flex items-center gap-1.5 shrink-0">
           {activeNpcIds.length === 1 && (<RelationshipIndicator roomId={roomId} npcId={primaryNpcId} glowRgb={npcChar.glowRgb} glow={npcChar.glow} />)}
           <Tooltip><TooltipTrigger asChild><Button variant="outline" size="xs" onClick={onShare} className="text-[10px] text-[var(--color-text-dim)] hover:text-white/60 border-white/[0.06]">초대</Button></TooltipTrigger><TooltipContent>초대 링크 복사</TooltipContent></Tooltip>
+          <AlertDialog>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="xs" className="text-[10px] text-red-400/60 hover:text-red-400 border-white/[0.06] hover:border-red-400/30">나가기</Button>
+                </AlertDialogTrigger>
+              </TooltipTrigger>
+              <TooltipContent>방 삭제 및 나가기</TooltipContent>
+            </Tooltip>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>방을 삭제할까요?</AlertDialogTitle>
+                <AlertDialogDescription className="text-[var(--color-text-muted)]">
+                  이 방의 모든 대화 내용이 삭제됩니다. 이 작업은 되돌릴 수 없어요.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel className="rounded-xl">취소</AlertDialogCancel>
+                <AlertDialogAction onClick={onDeleteRoom} className="rounded-xl bg-destructive text-white hover:bg-destructive/90">삭제</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </header>
 
@@ -165,7 +192,7 @@ function RoomChatScreen({ npcChar, pack, messages, sending, input, onInputChange
 export default function GameClient({ pack, initialCharId }: { pack: ClientStoryPack; initialCharId?: string }) {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>('title');
-  const [villageId, setVillageId] = useState<string | null>(null);
+  const [worldId, setWorldId] = useState<string | null>(null);
   const [activeChar, setActiveChar] = useState<Character | null>(null);
   const [chatCounts] = useState<Record<string, number>>({});
   const [input, setInput] = useState('');
@@ -200,47 +227,82 @@ export default function GameClient({ pack, initialCharId }: { pack: ClientStoryP
   const handleCreateRoom = useCallback(async (vid: string, char: Character) => {
     const displayName = pack.playerDisplayName;
     const characterId = pack.playerCharacterId;
-    const result = await createRoomAPI({ slug: pack.slug, villageId: vid, npcCharacterId: char.id, player: { displayName, characterId } });
+    const result = await createRoomAPI({ slug: pack.slug, worldId: vid, npcCharacterId: char.id, player: { displayName, characterId } });
     setRoomId(result.roomId); setPlayerId(result.playerId); setMyDisplayName(displayName); setMyCharacterId(characterId);
     setRoomMessages([]); setPlayerCount(1); setActiveNpcIds([char.id]);
-    saveSession(storageKey, { roomId: result.roomId, playerId: result.playerId, npcId: char.id, villageId: vid, displayName, characterId });
-    const url = new URL(window.location.href); url.searchParams.set('room', result.roomId); url.searchParams.set('v', vid); url.searchParams.set('npc', char.id);
+    saveSession(storageKey, { roomId: result.roomId, playerId: result.playerId, npcId: char.id, worldId: vid, displayName, characterId });
+    const url = new URL(window.location.href); url.searchParams.set('room', result.roomId); url.searchParams.set('v', vid); url.searchParams.set('npc', char.id); url.searchParams.set('char', char.id);
     window.history.replaceState({}, '', url.toString());
     setChatReady(true); setPhase('chat');
   }, [pack.slug, pack.playerDisplayName, pack.playerCharacterId, storageKey]);
 
   const restoreSession = useCallback(async (session: NonNullable<ReturnType<typeof loadSession>>, char: Character) => {
-    setActiveChar(char); setVillageId(session.villageId); setMyDisplayName(session.displayName); setMyCharacterId(session.characterId);
+    setActiveChar(char); setWorldId(session.worldId); setMyDisplayName(session.displayName); setMyCharacterId(session.characterId);
     setRoomId(session.roomId); setPlayerId(session.playerId); setPhase('chat');
-    const url = new URL(window.location.href); url.searchParams.set('room', session.roomId); url.searchParams.set('v', session.villageId); url.searchParams.set('npc', session.npcId);
+    const url = new URL(window.location.href); url.searchParams.set('room', session.roomId); url.searchParams.set('v', session.worldId); url.searchParams.set('npc', session.npcId);
     window.history.replaceState({}, '', url.toString());
     try {
-      const result = await joinRoomAPI({ roomId: session.roomId, playerId: session.playerId, displayName: session.displayName, characterId: session.characterId, slug: pack.slug, villageId: session.villageId, npcCharacterId: session.npcId });
+      const result = await joinRoomAPI({ roomId: session.roomId, playerId: session.playerId, displayName: session.displayName, characterId: session.characterId, slug: pack.slug, worldId: session.worldId, npcCharacterId: session.npcId });
       setRoomMessages(result.messages); setPlayerCount(result.room.players.length); setActiveNpcIds(result.room.npcCharacterIds ?? [session.npcId]); setChatReady(true);
     } catch { setChatReady(true); }
   }, [pack.slug]);
 
   useEffect(() => {
     const session = loadSession(storageKey);
-    if (session) { const char = pack.characters.find((c) => c.id === session.npcId); if (char) { restoreSession(session, char); return; } }
+    if (session) {
+      // initialCharId가 명시되었고 기존 세션과 다르면 → 기존 worldId로 새 캐릭터 방 생성
+      if (initialCharId && session.npcId !== initialCharId) {
+        const newChar = pack.characters.find((c) => c.id === initialCharId);
+        if (newChar) {
+          setActiveChar(newChar); setWorldId(session.worldId); setPhase('loading');
+          handleCreateRoom(session.worldId, newChar).catch(() => setPhase('title'));
+          return;
+        }
+      } else {
+        const char = pack.characters.find((c) => c.id === session.npcId);
+        if (char) { restoreSession(session, char); return; }
+      }
+    }
     const url = new URL(window.location.href);
-    const roomParam = url.searchParams.get('room'); const villageParam = url.searchParams.get('v'); const npcParam = url.searchParams.get('npc');
-    if (roomParam && villageParam && npcParam) {
+    const roomParam = url.searchParams.get('room'); const worldParam = url.searchParams.get('v'); const npcParam = url.searchParams.get('npc');
+    if (roomParam && worldParam && npcParam) {
       const char = pack.characters.find((c) => c.id === npcParam);
       if (char) {
-        setActiveChar(char); setVillageId(villageParam); setPhase('loading');
-        joinRoomAPI({ roomId: roomParam, displayName: pack.playerDisplayName, characterId: pack.playerCharacterId, slug: pack.slug, villageId: villageParam, npcCharacterId: npcParam }).then((result) => {
+        setActiveChar(char); setWorldId(worldParam); setPhase('loading');
+        joinRoomAPI({ roomId: roomParam, displayName: pack.playerDisplayName, characterId: pack.playerCharacterId, slug: pack.slug, worldId: worldParam, npcCharacterId: npcParam }).then((result) => {
           setRoomId(roomParam); setPlayerId(result.playerId); setMyDisplayName(pack.playerDisplayName); setMyCharacterId(pack.playerCharacterId);
           setRoomMessages(result.messages); setPlayerCount(result.room.players.length); setActiveNpcIds(result.room.npcCharacterIds ?? [npcParam]);
-          saveSession(storageKey, { roomId: roomParam, playerId: result.playerId, npcId: npcParam, villageId: villageParam, displayName: pack.playerDisplayName, characterId: pack.playerCharacterId });
+          saveSession(storageKey, { roomId: roomParam, playerId: result.playerId, npcId: npcParam, worldId: worldParam, displayName: pack.playerDisplayName, characterId: pack.playerCharacterId });
           setChatReady(true); setPhase('chat');
-        }).catch(() => { setPhase('title'); });
+        }).catch(() => {
+          // 방이 만료/삭제됨 → stale 세션 정리, URL 파라미터 제거
+          clearSession(storageKey);
+          const cleanUrl = new URL(window.location.href);
+          cleanUrl.searchParams.delete('room'); cleanUrl.searchParams.delete('v'); cleanUrl.searchParams.delete('npc');
+          window.history.replaceState({}, '', cleanUrl.toString());
+          toast.error('이전 대화가 만료되었습니다');
+          if (pack.characters.length > 1) { setPhase('select'); } else { setPhase('title'); }
+        });
         return;
       }
     }
-    if (autoChar) setActiveChar(autoChar);
-    try { const savedVillageId = localStorage.getItem(`${storageKey}:villageId`); if (savedVillageId && !autoChar && pack.characters.length > 1) { setVillageId(savedVillageId); setPhase('select'); } } catch {}
-  }, [storageKey, pack.characters, pack.slug, autoChar, pack.playerDisplayName, pack.playerCharacterId, restoreSession]);
+    // autoChar가 있으면 (URL ?char= 또는 단일 캐릭터) → savedWorldId가 있으면 바로 방 생성
+    if (autoChar) {
+      setActiveChar(autoChar);
+      try {
+        const savedWorldId = localStorage.getItem(`${storageKey}:worldId`) || localStorage.getItem(`${storageKey}:villageId`);
+        if (savedWorldId) {
+          setWorldId(savedWorldId); setPhase('loading');
+          handleCreateRoom(savedWorldId, autoChar).catch(() => setPhase('title'));
+          return;
+        }
+      } catch {}
+      // savedWorldId 없으면 title로 (시작하기 → 월드 생성 필요)
+      return;
+    }
+    // 다중 캐릭터, autoChar 없음 → savedWorldId 있으면 select 화면
+    try { const savedWorldId = localStorage.getItem(`${storageKey}:worldId`) || localStorage.getItem(`${storageKey}:villageId`); if (savedWorldId && pack.characters.length > 1) { setWorldId(savedWorldId); setPhase('select'); } } catch {}
+  }, [storageKey, pack.characters, pack.slug, autoChar, pack.playerDisplayName, pack.playerCharacterId, restoreSession, handleCreateRoom, initialCharId]);
 
   const sendingRef = useRef(false); sendingRef.current = sending;
   useRoomPolling(roomId, phase === 'chat', sendingRef, setRoomMessages, setPlayerCount, setActiveNpcIds);
@@ -252,8 +314,8 @@ export default function GameClient({ pack, initialCharId }: { pack: ClientStoryP
   const handleStart = useCallback(async () => {
     setPhase('loading');
     try {
-      const newVillageId = await startGame(pack.slug); setVillageId(newVillageId); localStorage.setItem(`${storageKey}:villageId`, newVillageId);
-      if (activeChar) { await handleCreateRoom(newVillageId, activeChar); } else { setPhase('select'); }
+      const newWorldId = await startGame(pack.slug); setWorldId(newWorldId); localStorage.setItem(`${storageKey}:worldId`, newWorldId);
+      if (activeChar) { await handleCreateRoom(newWorldId, activeChar); } else { setPhase('select'); }
     } catch { setPhase('title'); }
   }, [pack.slug, storageKey, activeChar, handleCreateRoom]);
 
@@ -262,12 +324,19 @@ export default function GameClient({ pack, initialCharId }: { pack: ClientStoryP
     if (session && session.npcId === char.id) { restoreSession(session, char); return; }
     setActiveChar(char); setSelectingCharId(char.id);
     try {
-      if (!villageId) { const vid = await startGame(pack.slug); setVillageId(vid); localStorage.setItem(`${storageKey}:villageId`, vid); await handleCreateRoom(vid, char); }
-      else { await handleCreateRoom(villageId, char); }
+      if (!worldId) { const vid = await startGame(pack.slug); setWorldId(vid); localStorage.setItem(`${storageKey}:worldId`, vid); await handleCreateRoom(vid, char); }
+      else { await handleCreateRoom(worldId, char); }
     } catch { toast.error('방 생성에 실패했습니다'); setSelectingCharId(null); }
-  }, [pack.slug, storageKey, villageId, handleCreateRoom, restoreSession]);
+  }, [pack.slug, storageKey, worldId, handleCreateRoom, restoreSession]);
 
-  const handleBack = useCallback(() => { router.push('/'); }, [router]);
+  const handleBack = useCallback(() => {
+    if (pack.characters.length > 1) {
+      // 다중 캐릭터 → select 화면으로 (방은 유지, 다른 캐릭터 선택 가능)
+      setPhase('select'); setChatReady(false);
+    } else {
+      router.push('/');
+    }
+  }, [pack.characters.length, router]);
   const handleInviteNpc = useCallback(async (charId: string) => { if (!roomId) return; try { const r = await inviteNpcAPI(roomId, charId); setActiveNpcIds(r.npcCharacterIds); } catch { toast.error('초대에 실패했습니다'); } }, [roomId]);
   const handleKickNpc = useCallback(async (charId: string) => { if (!roomId) return; try { const r = await kickNpcAPI(roomId, charId); setActiveNpcIds(r.npcCharacterIds); } catch { toast.error('내보내기에 실패했습니다'); } }, [roomId]);
   const handleMentionSelect = useCallback((charId: string) => { setTargetNpcId(charId); }, []);
@@ -282,18 +351,37 @@ export default function GameClient({ pack, initialCharId }: { pack: ClientStoryP
     const tempId = `pending-${Date.now()}`;
     setRoomMessages((prev) => [...prev, { id: tempId, roomId: roomId!, timestamp: Date.now(), sender: { type: 'player' as const, id: playerId!, name: myDisplayName ?? pack.playerDisplayName }, text: rawMsg }]);
     try {
-      const result = await sendRoomMessage(roomId, playerId, rawMsg, { slug: pack.slug, villageId: villageId ?? '', npcCharacterId: activeChar.id, displayName: myDisplayName ?? pack.playerDisplayName, characterId: myCharacterId ?? pack.playerCharacterId, targetNpcId: resolvedTargetNpcId ?? undefined });
+      const result = await sendRoomMessage(roomId, playerId, rawMsg, { slug: pack.slug, worldId: worldId ?? '', npcCharacterId: activeChar.id, displayName: myDisplayName ?? pack.playerDisplayName, characterId: myCharacterId ?? pack.playerCharacterId, targetNpcId: resolvedTargetNpcId ?? undefined });
       setRoomMessages((prev) => { const without = prev.filter((m) => m.id !== tempId); const ids = new Set(without.map((m) => m.id)); const toAdd: RoomMessage[] = []; if (result.playerMessage && !ids.has(result.playerMessage.id)) toAdd.push(result.playerMessage); const npcMsgs = result.npcMessages ?? (result.npcMessage ? [result.npcMessage] : []); for (const m of npcMsgs) { if (!ids.has(m.id)) toAdd.push(m); } return [...without, ...toAdd]; });
     } catch { setRoomMessages((prev) => [...prev.filter((m) => m.id !== tempId), { id: `error-${Date.now()}`, roomId: roomId!, timestamp: Date.now(), sender: { type: 'system' as const }, text: '(응답을 생성하지 못했어요)' }]); }
     finally { setSending(false); setRespondingNpcId(null); inputRef.current?.focus(); }
-  }, [input, sending, activeChar, roomId, playerId, villageId, pack, myDisplayName, myCharacterId, targetNpcId, activeNpcIds]);
+  }, [input, sending, activeChar, roomId, playerId, worldId, pack, myDisplayName, myCharacterId, targetNpcId, activeNpcIds]);
 
   const handleShare = useCallback(() => { if (!roomId) return; const url = new URL(window.location.href); url.searchParams.set('room', roomId); navigator.clipboard.writeText(url.toString()).then(() => toast.success('방 링크가 복사되었습니다')).catch(() => toast.error('복사에 실패했습니다')); }, [roomId]);
+
+  const handleDeleteRoom = useCallback(async () => {
+    if (!roomId) return;
+    try {
+      await deleteRoomAPI(roomId);
+      clearSession(storageKey);
+      // worldId는 유지 — 방만 삭제하고 같은 월드에서 다른 캐릭터와 대화 가능
+      setRoomId(null); setPlayerId(null); setRoomMessages([]); setActiveNpcIds([]);
+      setChatReady(false); setActiveChar(null);
+      toast.success('방이 삭제되었습니다');
+      // Remove room params from URL
+      const url = new URL(window.location.href);
+      url.searchParams.delete('room'); url.searchParams.delete('v'); url.searchParams.delete('npc');
+      window.history.replaceState({}, '', url.toString());
+      if (pack.characters.length > 1) { setPhase('select'); } else { setPhase('title'); }
+    } catch {
+      toast.error('방 삭제에 실패했습니다');
+    }
+  }, [roomId, storageKey, pack.characters.length]);
 
   let content: React.ReactNode = null;
   if (phase === 'title' || phase === 'loading') { content = <TitleScreen pack={pack} onStart={handleStart} loading={phase === 'loading'} />; }
   else if (phase === 'select') { content = <SelectScreen pack={pack} chatCounts={chatCounts} onSelect={handleSelect} selectingCharId={selectingCharId} />; }
-  else if (phase === 'chat' && activeChar) { content = <RoomChatScreen npcChar={activeChar} pack={pack} messages={roomMessages} sending={sending} input={input} onInputChange={setInput} onSend={handleSend} onBack={handleBack} onShare={handleShare} playerCount={playerCount} myPlayerId={playerId ?? ''} inputRef={inputRef} scrollRef={scrollRef} loading={!chatReady} activeNpcIds={activeNpcIds} npcChars={npcCharsMap} onInvite={handleInviteNpc} onKickNpc={handleKickNpc} onMentionSelect={handleMentionSelect} respondingNpcId={respondingNpcId} primaryNpcId={activeChar.id} roomId={roomId ?? ''} />; }
+  else if (phase === 'chat' && activeChar) { content = <RoomChatScreen npcChar={activeChar} pack={pack} messages={roomMessages} sending={sending} input={input} onInputChange={setInput} onSend={handleSend} onBack={handleBack} onShare={handleShare} onDeleteRoom={handleDeleteRoom} playerCount={playerCount} myPlayerId={playerId ?? ''} inputRef={inputRef} scrollRef={scrollRef} loading={!chatReady} activeNpcIds={activeNpcIds} npcChars={npcCharsMap} onInvite={handleInviteNpc} onKickNpc={handleKickNpc} onMentionSelect={handleMentionSelect} respondingNpcId={respondingNpcId} primaryNpcId={activeChar.id} roomId={roomId ?? ''} />; }
 
   return (
     <div className="h-full w-full">

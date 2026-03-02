@@ -1,12 +1,12 @@
-import { World, Village } from '@molroo-io/sdk/world';
+import { Molroo, World } from '@molroo-io/sdk/world';
 import type { ActionData } from '@molroo-io/sdk/world';
 import type { Env } from './types';
 
-export type { Village, ActionData };
+export type { World, ActionData };
 
 export interface Relationship {
   id: string;
-  village_id: string;
+  world_id: string;
   source_type: string;
   source_id: string;
   target_type: string;
@@ -19,9 +19,9 @@ export interface Relationship {
   updated_at: number;
 }
 
-export interface VillageEvent {
+export interface WorldEvent {
   id: string;
-  village_id: string;
+  world_id: string;
   event_type: string;
   actor_type: string | null;
   actor_id: string | null;
@@ -32,24 +32,24 @@ export interface VillageEvent {
   created_at: number;
 }
 
-const _villageCache = new Map<string, Village>();
+const _worldCache = new Map<string, World>();
 
-export async function getVillage(env: Env, villageId: string): Promise<Village> {
-  const cached = _villageCache.get(villageId);
+export async function getWorld(env: Env, worldId: string): Promise<World> {
+  const cached = _worldCache.get(worldId);
   if (cached) return cached;
-  const world = new World({ apiKey: env.WORLD_API_KEY, baseUrl: env.WORLD_API_URL });
-  const village = await world.getVillage(villageId);
-  _villageCache.set(villageId, village);
-  return village;
+  const molroo = new Molroo({ apiKey: env.WORLD_API_KEY, baseUrl: env.WORLD_API_URL });
+  const world = await molroo.getWorld(worldId);
+  _worldCache.set(worldId, world);
+  return world;
 }
 
-export async function getRelationships(village: Village): Promise<Relationship[]> {
-  return await village.listRelationships() as unknown as Relationship[];
+export async function getRelationships(world: World): Promise<Relationship[]> {
+  return await world.listRelationships() as unknown as Relationship[];
 }
 
 export async function getEvents(
-  village: Village,
+  world: World,
   limit: number,
-): Promise<{ events: VillageEvent[]; nextCursor: string | null }> {
-  return await village.getEvents({ limit }) as unknown as { events: VillageEvent[]; nextCursor: string | null };
+): Promise<{ events: WorldEvent[]; nextCursor: string | null }> {
+  return await world.getEvents({ limit }) as unknown as { events: WorldEvent[]; nextCursor: string | null };
 }

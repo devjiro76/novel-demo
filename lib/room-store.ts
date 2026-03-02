@@ -1,5 +1,5 @@
 import type { Player, RoomMessage } from './room';
-import { kvGet, kvPut } from './kv';
+import { kvGet, kvPut, kvDelete } from './kv';
 
 /**
  * Room store — KV-backed for Cloudflare Workers, in-memory fallback for local dev.
@@ -14,7 +14,7 @@ import { kvGet, kvPut } from './kv';
 interface RoomData {
   roomId: string;
   slug: string;
-  villageId: string;
+  worldId: string;
   npcCharacterId: string;       // primary NPC (backwards compat)
   npcCharacterIds: string[];    // all active NPCs
   players: Player[];
@@ -56,7 +56,7 @@ async function saveRoomMessages(roomId: string, msgs: RoomMessage[]): Promise<vo
 
 export async function createRoom(opts: {
   slug: string;
-  villageId: string;
+  worldId: string;
   npcCharacterId: string;
   player: Omit<Player, 'playerId' | 'joinedAt' | 'isDefault'>;
 }): Promise<{ roomId: string; playerId: string }> {
@@ -74,7 +74,7 @@ export async function createRoom(opts: {
   const data: RoomData = {
     roomId,
     slug: opts.slug,
-    villageId: opts.villageId,
+    worldId: opts.worldId,
     npcCharacterId: opts.npcCharacterId,
     npcCharacterIds: [opts.npcCharacterId],
     players: [player],
@@ -88,7 +88,7 @@ export async function createRoom(opts: {
 
 export async function createRoomWithId(
   roomId: string,
-  opts: { slug: string; villageId: string; npcCharacterId: string },
+  opts: { slug: string; worldId: string; npcCharacterId: string },
 ): Promise<void> {
   const existing = await getRoomData(roomId);
   if (existing) return;
@@ -96,7 +96,7 @@ export async function createRoomWithId(
   const data: RoomData = {
     roomId,
     slug: opts.slug,
-    villageId: opts.villageId,
+    worldId: opts.worldId,
     npcCharacterId: opts.npcCharacterId,
     npcCharacterIds: [opts.npcCharacterId],
     players: [],
@@ -109,6 +109,14 @@ export async function createRoomWithId(
 
 export async function getRoom(roomId: string): Promise<RoomData | null> {
   return getRoomData(roomId);
+}
+
+export async function deleteRoom(roomId: string): Promise<boolean> {
+  const data = await getRoomData(roomId);
+  if (!data) return false;
+  await kvDelete(`room:${roomId}`);
+  await kvDelete(`room:${roomId}:msgs`);
+  return true;
 }
 
 export async function addPlayer(
@@ -254,7 +262,7 @@ export function roomToJSON(data: RoomData) {
   return {
     roomId: data.roomId,
     slug: data.slug,
-    villageId: data.villageId,
+    worldId: data.worldId,
     npcCharacterId: data.npcCharacterId,
     npcCharacterIds: data.npcCharacterIds,
     players: data.players.map(playerToJSON),

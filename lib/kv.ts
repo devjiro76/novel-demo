@@ -36,3 +36,9 @@ export async function kvPut(
   if (kv) return kv.put(key, value, opts);
   memStore.set(key, value);
 }
+
+export async function kvDelete(key: string): Promise<void> {
+  const kv = await getKV();
+  if (kv) return kv.delete(key);
+  memStore.delete(key);
+}

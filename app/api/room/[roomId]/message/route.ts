@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getRoom, createRoomWithId, ensurePlayer, addMessage, getMessages } from '@/lib/room-store';
 import { getEnv } from '@/lib/types';
-import { getVillage } from '@/lib/personas';
+import { getWorld } from '@/lib/personas';
 import { generateConversationResponse } from '@/lib/narrator';
 import { generateAppraisal } from '@/lib/appraisal';
 import { getStoryPack } from '@/lib/story-pack';
@@ -21,7 +21,7 @@ export async function POST(
       playerId: string;
       text: string;
       slug?: string;
-      villageId?: string;
+      worldId?: string;
       npcCharacterId?: string;
       displayName?: string;
       characterId?: string;
@@ -35,10 +35,10 @@ export async function POST(
 
     // Ensure room exists (re-create if server lost state)
     let room = await getRoom(roomId);
-    if (!room && body.slug && body.villageId && body.npcCharacterId) {
+    if (!room && body.slug && body.worldId && body.npcCharacterId) {
       await createRoomWithId(roomId, {
         slug: body.slug,
-        villageId: body.villageId,
+        worldId: body.worldId,
         npcCharacterId: body.npcCharacterId,
       });
       room = await getRoom(roomId);
@@ -70,7 +70,7 @@ export async function POST(
 
     // 2. Generate NPC response(s)
     const pack = getStoryPack(room.slug);
-    const village = await getVillage(env, room.villageId);
+    const world = await getWorld(env, room.worldId);
     const npcCharacterIds: string[] = (room as any).npcCharacterIds ?? [room.npcCharacterId];
 
     // Determine responding NPCs: explicit target → single, otherwise → all active NPCs
@@ -91,7 +91,7 @@ export async function POST(
     const npcMessages = await Promise.all(
       respondingNpcIds.map((npcId) =>
         generateNpcResponse({
-          roomId, npcId, pack, village, env, allMessages,
+          roomId, npcId, pack, world, env, allMessages,
           allPlayers, senderPlayer, stimulusDescription, playerText: npcText, player,
         }).catch((err) => {
           console.error(`[room/message] NPC ${npcId} response failed:`, err);
@@ -119,7 +119,7 @@ async function generateNpcResponse(ctx: {
   roomId: string;
   npcId: string;
   pack: ReturnType<typeof getStoryPack>;
-  village: Awaited<ReturnType<typeof getVillage>>;
+  world: Awaited<ReturnType<typeof getWorld>>;
   env: ReturnType<typeof getEnv>;
   allMessages: RoomMessage[];
   allPlayers: { playerId: string; displayName: string; characterId: string }[];
@@ -128,7 +128,7 @@ async function generateNpcResponse(ctx: {
   playerText: string;
   player: { playerId: string; displayName: string; characterId: string };
 }): Promise<RoomMessage | null> {
-  const { roomId, npcId, pack, village, env, allMessages, allPlayers, senderPlayer, stimulusDescription, playerText, player } = ctx;
+  const { roomId, npcId, pack, world, env, allMessages, allPlayers, senderPlayer, stimulusDescription, playerText, player } = ctx;
   const npcDisplayName = pack.displayNames[npcId] ?? npcId;
   const chatHistory = buildChatHistory(allMessages, npcId);
 
@@ -146,14 +146,14 @@ async function generateNpcResponse(ctx: {
   ]);
 
   const [appraisal, conversationResult] = await Promise.all([
-    generateAppraisal(npcId, stimulusDescription, village, env, player.characterId),
+    generateAppraisal(npcId, stimulusDescription, world, env, player.characterId),
     generateConversationResponse(
-      npcId, situation, playerText, village, env, pack, chatHistory,
+      npcId, situation, playerText, world, env, pack, chatHistory,
       senderPlayer, allPlayers, summary, longMemory,
     ),
   ]);
 
-  const persona = village.persona(npcId);
+  const persona = world.persona(npcId);
   const { estimatedElapsedSeconds, ...appraisalVector } = appraisal;
   if (estimatedElapsedSeconds >= 1) {
     await persona.tick(estimatedElapsedSeconds).catch((err: any) => {

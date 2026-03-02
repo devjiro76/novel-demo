@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { World } from '@molroo-io/sdk/world';
+import { Molroo } from '@molroo-io/sdk/world';
 import { getEnv } from '@/lib/types';
 import { kvGet, kvPut } from '@/lib/kv';
 import type { UserWorld } from '@/lib/types';
@@ -19,17 +19,17 @@ export async function POST(
 
   const userWorld = JSON.parse(raw) as UserWorld;
 
-  // Check if village already exists for this world
-  const existingVillageId = await kvGet(`world-village:${worldId}`);
-  if (existingVillageId) {
-    return NextResponse.json({ ok: true, villageId: existingVillageId });
+  // Check if world instance already exists for this world
+  const existingInstanceId = await kvGet(`world-instance:${worldId}`) ?? await kvGet(`world-village:${worldId}`);
+  if (existingInstanceId) {
+    return NextResponse.json({ ok: true, worldId: existingInstanceId });
   }
 
   try {
-    const world = new World({ apiKey: env.WORLD_API_KEY, baseUrl: env.WORLD_API_URL });
+    const molroo = new Molroo({ apiKey: env.WORLD_API_KEY, baseUrl: env.WORLD_API_URL });
 
-    // 2. Create Village
-    const village = await world.createVillage({
+    // 2. Create World
+    const world = await molroo.createWorld({
       name: `${userWorld.name} — ${Date.now()}`,
       description: userWorld.description || userWorld.lore || userWorld.name,
       accessPolicy: 'closed',
@@ -39,7 +39,7 @@ export async function POST(
     // 3. Add personas from world characters
     await Promise.all(
       userWorld.characters.map((char) =>
-        village.addPersona({
+        world.addPersona({
           configId: char.id,
           displayName: char.name,
           config: {
@@ -68,7 +68,7 @@ export async function POST(
     if (userWorld.relationships && userWorld.relationships.length > 0) {
       await Promise.all(
         userWorld.relationships.map((rel) =>
-          village.setRelationship({
+          world.setRelationship({
             source: { type: 'persona' as const, id: rel.sourceId },
             target: { type: 'persona' as const, id: rel.targetId },
             relationshipType: rel.relationshipType,
@@ -79,14 +79,14 @@ export async function POST(
       );
     }
 
-    // 5. Store villageId mapping in KV for reuse
-    await kvPut(`world-village:${worldId}`, village.id);
+    // 5. Store worldId mapping in KV for reuse
+    await kvPut(`world-instance:${worldId}`, world.id);
 
-    return NextResponse.json({ ok: true, villageId: village.id });
+    return NextResponse.json({ ok: true, worldId: world.id });
   } catch (err: any) {
     console.error('[world/start] Error:', err);
     return NextResponse.json(
-      { error: err.message ?? 'Failed to create village' },
+      { error: err.message ?? 'Failed to create world' },
       { status: 500 },
     );
   }

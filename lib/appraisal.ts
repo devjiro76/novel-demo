@@ -1,5 +1,5 @@
 import { engineModel, generateObject, z } from './llm';
-import type { Village } from './personas';
+import type { World } from './personas';
 import type { AppraisalVector } from '@molroo-io/sdk/world';
 import type { Env } from './types';
 
@@ -19,11 +19,11 @@ const appraisalSchema = z.object({
 export async function generateAppraisal(
   characterId: string,
   stimulusDescription: string,
-  village: Village,
+  world: World,
   env: Env,
   senderCharacterId?: string,
 ): Promise<AppraisalVector & { estimatedElapsedSeconds: number }> {
-  const persona = village.persona(characterId);
+  const persona = world.persona(characterId);
   const promptCtx = await persona.getPromptContext(senderCharacterId ?? 'yongjun');
 
   const systemPrompt = `${promptCtx.systemPrompt}

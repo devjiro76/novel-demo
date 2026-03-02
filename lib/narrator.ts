@@ -1,6 +1,6 @@
 import { primaryModel, generateObject, z } from './llm';
 import type { ConversationResponse, Env } from './types';
-import type { Village } from './personas';
+import type { World } from './personas';
 import type { StoryManifest } from './story-pack';
 
 /**
@@ -62,7 +62,7 @@ export async function generateConversationResponse(
   characterId: string,
   situation: string,
   userMessage: string,
-  village: Village,
+  world: World,
   env: Env,
   pack: StoryManifest,
   chatHistory?: ChatHistoryMessage[],
@@ -73,7 +73,7 @@ export async function generateConversationResponse(
 ): Promise<ConversationResponse> {
   const displayName = pack.displayNames[characterId] ?? characterId;
 
-  const persona = village.persona(characterId);
+  const persona = world.persona(characterId);
   const viewerCharId = senderPlayer?.characterId ?? pack.playerCharacterId;
   const [promptCtx, state, speakingStyle] = await Promise.all([
     persona.getPromptContext(viewerCharId),

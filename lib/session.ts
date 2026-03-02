@@ -2,7 +2,7 @@ export interface GameSession {
   roomId: string;
   playerId: string;
   npcId: string;
-  villageId: string;
+  worldId: string;
   displayName: string;
   characterId: string;
 }
