@@ -63,7 +63,7 @@ export default function ChatHistory({ packs }: ChatHistoryProps) {
       await deleteRoomAPI(entry.roomId);
       const storageKey = `novel:${entry.slug}`;
       clearSession(storageKey);
-      try { localStorage.removeItem(`${storageKey}:worldId`); localStorage.removeItem(`${storageKey}:villageId`); } catch {}
+      try { localStorage.removeItem(`${storageKey}:worldId`); } catch {}
       setSessions((prev) => prev.filter((s) => !(s.slug === entry.slug && s.npcId === entry.npcId)));
       toast.success('대화가 삭제되었습니다');
     } catch {

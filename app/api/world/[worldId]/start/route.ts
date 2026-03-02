@@ -20,7 +20,7 @@ export async function POST(
   const userWorld = JSON.parse(raw) as UserWorld;
 
   // Check if world instance already exists for this world
-  const existingInstanceId = await kvGet(`world-instance:${worldId}`) ?? await kvGet(`world-village:${worldId}`);
+  const existingInstanceId = await kvGet(`world-instance:${worldId}`);
   if (existingInstanceId) {
     return NextResponse.json({ ok: true, worldId: existingInstanceId });
   }

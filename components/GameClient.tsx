@@ -290,7 +290,7 @@ export default function GameClient({ pack, initialCharId }: { pack: ClientStoryP
     if (autoChar) {
       setActiveChar(autoChar);
       try {
-        const savedWorldId = localStorage.getItem(`${storageKey}:worldId`) || localStorage.getItem(`${storageKey}:villageId`);
+        const savedWorldId = localStorage.getItem(`${storageKey}:worldId`);
         if (savedWorldId) {
           setWorldId(savedWorldId); setPhase('loading');
           handleCreateRoom(savedWorldId, autoChar).catch(() => setPhase('title'));
@@ -301,7 +301,7 @@ export default function GameClient({ pack, initialCharId }: { pack: ClientStoryP
       return;
     }
     // 다중 캐릭터, autoChar 없음 → savedWorldId 있으면 select 화면
-    try { const savedWorldId = localStorage.getItem(`${storageKey}:worldId`) || localStorage.getItem(`${storageKey}:villageId`); if (savedWorldId && pack.characters.length > 1) { setWorldId(savedWorldId); setPhase('select'); } } catch {}
+    try { const savedWorldId = localStorage.getItem(`${storageKey}:worldId`); if (savedWorldId && pack.characters.length > 1) { setWorldId(savedWorldId); setPhase('select'); } } catch {}
   }, [storageKey, pack.characters, pack.slug, autoChar, pack.playerDisplayName, pack.playerCharacterId, restoreSession, handleCreateRoom, initialCharId]);
 
   const sendingRef = useRef(false); sendingRef.current = sending;

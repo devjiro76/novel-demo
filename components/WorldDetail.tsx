@@ -37,10 +37,10 @@ export default function WorldDetail({ manifest, userWorld, worldCard }: WorldDet
     try {
       const storageKey = `novel:${slug}`;
       let worldInstanceId: string | undefined;
-      try { worldInstanceId = localStorage.getItem(`${storageKey}:worldId`) ?? localStorage.getItem(`${storageKey}:villageId`) ?? undefined; } catch {}
+      try { worldInstanceId = localStorage.getItem(`${storageKey}:worldId`) ?? undefined; } catch {}
       await deleteWorldAPI(worldCard.id, worldInstanceId);
       clearSession(storageKey);
-      try { localStorage.removeItem(`${storageKey}:worldId`); localStorage.removeItem(`${storageKey}:villageId`); } catch {}
+      try { localStorage.removeItem(`${storageKey}:worldId`); } catch {}
       toast.success('월드가 삭제되었습니다');
       router.push('/');
     } catch {
