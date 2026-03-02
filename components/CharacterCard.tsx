@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { useIsDesktop } from '@/hooks/useMediaQuery';
 
 interface CharacterCardProps {
   charId: string;
@@ -28,21 +27,10 @@ export default function CharacterCard({
   slug,
   index = 0,
 }: CharacterCardProps) {
-  const isDesktop = useIsDesktop();
-  
-  // Responsive sizes
-  const cardWidth = isDesktop ? 'w-[180px]' : 'w-[140px]';
-  const cardRadius = isDesktop ? 'rounded-3xl' : 'rounded-2xl';
-  const imageHeight = isDesktop ? 'h-[220px]' : 'h-[170px]';
-  
   return (
     <Link
       href={`/${slug}?char=${charId}`}
-      className={`
-        ${cardWidth} ${cardRadius} overflow-hidden transition-all duration-300 
-        hover:-translate-y-1 active:scale-[0.98] group relative
-        animate-slide-up
-      `}
+      className="w-[140px] lg:w-[180px] rounded-2xl lg:rounded-3xl overflow-hidden transition-all duration-300 hover:-translate-y-1 active:scale-[0.98] group relative animate-slide-up shrink-0"
       style={{
         background: `linear-gradient(160deg, rgba(${glowRgb},0.15) 0%, rgba(14,14,20,0.98) 60%)`,
         border: `1px solid rgba(${glowRgb},0.2)`,
@@ -51,8 +39,8 @@ export default function CharacterCard({
       }}
     >
       {/* Avatar */}
-      <div 
-        className={`w-full ${imageHeight} overflow-hidden relative`}
+      <div
+        className="w-full h-[170px] lg:h-[220px] overflow-hidden relative"
         style={{ background: `rgba(${glowRgb},0.08)` }}
       >
         {image ? (
@@ -71,17 +59,16 @@ export default function CharacterCard({
             </span>
           </div>
         )}
-        
+
         {/* Gradient overlay */}
-        <div 
-          className="absolute inset-0 bg-gradient-to-t from-[var(--color-surface)] via-transparent to-transparent"
-          style={{ opacity: 0.8 }}
+        <div
+          className="absolute inset-0 bg-gradient-to-t from-[var(--color-surface)] via-transparent to-transparent opacity-80"
         />
-        
+
         {/* Age badge */}
-        <div 
+        <div
           className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-medium"
-          style={{ 
+          style={{
             background: `rgba(${glowRgb},0.2)`,
             color: glow,
             border: `1px solid rgba(${glowRgb},0.3)`,
@@ -96,7 +83,7 @@ export default function CharacterCard({
         <span className="text-sm font-bold text-white leading-tight truncate">
           {fullName || name}
         </span>
-        <span 
+        <span
           className="text-[11px] leading-tight truncate font-medium"
           style={{ color: glow }}
         >
@@ -106,17 +93,17 @@ export default function CharacterCard({
 
       {/* Hover glow effect */}
       <div
-        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-inherit"
-        style={{ 
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+        style={{
           boxShadow: `inset 0 0 40px rgba(${glowRgb},0.15)`,
           borderRadius: 'inherit',
         }}
       />
-      
+
       {/* Bottom glow line on hover */}
-      <div 
+      <div
         className="absolute bottom-0 left-0 right-0 h-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-        style={{ 
+        style={{
           background: `linear-gradient(90deg, transparent, ${glow}, transparent)`,
         }}
       />

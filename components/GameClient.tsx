@@ -35,7 +35,7 @@ function TitleScreen({ pack, onStart, loading }: { pack: ClientStoryPack; onStar
         <div className="absolute inset-0 bg-gradient-to-t from-[var(--color-bg)] via-[var(--color-bg)]/60 to-[var(--color-bg)]/30" />
         <div className="absolute inset-0 bg-gradient-to-b from-[var(--color-bg)]/80 via-transparent to-[var(--color-bg)]" />
       </div>
-      <Link href="/" className="absolute top-5 left-5 z-20 text-sm text-white/30 hover:text-white/60 transition-colors p-2">← 다른 이야기</Link>
+      <Link href="/" className="absolute top-5 left-5 z-20 text-sm text-white/30 hover:text-white/60 transition-colors p-2 lg:hidden">← 다른 이야기</Link>
       <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[400px] h-[200px] rounded-full bg-pink-500/8 blur-[80px] breathe pointer-events-none" />
       <div className="relative z-10 text-center pb-20 px-6 slide-up">
         <img src={`${pack.assetsBasePath}${pack.logo}`} alt={pack.subtitle ?? pack.title} className="w-[280px] max-w-[80vw] mx-auto mb-8 drop-shadow-lg" />
@@ -75,20 +75,20 @@ function SelectCharacterCard({ char, pack, chatCount, onClick, delay, selecting 
 
 function SelectScreen({ pack, chatCounts, onSelect, selectingCharId }: { pack: ClientStoryPack; chatCounts: Record<string, number>; onSelect: (char: Character) => void; selectingCharId: string | null }) {
   return (
-    <div className="h-screen flex flex-col">
-      <header className="px-5 pt-8 pb-5">
-        <div className="flex items-end justify-between">
-          <div>
-            <Link href="/" className="text-[10px] text-[var(--color-text-dim)] hover:text-white/60 transition-colors mb-2 block">← 홈으로</Link>
-            <h2 className="text-xl font-bold tracking-tight">누구에게 갈까?</h2>
-            <p className="text-[11px] text-[var(--color-text-dim)] mt-1 tracking-wide">비밀은 지켜줄게.</p>
-          </div>
+    <div className="h-full flex flex-col">
+      <header className="px-5 pt-8 pb-5 lg:px-8 lg:pt-10">
+        <div className="max-w-3xl mx-auto">
+          <Link href="/" className="text-[10px] text-[var(--color-text-dim)] hover:text-white/60 transition-colors mb-2 block">← 홈으로</Link>
+          <h2 className="text-xl lg:text-2xl font-bold tracking-tight">누구에게 갈까?</h2>
+          <p className="text-[11px] text-[var(--color-text-dim)] mt-1 tracking-wide">비밀은 지켜줄게.</p>
         </div>
       </header>
-      <main className="flex-1 overflow-y-auto px-5 pb-8 space-y-3">
-        {pack.characters.map((char, i) => (
-          <SelectCharacterCard key={char.id} char={char} pack={pack} chatCount={chatCounts[char.id] ?? 0} onClick={() => onSelect(char)} delay={i * 100} selecting={selectingCharId === char.id} />
-        ))}
+      <main className="flex-1 overflow-y-auto px-5 pb-8 lg:px-8">
+        <div className="max-w-3xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-3">
+          {pack.characters.map((char, i) => (
+            <SelectCharacterCard key={char.id} char={char} pack={pack} chatCount={chatCounts[char.id] ?? 0} onClick={() => onSelect(char)} delay={i * 100} selecting={selectingCharId === char.id} />
+          ))}
+        </div>
       </main>
     </div>
   );
@@ -100,9 +100,9 @@ function RoomChatScreen({ npcChar, pack, messages, sending, input, onInputChange
   const mentionNpcChars = activeChars.length > 1 ? activeChars : [];
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-full flex flex-col">
       <header className="px-4 py-3 flex items-center gap-3 slide-down" style={{ background: `linear-gradient(180deg, rgba(${npcChar.glowRgb},0.06), transparent)`, borderBottom: `1px solid rgba(${npcChar.glowRgb},0.08)` }}>
-        <button onClick={onBack} className="shrink-0 size-8 flex items-center justify-center rounded-lg text-white/40 hover:text-white/80 hover:bg-white/[0.06] transition-colors" aria-label="홈으로">
+        <button onClick={onBack} className="shrink-0 size-8 flex items-center justify-center rounded-lg text-white/40 hover:text-white/80 hover:bg-white/[0.06] transition-colors lg:hidden" aria-label="홈으로">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
         </button>
         {activeChars.length <= 1 ? (
@@ -138,16 +138,18 @@ function RoomChatScreen({ npcChar, pack, messages, sending, input, onInputChange
         </div>
       </header>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-5 space-y-6">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-5">
+        <div className="max-w-3xl mx-auto space-y-6">
         {loading && messages.length === 0 && (<div className="flex flex-col items-center justify-center h-full text-center px-8 opacity-50"><CharAvatar char={npcChar} size={56} imageSrc={`${pack.assetsBasePath}${npcChar.image}`} /><Spinner className="size-5 mt-4" style={{ color: npcChar.glow }} /></div>)}
         {!loading && messages.length === 0 && (<div className="flex flex-col items-center justify-center h-full text-center px-8 opacity-50"><CharAvatar char={npcChar} size={56} imageSrc={`${pack.assetsBasePath}${npcChar.image}`} /><p className="text-xs text-[var(--color-text-dim)] mt-4 leading-relaxed">{npcChar.fullName}에게 말을 걸어보세요.</p></div>)}
         {messages.map((msg) => (<RoomMessageBubble key={msg.id} msg={msg} npcChar={npcChar} npcChars={npcChars} myPlayerId={myPlayerId} assetsBasePath={pack.assetsBasePath} />))}
         {sending && (() => { const respondingChars = respondingNpcId ? [npcChars.get(respondingNpcId) ?? npcChar] : activeChars; return respondingChars.map((c) => (<TypingIndicator key={c.id} char={c} assetsBasePath={pack.assetsBasePath} />)); })()}
+        </div>
       </div>
 
       <div className="px-4 py-3" style={{ background: `linear-gradient(0deg, rgba(${npcChar.glowRgb},0.03), transparent)`, borderTop: `1px solid rgba(${npcChar.glowRgb},0.06)` }}>
         {messages.length === 0 && (<p className="text-[10px] text-[var(--color-text-dim)] text-center mb-2 opacity-60">대사 외에 <span className="text-white/50">(행동)</span> <span className="text-white/50">(시간이동)</span> <span className="text-white/50">(전개방향)</span> 도 괄호로 지정할 수 있어요</p>)}
-        <div className="flex gap-2 max-w-lg mx-auto">
+        <div className="flex gap-2 max-w-3xl mx-auto">
           <InviteNpcPopover pack={pack} activeNpcIds={activeNpcIds} onInvite={onInvite} disabled={sending} />
           <MentionInput ref={inputRef} value={input} onChange={onInputChange} onKeyDown={handleKeyDown} onMentionSelect={onMentionSelect} npcChars={mentionNpcChars} disabled={sending} placeholder={mentionNpcChars.length > 0 ? "@이름으로 대상 지정..." : "대사 또는 (행동)을 입력하세요..."} className="rounded-2xl bg-[var(--color-surface-2)] border-white/[0.06] px-4 pr-6 py-3 h-auto text-base placeholder:text-[var(--color-text-dim)] min-w-0" style={{ borderColor: input.trim() ? `rgba(${npcChar.glowRgb},0.3)` : undefined, boxShadow: input.trim() ? `0 0 15px rgba(${npcChar.glowRgb},0.05)` : undefined }} />
           <button type="button" onClick={() => toast.info('음성 대화 기능은 준비 중이에요')} className="shrink-0 size-9 rounded-xl bg-[var(--color-surface-2)] border border-white/[0.06] flex items-center justify-center text-white/40 hover:text-white/60 transition-colors" aria-label="음성 메시지"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" /><path d="M19 10v2a7 7 0 01-14 0v-2" /><line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" /></svg></button>
@@ -294,8 +296,8 @@ export default function GameClient({ pack, initialCharId }: { pack: ClientStoryP
   else if (phase === 'chat' && activeChar) { content = <RoomChatScreen npcChar={activeChar} pack={pack} messages={roomMessages} sending={sending} input={input} onInputChange={setInput} onSend={handleSend} onBack={handleBack} onShare={handleShare} playerCount={playerCount} myPlayerId={playerId ?? ''} inputRef={inputRef} scrollRef={scrollRef} loading={!chatReady} activeNpcIds={activeNpcIds} npcChars={npcCharsMap} onInvite={handleInviteNpc} onKickNpc={handleKickNpc} onMentionSelect={handleMentionSelect} respondingNpcId={respondingNpcId} primaryNpcId={activeChar.id} roomId={roomId ?? ''} />; }
 
   return (
-    <div className="h-full w-full flex justify-center overflow-hidden">
-      <div className="w-full max-w-2xl h-full bg-[var(--color-bg)] relative md:border-x md:border-white/[0.06] md:shadow-[0_0_80px_rgba(0,0,0,0.8)]">{content}</div>
+    <div className="h-full w-full">
+      {content}
     </div>
   );
 }

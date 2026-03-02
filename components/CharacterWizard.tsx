@@ -2,8 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useIsDesktop } from '@/hooks/useMediaQuery';
-import { PageLayout, PageCard } from '@/components/layout';
+import { PageLayout } from '@/components/layout';
 import { Check, Sparkles } from 'lucide-react';
 
 const COLOR_PRESETS = [
@@ -30,7 +29,6 @@ interface FormState {
 }
 
 export default function CharacterWizard() {
-  const isDesktop = useIsDesktop();
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<FormState>({
     name: '', fullName: '', age: 20, role: '', desc: '',
@@ -113,7 +111,7 @@ export default function CharacterWizard() {
   // Success Screen
   if (done) {
     return (
-      <PageLayout width="sm" className="flex items-center justify-center">
+      <PageLayout width="md" className="flex items-center justify-center">
         <div className="text-center space-y-6 animate-scale-in">
           <div
             className="w-24 h-24 rounded-full mx-auto flex items-center justify-center text-4xl"
@@ -134,12 +132,12 @@ export default function CharacterWizard() {
             </p>
           </div>
           <Link
-            href="/"
+            href="/create"
             className="inline-flex items-center gap-2 px-8 py-3 rounded-xl text-sm font-semibold text-white transition-all hover:scale-105"
             style={{ background: 'var(--color-brand-gradient)' }}
           >
             <Sparkles className="w-4 h-4" />
-            홈으로
+            만들기로
           </Link>
         </div>
       </PageLayout>
@@ -430,13 +428,10 @@ export default function CharacterWizard() {
       title="캐릭터 만들기" 
       subtitle="나만의 AI 캐릭터를 생성하세요" 
       width="md"
-      showBackButton={!isDesktop}
+      showBackButton
+      backHref="/create"
     >
-      {isDesktop ? (
-        <PageCard padding="lg">{content}</PageCard>
-      ) : (
-        content
-      )}
+      {content}
     </PageLayout>
   );
 }

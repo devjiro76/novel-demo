@@ -2,11 +2,11 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
-import { useIsDesktop } from '@/hooks/useMediaQuery';
+import { ArrowLeft, Plus, UserCheck } from 'lucide-react';
 import { PageLayout, PageCard } from '@/components/layout';
 import type { UserWorldRelationship } from '@/lib/types';
 import { Switch } from '@/components/ui/switch';
+import { useUserCharacters } from '@/hooks/useUserCharacters';
 
 // ---- Types ----
 
@@ -291,6 +291,9 @@ export default function WorldWizard() {
   // Step 3
   const [relationships, setRelationships] = useState<UserWorldRelationship[]>([]);
 
+  // My characters (for Step 2 pick)
+  const { characters: myCharacters, loading: myCharsLoading } = useUserCharacters();
+
   // Submit
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
@@ -444,7 +447,7 @@ export default function WorldWizard() {
   if (done) {
     const themeColor = characters[0]?.glow ?? '#a855f7';
     return (
-      <PageLayout width="sm" className="flex items-center justify-center">
+      <PageLayout width="md" className="flex items-center justify-center">
         <div className="text-center space-y-6">
           <div
             className="w-20 h-20 rounded-full mx-auto flex items-center justify-center text-3xl"
@@ -482,14 +485,13 @@ export default function WorldWizard() {
     );
   }
 
-  const isDesktop = useIsDesktop();
-
   return (
-    <PageLayout 
-      title="월드 만들기" 
-      subtitle="나만의 AI 스토리 월드를 생성하세요" 
+    <PageLayout
+      title="월드 만들기"
+      subtitle="나만의 AI 스토리 월드를 생성하세요"
       width="md"
-      showBackButton={!isDesktop}
+      showBackButton
+      backHref="/create"
     >
       <div className="space-y-6">
         {/* Step indicator -->
@@ -554,8 +556,61 @@ export default function WorldWizard() {
         {/* ---- Step 2: 캐릭터 (SDK Core) ---- */}
         {step === 2 && (
           <div className="space-y-4">
+            {/* My characters pick section */}
+            {!myCharsLoading && myCharacters.length > 0 && (
+              <div>
+                <p className="text-sm font-medium text-[var(--color-text-secondary)] mb-2">
+                  내 캐릭터에서 추가
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {myCharacters.map((mc) => {
+                    const alreadyAdded = characters.some(
+                      (c) => (c as WizardCharacter & { sourceCharacterId?: string }).sourceCharacterId === mc.id
+                    );
+                    return (
+                      <button
+                        key={mc.id}
+                        type="button"
+                        disabled={alreadyAdded}
+                        onClick={() => {
+                          const newChar: WizardCharacter & { sourceCharacterId?: string } = {
+                            id: makeId(),
+                            name: mc.name,
+                            fullName: mc.fullName,
+                            age: mc.age,
+                            role: mc.role,
+                            desc: mc.desc,
+                            personality: mc.personality,
+                            speakingStyle: mc.speakingStyle,
+                            glow: mc.glow,
+                            big5: defaultBig5(),
+                            speakingPreset: 'custom',
+                            sourceCharacterId: mc.id,
+                          };
+                          setCharacters((prev) => [...prev, newChar]);
+                        }}
+                        className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-colors disabled:opacity-40"
+                        style={{
+                          background: alreadyAdded ? 'var(--color-surface-2)' : `${mc.glow}15`,
+                          border: `1px solid ${alreadyAdded ? 'transparent' : mc.glow + '33'}`,
+                          color: alreadyAdded ? 'var(--color-text-dim)' : mc.glow,
+                        }}
+                      >
+                        {alreadyAdded ? (
+                          <UserCheck className="w-3.5 h-3.5" />
+                        ) : (
+                          <Plus className="w-3.5 h-3.5" />
+                        )}
+                        {mc.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <p className="text-sm text-[var(--color-text-secondary)]">
-              캐릭터의 성격을 Big5 슬라이더로 설정하세요. World SDK가 이 값을 바탕으로 살아있는 페르소나를 구성합니다.
+              {myCharacters.length > 0 ? '추가한 캐릭터를 편집하거나, 직접 새 캐릭터를 만들 수도 있습니다.' : '캐릭터의 성격을 Big5 슬라이더로 설정하세요. World SDK가 이 값을 바탕으로 살아있는 페르소나를 구성합니다.'}
             </p>
 
             {characters.map((char, idx) => (
@@ -703,7 +758,7 @@ export default function WorldWizard() {
               onClick={addCharacter}
               className="w-full py-3 rounded-xl text-sm font-semibold text-[var(--color-text-secondary)] border border-dashed border-white/[0.12] hover:border-white/20 hover:text-[var(--color-text)] transition-colors"
             >
-              + 캐릭터 추가
+              + 직접 만들기
             </button>
           </div>
         )}

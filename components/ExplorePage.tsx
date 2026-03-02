@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { PageLayout } from '@/components/layout';
-import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { Search, Filter, TrendingUp, Clock, Sparkles } from 'lucide-react';
 import type { WorldCardData } from '@/lib/story-pack';
 import CharacterCard from '@/components/CharacterCard';
@@ -17,7 +16,6 @@ type FilterOption = 'all' | string;
 type WorldCharacter = WorldCardData['characters'][number];
 
 export default function ExplorePage({ worlds }: ExplorePageProps) {
-  const isDesktop = useIsDesktop();
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('popular');
   const [selectedTag, setSelectedTag] = useState<FilterOption>('all');
@@ -141,7 +139,7 @@ export default function ExplorePage({ worlds }: ExplorePageProps) {
       </p>
     </div>
   ) : (
-    <div className={isDesktop ? 'flex flex-wrap gap-4' : 'flex flex-wrap gap-3'}>
+    <div className="flex flex-wrap gap-3 lg:gap-4">
       {sortedCharacters.map(({ char, world, slug }, index) => (
         <CharacterCard
           key={char.id}
@@ -174,7 +172,7 @@ export default function ExplorePage({ worlds }: ExplorePageProps) {
       title="탐색" 
       subtitle="다양한 캐릭터를 발견하세요" 
       width="lg"
-      showBackButton={!isDesktop}
+      showBackButton
     >
       {content}
     </PageLayout>

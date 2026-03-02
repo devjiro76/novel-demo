@@ -34,15 +34,6 @@ const NAV_ITEMS = [
 export function MobileNav() {
   const pathname = usePathname();
 
-  // Hide on game pages
-  const hideOnPaths = ['/world/', '/[slug]'];
-  const shouldHide = hideOnPaths.some(path => 
-    pathname.includes('/world/') || 
-    (pathname !== '/' && !NAV_ITEMS.some(item => pathname.startsWith(item.href)))
-  );
-  
-  if (shouldHide) return null;
-
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-[var(--z-nav)]">
       {/* Glass background */}

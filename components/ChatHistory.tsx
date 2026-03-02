@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { PageLayout, PageCard } from '@/components/layout';
 import { MessageSquare, ChevronRight } from 'lucide-react';
 import type { ClientStoryPack, CharacterMeta } from '@/lib/story-pack';
@@ -21,7 +20,6 @@ interface SessionEntry {
 }
 
 export default function ChatHistory({ packs }: ChatHistoryProps) {
-  const isDesktop = useIsDesktop();
   const [sessions, setSessions] = useState<SessionEntry[]>([]);
 
   useEffect(() => {
@@ -123,7 +121,7 @@ export default function ChatHistory({ packs }: ChatHistoryProps) {
       title="내 대화" 
       subtitle="이전 대화를 이어가세요" 
       width="md"
-      showBackButton={!isDesktop}
+      showBackButton
     >
       {sessions.length === 0 ? emptyState : sessionList}
     </PageLayout>

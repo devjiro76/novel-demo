@@ -2,21 +2,19 @@
 
 import { useState } from 'react';
 import { PageLayout, PageCard } from '@/components/layout';
-import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { Bell, Moon, Shield, HelpCircle, Info, Trash2 } from 'lucide-react';
 
 export default function SettingsPage() {
-  const isDesktop = useIsDesktop();
   const [notifications, setNotifications] = useState(true);
   const [darkMode, setDarkMode] = useState(true);
 
-  const Toggle = ({ 
-    checked, 
-    onChange, 
-    disabled = false 
-  }: { 
-    checked: boolean; 
-    onChange: (v: boolean) => void; 
+  const Toggle = ({
+    checked,
+    onChange,
+    disabled = false
+  }: {
+    checked: boolean;
+    onChange: (v: boolean) => void;
     disabled?: boolean;
   }) => (
     <button
@@ -87,56 +85,51 @@ export default function SettingsPage() {
     },
   ];
 
-  const content = (
-    <div className="space-y-6">
-      {settingsGroups.map((group) => (
-        <div key={group.title}>
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)] mb-3 px-1">
-            {group.title}
-          </h2>
-          <PageCard padding="none">
-            <div className={isDesktop ? 'divide-y divide-white/[0.04]' : ''}>
-              {group.items.map((item, index) => {
-                const Icon = item.icon;
-                const ItemWrapper = item.onClick ? 'button' : 'div';
-                return (
-                  <ItemWrapper
-                    key={item.label}
-                    onClick={item.onClick}
-                    className={`flex items-center justify-between px-4 py-3.5 ${
-                      item.onClick ? 'w-full text-left cursor-pointer hover:bg-white/[0.02]' : ''
-                    } ${index !== 0 && !isDesktop ? 'border-t border-white/[0.04]' : ''}`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Icon className={`w-5 h-5 ${item.danger ? 'text-red-400' : 'text-[var(--color-text-muted)]'}`} />
-                      <span className={item.danger ? 'text-red-400' : ''}>{item.label}</span>
-                    </div>
-                    {'control' in item && item.control}
-                  </ItemWrapper>
-                );
-              })}
-            </div>
-          </PageCard>
-        </div>
-      ))}
-
-      {/* Footer */}
-      <div className="text-center pt-8 pb-4">
-        <p className="text-xs text-[var(--color-text-dim)]">
-          © 2025 Novel. All rights reserved.
-        </p>
-      </div>
-    </div>
-  );
-
   return (
-    <PageLayout 
-      title="설정" 
-      subtitle="앱 설정 및 계정 관리" 
-      width="sm"
-      showBackButton={!isDesktop}
+    <PageLayout
+      title="설정"
+      subtitle="앱 설정 및 계정 관리"
+      width="md"
+      showBackButton
     >
-      {content}
+      <div className="space-y-6">
+        {settingsGroups.map((group) => (
+          <div key={group.title}>
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)] mb-3 px-1">
+              {group.title}
+            </h2>
+            <PageCard padding="none">
+              <div className="divide-y divide-white/[0.04]">
+                {group.items.map((item) => {
+                  const Icon = item.icon;
+                  const ItemWrapper = item.onClick ? 'button' : 'div';
+                  return (
+                    <ItemWrapper
+                      key={item.label}
+                      onClick={item.onClick}
+                      className={`flex items-center justify-between px-4 py-3.5 ${
+                        item.onClick ? 'w-full text-left cursor-pointer hover:bg-white/[0.02]' : ''
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Icon className={`w-5 h-5 ${item.danger ? 'text-red-400' : 'text-[var(--color-text-muted)]'}`} />
+                        <span className={item.danger ? 'text-red-400' : ''}>{item.label}</span>
+                      </div>
+                      {'control' in item && item.control}
+                    </ItemWrapper>
+                  );
+                })}
+              </div>
+            </PageCard>
+          </div>
+        ))}
+
+        <div className="text-center pt-8 pb-4">
+          <p className="text-xs text-[var(--color-text-dim)]">
+            © 2025 Novel. All rights reserved.
+          </p>
+        </div>
+      </div>
     </PageLayout>
   );
 }

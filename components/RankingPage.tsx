@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { useMemo, useState, useEffect } from 'react';
-import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { PageLayout, PageCard } from '@/components/layout';
 import { Trophy, Medal, Award, Users, Globe } from 'lucide-react';
 import type { ClientStoryPack, WorldCardData } from '@/lib/story-pack';
@@ -34,7 +33,6 @@ const RANK_ICONS = [Trophy, Medal, Award];
 const RANK_COLORS = ['#fbbf24', '#94a3b8', '#cd7f32'];
 
 export default function RankingPage({ packs, worlds }: RankingPageProps) {
-  const isDesktop = useIsDesktop();
   const [rankType, setRankType] = useState<RankType>('characters');
   const [stats, setStats] = useState<Record<string, { totalMessages: number }>>({});
 
@@ -252,7 +250,7 @@ export default function RankingPage({ packs, worlds }: RankingPageProps) {
       title="인기 랭킹" 
       subtitle="인기 있는 월드와 캐릭터" 
       width="lg"
-      showBackButton={!isDesktop}
+      showBackButton
     >
       {content}
     </PageLayout>

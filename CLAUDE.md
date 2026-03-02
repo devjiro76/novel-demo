@@ -6,7 +6,7 @@ AI 기반 인터랙티브 노벨 앱. 룸에서 NPC와 대화하며 스토리를
 
 - **Framework**: Next.js 15 (App Router, Turbopack)
 - **UI**: Tailwind CSS 4 + shadcn/ui (new-york style, zinc base) + Lucide icons
-- **AI**: AI SDK (`ai`, `@ai-sdk/anthropic`, `@ai-sdk/openai`) + `@molroo-ai/world-sdk`
+- **AI**: AI SDK (`ai`, `@ai-sdk/anthropic`, `@ai-sdk/openai`) + `@molroo-io/sdk/world`
 - **Deploy**: Cloudflare Workers via OpenNext (`opennextjs-cloudflare`)
 - **Storage**: Cloudflare KV (`ROOM_KV`)
 - **Domain**: novel.molroo.io
