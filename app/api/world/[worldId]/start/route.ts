@@ -3,6 +3,7 @@ import { Molroo } from '@molroo-io/sdk/world';
 import { getEnv } from '@/lib/types';
 import { kvGet, kvPut } from '@/lib/kv';
 import type { UserWorld } from '@/lib/types';
+import { formatError } from '@/lib/api-utils';
 
 export async function POST(
   _request: Request,
@@ -83,11 +84,8 @@ export async function POST(
     await kvPut(`world-instance:${worldId}`, world.id);
 
     return NextResponse.json({ ok: true, worldId: world.id });
-  } catch (err: any) {
+  } catch (err) {
     console.error('[world/start] Error:', err);
-    return NextResponse.json(
-      { error: err.message ?? 'Failed to create world' },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: formatError(err) }, { status: 500 });
   }
 }

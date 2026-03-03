@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import type { ConversationResponse } from '@/lib/types';
 import { getEnv } from '@/lib/types';
 import { getWorld } from '@/lib/personas';
@@ -8,6 +9,21 @@ import { DebugLog } from '@/lib/debug';
 import { getStoryPack } from '@/lib/story-pack';
 import { resolveEmotionLabel } from '@/lib/emotion';
 import { rateLimitGuard } from '@/lib/rate-limit';
+import { parseBody, formatError } from '@/lib/api-utils';
+
+const converseSchema = z.object({
+  slug: z.string().max(100).optional(),
+  worldId: z.string().min(1).max(200),
+  characterId: z.string().min(1).max(200),
+  userMessage: z.string().min(1).max(2000),
+  situation: z.string().min(1).max(2000),
+  chatHistory: z.array(z.object({
+    role: z.enum(['user', 'character']),
+    text: z.string().max(2000),
+    action: z.string().max(1000).optional(),
+    innerThought: z.string().max(1000).optional(),
+  })).optional(),
+});
 
 export async function POST(request: Request) {
   const env = getEnv();
@@ -17,20 +33,11 @@ export async function POST(request: Request) {
     const blocked = await rateLimitGuard(request);
     if (blocked) return blocked;
 
-    const body = await request.json() as {
-      slug?: string;
-      worldId: string;
-      characterId: string;
-      userMessage: string;
-      situation: string;
-      chatHistory?: { role: 'user' | 'character'; text: string; action?: string; innerThought?: string }[];
-    };
-    const { slug, worldId, characterId, userMessage, situation, chatHistory } = body;
-    const pack = getStoryPack(slug);
+    const parsed = await parseBody(request, converseSchema);
+    if ('error' in parsed) return parsed.error;
 
-    if (!worldId || !characterId || !userMessage || !situation) {
-      return NextResponse.json({ error: 'Missing worldId, characterId, userMessage, or situation' }, { status: 400 });
-    }
+    const { slug, worldId, characterId, userMessage, situation, chatHistory } = parsed.data;
+    const pack = getStoryPack(slug);
 
     const world = await getWorld(env, worldId);
 
@@ -52,8 +59,8 @@ export async function POST(request: Request) {
     // Tick: advance simulation time by LLM-estimated narrative elapsed seconds
     const { estimatedElapsedSeconds, ...appraisalVector } = appraisal;
     if (estimatedElapsedSeconds >= 1) {
-      await persona.tick(estimatedElapsedSeconds).catch((err: any) => {
-        console.warn('[converse] tick failed (non-fatal):', err.message);
+      await persona.tick(estimatedElapsedSeconds).catch((err: unknown) => {
+        console.warn('[converse] tick failed (non-fatal):', err instanceof Error ? err.message : err);
       });
     }
 
@@ -62,8 +69,8 @@ export async function POST(request: Request) {
       actorType: 'user',
       appraisal: appraisalVector,
       stimulusDescription,
-    }).catch((err: any) => {
-      console.warn('[converse] interact failed (non-fatal):', err.message);
+    }).catch((err: unknown) => {
+      console.warn('[converse] interact failed (non-fatal):', err instanceof Error ? err.message : err);
     });
 
     // Read updated emotion state from engine (after appraisal applied)
@@ -88,8 +95,8 @@ export async function POST(request: Request) {
     };
 
     return NextResponse.json({ ...response, _debug: dbg.finalize() });
-  } catch (err: any) {
+  } catch (err) {
     console.error('[converse] Error:', err);
-    return NextResponse.json({ error: err.message ?? 'Internal error' }, { status: 500 });
+    return NextResponse.json({ error: formatError(err) }, { status: 500 });
   }
 }

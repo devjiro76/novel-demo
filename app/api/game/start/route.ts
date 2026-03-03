@@ -1,15 +1,23 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { Molroo } from '@molroo-io/sdk/world';
 import { getEnv } from '@/lib/types';
 import { getStoryPack } from '@/lib/story-pack';
 import { rateLimitGuard } from '@/lib/rate-limit';
+import { parseBody, formatError } from '@/lib/api-utils';
+
+const gameStartSchema = z.object({
+  slug: z.string().max(100).optional(),
+});
 
 export async function POST(request: Request) {
   const blocked = await rateLimitGuard(request);
   if (blocked) return blocked;
 
-  const body = await request.json().catch(() => ({})) as { slug?: string };
-  const pack = getStoryPack(body.slug);
+  const parsed = await parseBody(request, gameStartSchema);
+  if ('error' in parsed) return parsed.error;
+
+  const pack = getStoryPack(parsed.data.slug);
   const env = getEnv();
 
   try {
@@ -70,8 +78,8 @@ export async function POST(request: Request) {
     );
 
     return NextResponse.json({ ok: true, worldId: world.id });
-  } catch (err: any) {
+  } catch (err) {
     console.error('[start] Error:', err);
-    return NextResponse.json({ error: err.message ?? 'Failed to create world' }, { status: 500 });
+    return NextResponse.json({ error: formatError(err) }, { status: 500 });
   }
 }

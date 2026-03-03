@@ -4,7 +4,7 @@ import { createAuth } from '@/lib/auth';
 async function getAuth() {
   const { getCloudflareContext } = await import('@opennextjs/cloudflare');
   const ctx = await getCloudflareContext({ async: true });
-  const db = (ctx.env as any).AUTH_DB as D1Database | undefined;
+  const db = (ctx.env as CloudflareEnv).AUTH_DB;
   if (!db) {
     throw new Error('AUTH_DB binding not available');
   }

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getRoom, getMessages, deleteRoom, roomToJSON } from '@/lib/room-store';
+import { formatError } from '@/lib/api-utils';
 
 export async function GET(
   _request: Request,
@@ -33,8 +34,8 @@ export async function DELETE(
       return NextResponse.json({ error: 'Room not found' }, { status: 404 });
     }
     return NextResponse.json({ ok: true });
-  } catch (err: any) {
+  } catch (err) {
     console.error('[room/delete] Error:', err);
-    return NextResponse.json({ error: err.message ?? 'Internal error' }, { status: 500 });
+    return NextResponse.json({ error: formatError(err) }, { status: 500 });
   }
 }

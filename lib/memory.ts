@@ -48,13 +48,13 @@ interface LongMemoryData {
   updatedAt: number;
 }
 
-function longMemoryKey(npcId: string): string {
-  return `long-memory:${npcId}`;
+function longMemoryKey(roomId: string, npcId: string): string {
+  return `long-memory:${roomId}:${npcId}`;
 }
 
 /** Load long-term memory — always called, every turn */
-export async function loadLongMemory(npcId: string): Promise<string> {
-  const raw = await kvGet(longMemoryKey(npcId));
+export async function loadLongMemory(roomId: string, npcId: string): Promise<string> {
+  const raw = await kvGet(longMemoryKey(roomId, npcId));
   if (!raw) return '';
   try {
     const data: LongMemoryData = JSON.parse(raw);
@@ -64,12 +64,12 @@ export async function loadLongMemory(npcId: string): Promise<string> {
   }
 }
 
-async function saveLongMemory(npcId: string, facts: string[]): Promise<void> {
+async function saveLongMemory(roomId: string, npcId: string, facts: string[]): Promise<void> {
   const data: LongMemoryData = {
     facts: facts.slice(-MAX_LONG_MEMORY_FACTS),
     updatedAt: Date.now(),
   };
-  await kvPut(longMemoryKey(npcId), JSON.stringify(data), { expirationTtl: 30 * 86400 });
+  await kvPut(longMemoryKey(roomId, npcId), JSON.stringify(data), { expirationTtl: 30 * 86400 });
 }
 
 // ---- Update Tier 2 + 3 together ----
@@ -102,7 +102,7 @@ export async function updateSummaryIfNeeded(
     : lines.join('\n');
 
   // Load existing long-term facts for context
-  const existingLongRaw = await kvGet(longMemoryKey(npcId));
+  const existingLongRaw = await kvGet(longMemoryKey(roomId, npcId));
   const existingFacts: string[] = existingLongRaw
     ? (JSON.parse(existingLongRaw) as LongMemoryData).facts
     : [];
@@ -144,7 +144,7 @@ ${existingFacts.length > 0 ? existingFacts.map((f, i) => `${i + 1}. ${f}`).join(
     // Save Tier 3: merge new facts
     if (object.newFacts.length > 0) {
       const merged = [...existingFacts, ...object.newFacts];
-      await saveLongMemory(npcId, merged);
+      await saveLongMemory(roomId, npcId, merged);
       console.log(`[long-memory] npc=${npcId} +${object.newFacts.length} facts (total ${merged.length})`);
     }
 

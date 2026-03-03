@@ -1,5 +1,11 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { getRoom, removePlayer } from '@/lib/room-store';
+import { parseBody, formatError } from '@/lib/api-utils';
+
+const leaveSchema = z.object({
+  playerId: z.string().min(1).max(200),
+});
 
 export async function POST(
   request: Request,
@@ -8,12 +14,10 @@ export async function POST(
   const { roomId } = await params;
 
   try {
-    const body = await request.json() as { playerId: string };
-    const { playerId } = body;
+    const parsed = await parseBody(request, leaveSchema);
+    if ('error' in parsed) return parsed.error;
 
-    if (!playerId) {
-      return NextResponse.json({ error: 'Missing playerId' }, { status: 400 });
-    }
+    const { playerId } = parsed.data;
 
     const room = await getRoom(roomId);
     if (!room) {
@@ -26,8 +30,8 @@ export async function POST(
     }
 
     return NextResponse.json({ ok: true });
-  } catch (err: any) {
+  } catch (err) {
     console.error('[room/leave] Error:', err);
-    return NextResponse.json({ error: err.message ?? 'Internal error' }, { status: 500 });
+    return NextResponse.json({ error: formatError(err) }, { status: 500 });
   }
 }

@@ -21,7 +21,7 @@ export interface RateLimitResult {
 }
 
 /**
- * Rate limit 체크 및 카운터 증가
+ * Rate limit 체크 및 카운터 증가 (write-first 패턴으로 TOCTOU 완화)
  * @param userId - 로그인 유저 ID (없으면 null)
  * @param ip - fallback IP
  */
@@ -33,14 +33,16 @@ export async function checkRateLimit(
   const limit = userId ? AUTH_DAILY_LIMIT : ANON_DAILY_LIMIT;
   const key = rateLimitKey(identifier);
 
+  // Write-first pattern: increment first, then check.
+  // This avoids TOCTOU race where two concurrent requests both read
+  // the same count and both proceed.
   const current = parseInt(await kvGet(key) ?? '0', 10);
-
-  if (current >= limit) {
-    return { allowed: false, remaining: 0, limit, used: current };
-  }
-
   const newCount = current + 1;
   await kvPut(key, String(newCount), { expirationTtl: TTL_SECONDS });
+
+  if (newCount > limit) {
+    return { allowed: false, remaining: 0, limit, used: newCount };
+  }
 
   return { allowed: true, remaining: limit - newCount, limit, used: newCount };
 }
@@ -54,7 +56,7 @@ export async function rateLimitGuard(request: Request): Promise<NextResponse | n
   try {
     const { getCloudflareContext } = await import('@opennextjs/cloudflare');
     const ctx = await getCloudflareContext({ async: true });
-    const db = (ctx.env as any).AUTH_DB as D1Database | undefined;
+    const db = (ctx.env as CloudflareEnv).AUTH_DB;
     if (db) {
       const { createAuth } = await import('@/lib/auth');
       const auth = createAuth(db);
@@ -63,8 +65,9 @@ export async function rateLimitGuard(request: Request): Promise<NextResponse | n
     }
   } catch { /* anonymous */ }
 
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-    ?? request.headers.get('cf-connecting-ip')
+  // IP extraction: cf-connecting-ip first (cannot be spoofed), then x-forwarded-for fallback
+  const ip = request.headers.get('cf-connecting-ip')
+    ?? request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
     ?? '127.0.0.1';
 
   const result = await checkRateLimit(userId, ip);

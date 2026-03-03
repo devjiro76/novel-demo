@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createAuth } from '@/lib/auth';
+import { formatError } from '@/lib/api-utils';
 
 /**
  * 임시 마이그레이션 엔드포인트 — 배포 후 1회 호출하여 DB 테이블 생성
@@ -7,7 +8,7 @@ import { createAuth } from '@/lib/auth';
  */
 export async function POST(request: Request) {
   try {
-    // 시크릿 보호 — Authorization 헤더 또는 쿼리 파라미터로 BETTER_AUTH_SECRET 필요
+    // 시크릿 보호 — Authorization 헤더로 BETTER_AUTH_SECRET 필요
     const authHeader = request.headers.get('authorization')?.replace('Bearer ', '');
     const secret = process.env.BETTER_AUTH_SECRET;
     if (!secret || authHeader !== secret) {
@@ -16,7 +17,7 @@ export async function POST(request: Request) {
 
     const { getCloudflareContext } = await import('@opennextjs/cloudflare');
     const ctx = await getCloudflareContext({ async: true });
-    const db = (ctx.env as any).AUTH_DB as D1Database | undefined;
+    const db = (ctx.env as CloudflareEnv).AUTH_DB;
     if (!db) {
       return NextResponse.json({ error: 'AUTH_DB not available' }, { status: 500 });
     }
@@ -81,8 +82,8 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ ok: true, message: 'Migration completed' });
-  } catch (err: any) {
+  } catch (err) {
     console.error('[auth/migrate] Error:', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: formatError(err) }, { status: 500 });
   }
 }

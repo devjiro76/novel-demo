@@ -12,7 +12,7 @@ async function getKV(): Promise<KVNamespace | null> {
       getCloudflareContext({ async: true }),
       new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 500)),
     ]);
-    _kvCache = (ctx.env as any).ROOM_KV ?? null;
+    _kvCache = (ctx.env as CloudflareEnv).ROOM_KV ?? null;
   } catch {
     _kvCache = null;
   }

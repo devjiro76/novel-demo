@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { getRoom, createRoomWithId, ensurePlayer, addMessage, getMessages } from '@/lib/room-store';
 import { getEnv } from '@/lib/types';
 import { getWorld } from '@/lib/personas';
@@ -9,6 +10,19 @@ import { updateSummaryIfNeeded, loadLongMemory } from '@/lib/memory';
 import type { RoomMessage } from '@/lib/room';
 import { resolveEmotionLabel } from '@/lib/emotion';
 import { rateLimitGuard } from '@/lib/rate-limit';
+import { parseBody, formatError } from '@/lib/api-utils';
+import type { EmotionDetail } from '@/lib/types';
+
+const messageSchema = z.object({
+  playerId: z.string().min(1).max(200),
+  text: z.string().min(1).max(2000),
+  slug: z.string().max(100).optional(),
+  worldId: z.string().max(200).optional(),
+  npcCharacterId: z.string().max(200).optional(),
+  displayName: z.string().max(50).optional(),
+  characterId: z.string().max(200).optional(),
+  targetNpcId: z.string().max(200).optional(),
+});
 
 export async function POST(
   request: Request,
@@ -21,21 +35,11 @@ export async function POST(
     const blocked = await rateLimitGuard(request);
     if (blocked) return blocked;
 
-    const body = await request.json() as {
-      playerId: string;
-      text: string;
-      slug?: string;
-      worldId?: string;
-      npcCharacterId?: string;
-      displayName?: string;
-      characterId?: string;
-      targetNpcId?: string;
-    };
+    const parsed = await parseBody(request, messageSchema);
+    if ('error' in parsed) return parsed.error;
 
+    const body = parsed.data;
     const { playerId, text } = body;
-    if (!playerId || !text?.trim()) {
-      return NextResponse.json({ error: 'Missing playerId or text' }, { status: 400 });
-    }
 
     // Ensure room exists (re-create if server lost state)
     let room = await getRoom(roomId);
@@ -75,7 +79,7 @@ export async function POST(
     // 2. Generate NPC response(s)
     const pack = getStoryPack(room.slug);
     const world = await getWorld(env, room.worldId);
-    const npcCharacterIds: string[] = (room as any).npcCharacterIds ?? [room.npcCharacterId];
+    const npcCharacterIds: string[] = room.npcCharacterIds ?? [room.npcCharacterId];
 
     // Determine responding NPCs: explicit target → single, otherwise → all active NPCs
     const respondingNpcIds = (body.targetNpcId && npcCharacterIds.includes(body.targetNpcId))
@@ -112,9 +116,9 @@ export async function POST(
       npcMessage: validMessages[0] ?? null,
       npcMessages: validMessages,
     });
-  } catch (err: any) {
+  } catch (err) {
     console.error('[room/message] Error:', err);
-    return NextResponse.json({ error: err.message ?? 'Internal error' }, { status: 500 });
+    return NextResponse.json({ error: formatError(err) }, { status: 500 });
   }
 }
 
@@ -143,10 +147,10 @@ async function generateNpcResponse(ctx: {
 
   const [summary, longMemory] = await Promise.all([
     updateSummaryIfNeeded(roomId, npcId, chatHistory, env).catch((err) => {
-      console.warn(`[room/message] summary failed for ${npcId} (non-fatal):`, (err as Error).message);
+      console.warn(`[room/message] summary failed for ${npcId} (non-fatal):`, err instanceof Error ? err.message : err);
       return '';
     }),
-    loadLongMemory(npcId).catch(() => ''),
+    loadLongMemory(roomId, npcId).catch(() => ''),
   ]);
 
   const [appraisal, conversationResult] = await Promise.all([
@@ -160,20 +164,20 @@ async function generateNpcResponse(ctx: {
   const persona = world.persona(npcId);
   const { estimatedElapsedSeconds, ...appraisalVector } = appraisal;
   if (estimatedElapsedSeconds >= 1) {
-    await persona.tick(estimatedElapsedSeconds).catch((err: any) => {
-      console.warn(`[room/message] tick failed for ${npcId} (non-fatal):`, err.message);
+    await persona.tick(estimatedElapsedSeconds).catch((err: unknown) => {
+      console.warn(`[room/message] tick failed for ${npcId} (non-fatal):`, err instanceof Error ? err.message : err);
     });
   }
 
   // Capture relationship state before interact
   let relationshipBefore: { trust: number; strength: number } | undefined;
   try {
-    const rel = await (persona as any).getRelationship(player.characterId);
+    const rel = await (persona as unknown as { getRelationship(id: string): Promise<{ trust: number; strength: number } | null> }).getRelationship(player.characterId);
     if (rel) relationshipBefore = { trust: rel.trust, strength: rel.strength };
   } catch {}
 
   let rawEmotion = '';
-  let emotionDetail: import('@/lib/types').EmotionDetail | undefined;
+  let emotionDetail: EmotionDetail | undefined;
   try {
     const interactResult = await persona.interact('converse', {
       actor: player.characterId,
@@ -189,11 +193,13 @@ async function generateNpcResponse(ctx: {
         primary: rawEmotion,
         secondary: (discrete?.secondary ?? '').toLowerCase().trim() || undefined,
         vad: { V: vad.V ?? 0, A: vad.A ?? 0, D: vad.D ?? 0 },
-        intensity: (discrete as any)?.intensity ?? undefined,
+        intensity: typeof discrete === 'object' && discrete !== null && 'intensity' in discrete
+          ? (discrete as { intensity?: number }).intensity
+          : undefined,
       };
     }
-  } catch (err: any) {
-    console.warn(`[room/message] interact failed for ${npcId} (non-fatal):`, err.message);
+  } catch (err) {
+    console.warn(`[room/message] interact failed for ${npcId} (non-fatal):`, err instanceof Error ? err.message : err);
     try {
       const fallbackState = await persona.getState();
       rawEmotion = (fallbackState.emotion.discrete?.primary ?? '').toLowerCase().trim();
@@ -205,7 +211,7 @@ async function generateNpcResponse(ctx: {
   let relationshipDelta: { trust: number; strength: number } | undefined;
   if (relationshipBefore) {
     try {
-      const relAfter = await (persona as any).getRelationship(player.characterId);
+      const relAfter = await (persona as unknown as { getRelationship(id: string): Promise<{ trust: number; strength: number } | null> }).getRelationship(player.characterId);
       if (relAfter) {
         const dt = relAfter.trust - relationshipBefore.trust;
         const ds = relAfter.strength - relationshipBefore.strength;

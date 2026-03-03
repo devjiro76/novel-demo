@@ -43,13 +43,27 @@ export async function getWorld(env: Env, worldId: string): Promise<World> {
   return world;
 }
 
+function isRelationshipArray(data: unknown): data is Relationship[] {
+  return Array.isArray(data) && data.every(
+    (item) => typeof item === 'object' && item !== null && 'source_id' in item && 'target_id' in item,
+  );
+}
+
 export async function getRelationships(world: World): Promise<Relationship[]> {
-  return await world.listRelationships() as unknown as Relationship[];
+  const data = await world.listRelationships();
+  if (isRelationshipArray(data)) return data;
+  return [];
+}
+
+function isEventsResponse(data: unknown): data is { events: WorldEvent[]; nextCursor: string | null } {
+  return typeof data === 'object' && data !== null && 'events' in data && Array.isArray((data as Record<string, unknown>).events);
 }
 
 export async function getEvents(
   world: World,
   limit: number,
 ): Promise<{ events: WorldEvent[]; nextCursor: string | null }> {
-  return await world.getEvents({ limit }) as unknown as { events: WorldEvent[]; nextCursor: string | null };
+  const data = await world.getEvents({ limit });
+  if (isEventsResponse(data)) return data;
+  return { events: [], nextCursor: null };
 }

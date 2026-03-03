@@ -14,7 +14,7 @@ export async function GET(
   }
 
   const pack = getStoryPack(room.slug);
-  const npcCharacterIds: string[] = (room as any).npcCharacterIds ?? [room.npcCharacterId];
+  const npcCharacterIds: string[] = room.npcCharacterIds ?? [room.npcCharacterId];
 
   // Filter relationships relevant to NPCs in this room
   const relationships = pack.initialRelationships.filter(

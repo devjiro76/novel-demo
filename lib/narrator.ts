@@ -2,6 +2,7 @@ import { primaryModel, generateObject, z } from './llm';
 import type { ConversationResponse, Env } from './types';
 import type { World } from './personas';
 import type { StoryManifest } from './story-pack';
+import { sanitizeUserInput, sanitizeChatHistory } from './sanitize';
 
 /**
  * Reorder promptContext fields for prompt caching:
@@ -117,11 +118,15 @@ export async function generateConversationResponse(
     dynamicSuffix,
   );
 
+  // Sanitize user input and chat history
+  const safeUserMessage = sanitizeUserInput(userMessage);
+  const safeChatHistory = chatHistory ? sanitizeChatHistory(chatHistory) : undefined;
+
   // Build conversation messages from chat history (keep window small — summary handles older context)
   const conversationMessages: { role: 'user' | 'assistant'; content: string }[] = [];
 
-  if (chatHistory && chatHistory.length > 0) {
-    const recent = chatHistory.slice(-15);
+  if (safeChatHistory && safeChatHistory.length > 0) {
+    const recent = safeChatHistory.slice(-15);
     for (const msg of recent) {
       if (msg.role === 'user') {
         conversationMessages.push({ role: 'user', content: msg.text });
@@ -136,7 +141,7 @@ export async function generateConversationResponse(
   }
 
   // Anti-repetition: feed last 3 NPC responses so LLM avoids alternating patterns
-  const recentNpcs = (chatHistory ?? []).filter(m => m.role === 'character').slice(-3);
+  const recentNpcs = (safeChatHistory ?? []).filter(m => m.role === 'character').slice(-3);
   if (recentNpcs.length > 0) {
     const forbidden = recentNpcs.map((m, i) =>
       `[${i + 1}] 대사: "${m.text}" / 행동: "${m.action ?? ''}" / 속마음: "${m.innerThought ?? ''}"`,
@@ -148,8 +153,8 @@ export async function generateConversationResponse(
     });
   }
 
-  // Add current user message
-  conversationMessages.push({ role: 'user', content: userMessage });
+  // Add current user message (sanitized)
+  conversationMessages.push({ role: 'user', content: safeUserMessage });
 
   const model = primaryModel(env);
   const timeout = AbortSignal.timeout(60_000);

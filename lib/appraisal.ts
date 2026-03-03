@@ -2,6 +2,7 @@ import { engineModel, generateObject, z } from './llm';
 import type { World } from './personas';
 import type { AppraisalVector } from '@molroo-io/sdk/world';
 import type { Env } from './types';
+import { sanitizeUserInput } from './sanitize';
 
 const appraisalSchema = z.object({
   goalRelevance: z.number().describe('이 상황이 내 삶에 얼마나 중요한가 (0.0~1.0)'),
@@ -48,7 +49,7 @@ export async function generateAppraisal(
   const { object } = await generateObject({
     model,
     system: systemPrompt,
-    messages: [{ role: 'user', content: stimulusDescription }],
+    messages: [{ role: 'user', content: sanitizeUserInput(stimulusDescription) }],
     schema: appraisalSchema,
     temperature: 0.3,
     abortSignal: timeout,

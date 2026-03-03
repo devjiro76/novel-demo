@@ -1,23 +1,39 @@
+import { z } from 'zod';
+
 // ---- Server env ----
 
-export interface Env {
-  LLM_API_KEY: string;
-  LLM_BASE_URL: string;
-  EMBEDDING_API_KEY: string;
-  EMBEDDING_BASE_URL: string;
-  WORLD_API_KEY: string;
-  WORLD_API_URL: string;
-}
+const envSchema = z.object({
+  LLM_API_KEY: z.string().min(1, 'LLM_API_KEY is required'),
+  LLM_BASE_URL: z.string().url().default('https://api.venice.ai/api/v1'),
+  EMBEDDING_API_KEY: z.string().min(1),
+  EMBEDDING_BASE_URL: z.string().url().default('https://openrouter.ai/api/v1'),
+  WORLD_API_KEY: z.string().min(1, 'WORLD_API_KEY is required'),
+  WORLD_API_URL: z.string().url().min(1, 'WORLD_API_URL is required'),
+});
+
+export type Env = z.infer<typeof envSchema>;
+
+let _envCache: Env | null = null;
 
 export function getEnv(): Env {
-  return {
-    LLM_API_KEY: process.env.LLM_API_KEY!,
+  if (_envCache) return _envCache;
+
+  const result = envSchema.safeParse({
+    LLM_API_KEY: process.env.LLM_API_KEY,
     LLM_BASE_URL: process.env.LLM_BASE_URL || 'https://api.venice.ai/api/v1',
-    EMBEDDING_API_KEY: process.env.EMBEDDING_API_KEY || process.env.LLM_API_KEY!,
+    EMBEDDING_API_KEY: process.env.EMBEDDING_API_KEY || process.env.LLM_API_KEY,
     EMBEDDING_BASE_URL: process.env.EMBEDDING_BASE_URL || 'https://openrouter.ai/api/v1',
-    WORLD_API_KEY: process.env.WORLD_API_KEY!,
-    WORLD_API_URL: process.env.WORLD_API_URL!,
-  };
+    WORLD_API_KEY: process.env.WORLD_API_KEY,
+    WORLD_API_URL: process.env.WORLD_API_URL,
+  });
+
+  if (!result.success) {
+    const issues = result.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join(', ');
+    throw new Error(`Environment validation failed: ${issues}`);
+  }
+
+  _envCache = result.data;
+  return _envCache;
 }
 
 /** User-created character stored in KV */

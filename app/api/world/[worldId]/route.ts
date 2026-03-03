@@ -4,6 +4,7 @@ import type { UserWorld } from '@/lib/types';
 import { getStoryPack, storyToWorldCard } from '@/lib/story-pack';
 import { getEnv } from '@/lib/types';
 import { getWorld } from '@/lib/personas';
+import { formatError } from '@/lib/api-utils';
 
 // GET /api/world/[worldId] — single world detail
 // 1. Try KV for user-created worlds
@@ -50,8 +51,8 @@ export async function DELETE(
         const env = getEnv();
         const world = await getWorld(env, worldInstanceId);
         await world.delete();
-      } catch (err: any) {
-        console.warn('[world/delete] World instance delete failed (may already be deleted):', err.message);
+      } catch (err) {
+        console.warn('[world/delete] World instance delete failed (may already be deleted):', err instanceof Error ? err.message : err);
       }
     }
 
@@ -70,8 +71,8 @@ export async function DELETE(
     }
 
     return NextResponse.json({ ok: true });
-  } catch (err: any) {
+  } catch (err) {
     console.error('[world/delete] Error:', err);
-    return NextResponse.json({ error: err.message ?? 'Internal error' }, { status: 500 });
+    return NextResponse.json({ error: formatError(err) }, { status: 500 });
   }
 }

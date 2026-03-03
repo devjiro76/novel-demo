@@ -1,26 +1,24 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { getRoom, createRoomWithId, addPlayer, ensurePlayer, getMessages, roomToJSON, playerToJSON } from '@/lib/room-store';
+import { parseBody, formatError } from '@/lib/api-utils';
+
+const joinRoomSchema = z.object({
+  roomId: z.string().min(1).max(200),
+  displayName: z.string().min(1).max(50),
+  characterId: z.string().min(1).max(200),
+  playerId: z.string().max(200).optional(),
+  slug: z.string().max(100).optional(),
+  worldId: z.string().max(200).optional(),
+  npcCharacterId: z.string().max(200).optional(),
+});
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json() as {
-      roomId: string;
-      displayName: string;
-      characterId: string;
-      playerId?: string; // If provided, reuse existing player (rejoin)
-      slug?: string;
-      worldId?: string;
-      npcCharacterId?: string;
-    };
+    const parsed = await parseBody(request, joinRoomSchema);
+    if ('error' in parsed) return parsed.error;
 
-    const { roomId, displayName, characterId, playerId: existingPlayerId, slug, worldId, npcCharacterId } = body;
-
-    if (!roomId || !displayName || !characterId) {
-      return NextResponse.json(
-        { error: 'Missing required fields: roomId, displayName, characterId' },
-        { status: 400 },
-      );
-    }
+    const { roomId, displayName, characterId, playerId: existingPlayerId, slug, worldId, npcCharacterId } = parsed.data;
 
     let room = await getRoom(roomId);
 
@@ -65,8 +63,8 @@ export async function POST(request: Request) {
       room: roomToJSON(updatedRoom!),
       messages,
     });
-  } catch (err: any) {
+  } catch (err) {
     console.error('[room/join] Error:', err);
-    return NextResponse.json({ error: err.message ?? 'Internal error' }, { status: 500 });
+    return NextResponse.json({ error: formatError(err) }, { status: 500 });
   }
 }
