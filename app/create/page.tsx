@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Users, Globe } from 'lucide-react';
 import { PageLayout, PageCard } from '@/components/layout';
+import { AppContainer, PageHeader } from '@/components/layout/AppContainer';
 import { useUserCharacters } from '@/hooks/useUserCharacters';
 
 const createOptions = [
@@ -26,7 +27,11 @@ export default function CreateHubPage() {
   const { characters, loading } = useUserCharacters();
 
   return (
-    <PageLayout title="만들기" subtitle="캐릭터를 만들고, 월드로 조합하세요" width="md" showBackButton>
+    <AppContainer>
+      <PageHeader 
+        title="만들기" 
+        subtitle="캐릭터를 만들고, 월드로 조합하세요"
+      />
       {/* Create options */}
       <div className="grid grid-cols-2 gap-3 mb-8">
         {createOptions.map((opt) => {
@@ -113,6 +118,6 @@ export default function CreateHubPage() {
           </div>
         )}
       </div>
-    </PageLayout>
+    </AppContainer>
   );
 }

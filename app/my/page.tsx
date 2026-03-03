@@ -18,6 +18,7 @@ import {
   Palette
 } from 'lucide-react';
 import { PageLayout, PageCard, PageSection } from '@/components/layout';
+import { AppContainer, PageHeader } from '@/components/layout/AppContainer';
 
 // 목업 데이터
 const MOCK_USER = {
@@ -38,13 +39,15 @@ const MOCK_MY_CONTENTS = [
 
 export default function MyPage() {
   return (
-    <PageLayout title="마이" width="lg">
-      {/* Settings button in header */}
-      <div className="flex justify-end mb-4">
-        <button className="p-2 rounded-full hover:bg-white/[0.06] transition-colors">
-          <Settings className="w-5 h-5 text-gray-400" />
-        </button>
-      </div>
+    <AppContainer>
+      <PageHeader 
+        title="마이"
+        rightContent={
+          <button className="p-2 rounded-full hover:bg-white/[0.06] transition-colors">
+            <Settings className="w-5 h-5 text-gray-400" />
+          </button>
+        }
+      />
 
       <div className="space-y-6">
         {/* Profile Section */}
@@ -65,7 +68,7 @@ export default function MyPage() {
         {/* Menu List */}
         <MenuSection />
       </div>
-    </PageLayout>
+    </AppContainer>
   );
 }
 

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { PageLayout, PageCard } from '@/components/layout';
+import { PageCard } from '@/components/layout';
+import { AppContainer, PageHeader } from '@/components/layout/AppContainer';
 import { Bell, Moon, Shield, HelpCircle, Info, Trash2 } from 'lucide-react';
 
 export default function SettingsPage() {
@@ -86,12 +87,11 @@ export default function SettingsPage() {
   ];
 
   return (
-    <PageLayout
-      title="설정"
-      subtitle="앱 설정 및 계정 관리"
-      width="md"
-      showBackButton
-    >
+    <AppContainer>
+      <PageHeader 
+        title="설정"
+        subtitle="앱 설정 및 계정 관리"
+      />
       <div className="space-y-6">
         {settingsGroups.map((group) => (
           <div key={group.title}>
@@ -130,6 +130,6 @@ export default function SettingsPage() {
           </p>
         </div>
       </div>
-    </PageLayout>
+    </AppContainer>
   );
 }

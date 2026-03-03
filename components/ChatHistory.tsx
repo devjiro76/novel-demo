@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { PageLayout, PageCard } from '@/components/layout';
+import { PageCard } from '@/components/layout';
+import { AppContainer, PageHeader } from '@/components/layout/AppContainer';
 import { MessageSquare, ChevronRight, Trash2 } from 'lucide-react';
 import type { ClientStoryPack, CharacterMeta } from '@/lib/story-pack';
 import { deleteRoomAPI } from '@/lib/api-client-room';
@@ -182,13 +183,12 @@ export default function ChatHistory({ packs }: ChatHistoryProps) {
   );
 
   return (
-    <PageLayout 
-      title="내 대화" 
-      subtitle="이전 대화를 이어가세요" 
-      width="md"
-      showBackButton
-    >
+    <AppContainer>
+      <PageHeader 
+        title="내 대화" 
+        subtitle="이전 대화를 이어가세요"
+      />
       {sessions.length === 0 ? emptyState : sessionList}
-    </PageLayout>
+    </AppContainer>
   );
 }

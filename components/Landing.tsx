@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Search, ChevronLeft, ChevronRight, Heart, Users } from 'lucide-react';
 import type { ClientStoryPack, WorldCardData } from '@/lib/story-pack';
+import { AppContainer, PageHeader } from '@/components/layout/AppContainer';
 
 interface LandingProps {
   packs: ClientStoryPack[];
@@ -153,10 +154,10 @@ export default function Landing({ packs, worlds }: LandingProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
   return (
-    <div className="min-h-screen bg-black">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-black/80 backdrop-blur-md border-b border-white/[0.06]">
-        <div className="px-4 h-14 flex items-center justify-between max-w-7xl mx-auto">
+    <AppContainer>
+      {/* Header - Sticky within container */}
+      <div className="sticky top-0 z-50 bg-black/80 backdrop-blur-md -mx-4 lg:-mx-8 px-4 lg:px-8 py-3 border-b border-white/[0.06]">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
               <span className="text-white text-sm font-black">N</span>
@@ -181,9 +182,9 @@ export default function Landing({ packs, worlds }: LandingProps) {
             로그인
           </button>
         </div>
-      </header>
+      </div>
 
-      <main className="max-w-7xl mx-auto">
+      <main>
         {/* Hero Banner */}
         <HeroBanner />
 
@@ -212,7 +213,7 @@ export default function Landing({ packs, worlds }: LandingProps) {
 
         <div className="h-20" />
       </main>
-    </div>
+    </AppContainer>
   );
 }
 
