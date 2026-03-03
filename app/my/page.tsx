@@ -17,6 +17,7 @@ import {
   Shield,
   Palette
 } from 'lucide-react';
+import { PageLayout, PageCard, PageSection } from '@/components/layout';
 
 // 목업 데이터
 const MOCK_USER = {
@@ -37,18 +38,15 @@ const MOCK_MY_CONTENTS = [
 
 export default function MyPage() {
   return (
-    <div className="min-h-screen bg-black pb-24">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-black/80 backdrop-blur-md border-b border-white/[0.06]">
-        <div className="px-4 h-14 flex items-center justify-between max-w-7xl mx-auto">
-          <h1 className="text-lg font-bold text-white">마이</h1>
-          <button className="p-2 rounded-full hover:bg-white/[0.06] transition-colors">
-            <Settings className="w-5 h-5 text-gray-400" />
-          </button>
-        </div>
-      </header>
+    <PageLayout title="마이" width="lg">
+      {/* Settings button in header */}
+      <div className="flex justify-end mb-4">
+        <button className="p-2 rounded-full hover:bg-white/[0.06] transition-colors">
+          <Settings className="w-5 h-5 text-gray-400" />
+        </button>
+      </div>
 
-      <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+      <div className="space-y-6">
         {/* Profile Section */}
         <ProfileSection user={MOCK_USER} />
 
@@ -66,8 +64,8 @@ export default function MyPage() {
 
         {/* Menu List */}
         <MenuSection />
-      </main>
-    </div>
+      </div>
+    </PageLayout>
   );
 }
 
