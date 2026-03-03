@@ -4,9 +4,6 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Search, ChevronLeft, ChevronRight, Heart, Users } from 'lucide-react';
 import type { ClientStoryPack, WorldCardData } from '@/lib/story-pack';
-import Link from 'next/link';
-import { Search, ChevronLeft, ChevronRight, Heart, Users } from 'lucide-react';
-import type { ClientStoryPack, WorldCardData } from '@/lib/story-pack';
 
 interface LandingProps {
   packs: ClientStoryPack[];
