@@ -3,4 +3,5 @@
 // Extend CloudflareEnv with our custom KV binding
 interface CloudflareEnv {
   ROOM_KV?: KVNamespace;
+  AUTH_DB?: D1Database;
 }

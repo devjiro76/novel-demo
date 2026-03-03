@@ -1,36 +1,26 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { 
-  User, 
-  Settings, 
-  Heart, 
-  Clock, 
-  Crown, 
-  Coins, 
+import {
+  Settings,
+  Heart,
+  Clock,
+  Crown,
+  Coins,
   TrendingUp,
   ChevronRight,
   LogOut,
   HelpCircle,
   Bell,
   Shield,
-  Palette
+  Palette,
+  Loader2,
 } from 'lucide-react';
 import { PageLayout, PageCard, PageSection } from '@/components/layout';
 import { AppContainer, PageHeader } from '@/components/layout/AppContainer';
-
-// 목업 데이터
-const MOCK_USER = {
-  name: '사용자',
-  handle: '@user123',
-  avatar: null,
-  level: 'Gold',
-  isVIP: true,
-  vipExpiry: '2026.06.30',
-  coins: 1250,
-  revenue: 85000, // 원
-};
+import { useSession, signOut } from '@/lib/auth-client';
 
 const MOCK_MY_CONTENTS = [
   { id: 1, title: '내가 만든 월드 1', type: 'world', views: 1200, likes: 45 },
@@ -38,9 +28,42 @@ const MOCK_MY_CONTENTS = [
 ];
 
 export default function MyPage() {
+  const router = useRouter();
+  const { data: session, isPending } = useSession();
+
+  useEffect(() => {
+    if (!isPending && !session) {
+      router.replace('/login');
+    }
+  }, [isPending, session, router]);
+
+  if (isPending) {
+    return (
+      <AppContainer>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
+        </div>
+      </AppContainer>
+    );
+  }
+
+  if (!session) return null;
+
+  const user = {
+    name: session.user.name ?? '사용자',
+    email: session.user.email,
+    image: session.user.image,
+    // 아직 VIP/코인 시스템 미구현 — 기본값
+    level: 'Free',
+    isVIP: false,
+    vipExpiry: '',
+    coins: 0,
+    revenue: 0,
+  };
+
   return (
     <AppContainer>
-      <PageHeader 
+      <PageHeader
         title="마이"
         rightContent={
           <button className="p-2 rounded-full hover:bg-white/[0.06] transition-colors">
@@ -51,16 +74,16 @@ export default function MyPage() {
 
       <div className="space-y-6">
         {/* Profile Section */}
-        <ProfileSection user={MOCK_USER} />
+        <ProfileSection user={user} />
 
         {/* VIP Banner */}
-        <VIPBanner isVIP={MOCK_USER.isVIP} expiry={MOCK_USER.vipExpiry} />
+        <VIPBanner isVIP={user.isVIP} expiry={user.vipExpiry} />
 
         {/* Assets Section */}
-        <AssetsSection coins={MOCK_USER.coins} />
+        <AssetsSection coins={user.coins} />
 
         {/* Creator Revenue */}
-        <RevenueSection revenue={MOCK_USER.revenue} />
+        <RevenueSection revenue={user.revenue} />
 
         {/* My Contents */}
         <MyContentsSection contents={MOCK_MY_CONTENTS} />
@@ -73,7 +96,18 @@ export default function MyPage() {
 }
 
 // Profile Section
-function ProfileSection({ user }: { user: typeof MOCK_USER }) {
+interface UserInfo {
+  name: string;
+  email: string;
+  image?: string | null;
+  level: string;
+  isVIP: boolean;
+  vipExpiry: string;
+  coins: number;
+  revenue: number;
+}
+
+function ProfileSection({ user }: { user: UserInfo }) {
   return (
     <div className="flex items-center gap-4">
       <div className="relative">
@@ -86,7 +120,7 @@ function ProfileSection({ user }: { user: typeof MOCK_USER }) {
           </div>
         )}
       </div>
-      
+
       <div className="flex-1">
         <div className="flex items-center gap-2">
           <h2 className="text-xl font-bold text-white">{user.name}</h2>
@@ -94,7 +128,7 @@ function ProfileSection({ user }: { user: typeof MOCK_USER }) {
             {user.level}
           </span>
         </div>
-        <p className="text-sm text-gray-500">{user.handle}</p>
+        <p className="text-sm text-gray-500">{user.email}</p>
         
         <div className="flex items-center gap-3 mt-2">
           <Link 
@@ -330,7 +364,13 @@ function MenuSection() {
       ))}
       
       {/* Logout */}
-      <button className="flex items-center gap-3 px-4 py-3 w-full text-red-400 hover:bg-red-500/10 rounded-xl transition-colors">
+      <button
+        onClick={async () => {
+          await signOut();
+          window.location.href = '/login';
+        }}
+        className="flex items-center gap-3 px-4 py-3 w-full text-red-400 hover:bg-red-500/10 rounded-xl transition-colors"
+      >
         <LogOut className="w-5 h-5" />
         <span className="text-sm font-medium">로그아웃</span>
       </button>

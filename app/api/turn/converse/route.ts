@@ -7,12 +7,16 @@ import { generateAppraisal } from '@/lib/appraisal';
 import { DebugLog } from '@/lib/debug';
 import { getStoryPack } from '@/lib/story-pack';
 import { resolveEmotionLabel } from '@/lib/emotion';
+import { rateLimitGuard } from '@/lib/rate-limit';
 
 export async function POST(request: Request) {
   const env = getEnv();
   const dbg = new DebugLog();
 
   try {
+    const blocked = await rateLimitGuard(request);
+    if (blocked) return blocked;
+
     const body = await request.json() as {
       slug?: string;
       worldId: string;

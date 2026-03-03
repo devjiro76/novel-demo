@@ -8,6 +8,7 @@ import { getStoryPack } from '@/lib/story-pack';
 import { updateSummaryIfNeeded, loadLongMemory } from '@/lib/memory';
 import type { RoomMessage } from '@/lib/room';
 import { resolveEmotionLabel } from '@/lib/emotion';
+import { rateLimitGuard } from '@/lib/rate-limit';
 
 export async function POST(
   request: Request,
@@ -17,6 +18,9 @@ export async function POST(
   const env = getEnv();
 
   try {
+    const blocked = await rateLimitGuard(request);
+    if (blocked) return blocked;
+
     const body = await request.json() as {
       playerId: string;
       text: string;

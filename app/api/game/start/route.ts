@@ -2,8 +2,12 @@ import { NextResponse } from 'next/server';
 import { Molroo } from '@molroo-io/sdk/world';
 import { getEnv } from '@/lib/types';
 import { getStoryPack } from '@/lib/story-pack';
+import { rateLimitGuard } from '@/lib/rate-limit';
 
 export async function POST(request: Request) {
+  const blocked = await rateLimitGuard(request);
+  if (blocked) return blocked;
+
   const body = await request.json().catch(() => ({})) as { slug?: string };
   const pack = getStoryPack(body.slug);
   const env = getEnv();

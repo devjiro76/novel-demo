@@ -17,6 +17,13 @@
 			"id": "5a00076bd3304860ae4569a15609c6d8"
 		}
 	],
+	"d1_databases": [
+		{
+			"binding": "AUTH_DB",
+			"database_name": "novel-auth-db",
+			"database_id": "9c8d9c3e-2c77-4977-b716-c5c90cbc3280"
+		}
+	],
 	"vars": {
 		"WORLD_API_URL": "https://api.molroo.io",
 		"VILLAGE_ID": "764c24aa-8437-44e4-8244-bea0efaaf500",
