@@ -2,390 +2,412 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, Sparkles, Users, Globe, ChevronRight } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Heart, Users, Sparkles } from 'lucide-react';
 import type { ClientStoryPack, WorldCardData } from '@/lib/story-pack';
-import CharacterCard from '@/components/CharacterCard';
 
 interface LandingProps {
   packs: ClientStoryPack[];
   worlds: WorldCardData[];
 }
 
-type TabId = 'all' | string;
-type ViewMode = 'worlds' | 'characters';
-type WorldCharacter = WorldCardData['characters'][number];
+// 목업 데이터 - 월드 중심
+const MOCK_BANNERS = [
+  {
+    id: '1',
+    title: '새로운 월드가 열립니다',
+    subtitle: 'AI와 함께 만드는 무한한 이야기',
+    badge: 'NEW',
+    color: 'from-purple-600/80 to-pink-900/80',
+  },
+  {
+    id: '2', 
+    title: '이번 주 인기 월드',
+    subtitle: '가장 많은 사랑을 받은 세계관',
+    badge: 'HOT',
+    color: 'from-orange-600/80 to-red-900/80',
+  },
+];
 
-function extractAllCharacters(worlds: WorldCardData[]): Array<{
-  char: WorldCharacter;
-  world: WorldCardData;
-  slug: string;
-}> {
-  const characters: Array<{ char: WorldCharacter; world: WorldCardData; slug: string }> = [];
-  worlds.forEach(world => {
-    const slug = world.slug ?? world.id;
-    world.characters
-      .filter(c => c.role)
-      .forEach(char => {
-        characters.push({ char, world, slug });
-      });
-  });
-  return characters;
-}
+const MOCK_WORLDS = [
+  {
+    id: 'w1',
+    name: '고등학교 로맨스',
+    description: '설렘 가득한 청춘의 한 페이지. 첫사랑의 순간을 함께하세요.',
+    image: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=600&h=800&fit=crop',
+    characters: [
+      { name: '김민경', image: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&h=100&fit=crop' },
+      { name: '최수아', image: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=100&h=100&fit=crop' },
+      { name: '박지연', image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop' },
+    ],
+    likes: 12500,
+    members: 3400,
+    tags: ['#순애', '#학원', '#청춘'],
+    author: '@로맨스작가',
+    badge: 'HOT',
+  },
+  {
+    id: 'w2',
+    name: '대학 캠퍼스',
+    description: '어른이 되어가는 과정, 그 속에서 만나는 특별한 인연들.',
+    image: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=600&h=800&fit=crop',
+    characters: [
+      { name: '윤서하', image: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=100&h=100&fit=crop' },
+      { name: '김준호', image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop' },
+    ],
+    likes: 8900,
+    members: 2100,
+    tags: ['#순애', '#선후배', '#성장'],
+    author: '@캠퍼스작가',
+    badge: 'N',
+  },
+  {
+    id: 'w3',
+    name: '서울 오피스',
+    description: '바쁜 일상 속에서 피어나는 사내 연애. 직장인들의 현실 로맨스.',
+    image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&h=800&fit=crop',
+    characters: [
+      { name: '박채원', image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop' },
+      { name: '이과장', image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop' },
+      { name: '김대리', image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop' },
+      { name: '정팀장', image: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop' },
+    ],
+    likes: 15600,
+    members: 5200,
+    tags: ['#성인', '#사내연애', '#오피스'],
+    author: '@현실주의작가',
+    badge: 'HOT',
+  },
+  {
+    id: 'w4',
+    name: '스타트업',
+    description: '꿈을 향해 달리는 청춘들. 성공과 사랑, 둘 다 잡을 수 있을까?',
+    image: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=600&h=800&fit=crop',
+    characters: [
+      { name: '이지은', image: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&h=100&fit=crop' },
+      { name: '최CTO', image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop' },
+    ],
+    likes: 6700,
+    members: 1800,
+    tags: ['#순애', '#동료', '#IT'],
+    author: '@테크작가',
+    badge: 'N',
+  },
+  {
+    id: 'w5',
+    name: '재벌가',
+    description: '화려한 삶 뒤에 숨겨진 외로움. 그녀와의 특별한 인연이 시작된다.',
+    image: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=600&h=800&fit=crop',
+    characters: [
+      { name: '정유미', image: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=100&h=100&fit=crop' },
+      { name: '김비서', image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop' },
+    ],
+    likes: 22100,
+    members: 6700,
+    tags: ['#성인', '#금수저', '#드라마'],
+    author: '@드라마작가',
+    badge: 'HOT',
+  },
+  {
+    id: 'w6',
+    name: '연예계',
+    description: '빛나는 무대 뒤에 숨겨진 진짜 모습. 당신만이 알 수 있는 그녀의 이야기.',
+    image: 'https://images.unsplash.com/photo-1502823403499-6ccfcf4fb453?w=600&h=800&fit=crop',
+    characters: [
+      { name: '송아린', image: 'https://images.unsplash.com/photo-1502823403499-6ccfcf4fb453?w=100&h=100&fit=crop' },
+      { name: '매니저', image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop' },
+      { name: '감독', image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop' },
+    ],
+    likes: 34200,
+    members: 8900,
+    tags: ['#아이돌', '#연예계', '#스캔들'],
+    author: '@연예작가',
+    badge: 'HOT',
+  },
+  {
+    id: 'w7',
+    name: '판타지 왕국',
+    description: '마법과 용사가 공존하는 세계. 당신만의 전설을 써내려가세요.',
+    image: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&h=800&fit=crop',
+    characters: [
+      { name: '엘프공주', image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop' },
+      { name: '기사', image: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop' },
+      { name: '마법사', image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop' },
+    ],
+    likes: 18900,
+    members: 4300,
+    tags: ['#판타지', '#마법', '#모험'],
+    author: '@판타지작가',
+    badge: 'HOT',
+  },
+  {
+    id: 'w8',
+    name: '좀비 아포칼립스',
+    description: '종말의 세계, 살아남기 위한 선택. 인간성을 지킬 수 있을까?',
+    image: 'https://images.unsplash.com/photo-1509248961158-e54f6934749c?w=600&h=800&fit=crop',
+    characters: [
+      { name: '생존자', image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop' },
+      { name: '의사', image: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=100&h=100&fit=crop' },
+    ],
+    likes: 15400,
+    members: 3200,
+    tags: ['#아포칼립스', '#생존', '#액션'],
+    author: '@스릴러작가',
+    badge: 'HOT',
+  },
+];
+
+const MOCK_SECTIONS = [
+  {
+    title: '🔥 인기 월드',
+    worlds: MOCK_WORLDS.slice(0, 5),
+  },
+  {
+    title: '💕 로맨스 월드',
+    worlds: MOCK_WORLDS.filter(w => w.tags.some(t => t.includes('순애') || t.includes('성인'))).slice(0, 5),
+  },
+  {
+    title: '⚔️ 판타지/액션',
+    worlds: MOCK_WORLDS.filter(w => w.tags.some(t => t.includes('판타지') || t.includes('아포칼립스'))).slice(0, 5),
+  },
+  {
+    title: '✨ 신규 월드',
+    worlds: MOCK_WORLDS.filter(w => w.badge === 'N').slice(0, 5),
+  },
+];
 
 export default function Landing({ packs, worlds }: LandingProps) {
-  const [activeTab, setActiveTab] = useState<TabId>('all');
-  const [viewMode, setViewMode] = useState<ViewMode>('worlds');
+  const [currentBanner, setCurrentBanner] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchOpen, setSearchOpen] = useState(false);
 
-  const allTags = Array.from(
-    new Set(worlds.flatMap(w => w.tags))
-  ).sort((a, b) => a.localeCompare(b, 'ko'));
-
-  const tabs: { id: TabId; label: string }[] = [
-    { id: 'all', label: '전체' },
-    ...allTags.slice(0, 8).map(tag => ({ id: tag, label: tag })),
-  ];
-
-  // Filter worlds
-  const filteredWorlds = activeTab === 'all'
-    ? worlds
-    : worlds.filter(w => w.tags.includes(activeTab));
-  const searchedWorlds = searchQuery.trim()
-    ? filteredWorlds.filter(w => {
-        const q = searchQuery.toLowerCase();
-        return (
-          w.name.toLowerCase().includes(q) ||
-          w.description.toLowerCase().includes(q) ||
-          w.tags.some(t => t.toLowerCase().includes(q)) ||
-          w.characters.some(c => c.name.toLowerCase().includes(q))
-        );
-      })
-    : filteredWorlds;
-
-  // Filter characters
-  const allCharacters = extractAllCharacters(worlds);
-  const filteredCharacters = activeTab === 'all'
-    ? allCharacters
-    : allCharacters.filter(({ world }) => world.tags.includes(activeTab));
-  const searchedCharacters = searchQuery.trim()
-    ? filteredCharacters.filter(({ char, world }) => {
-        const q = searchQuery.toLowerCase();
-        return (
-          char.name.toLowerCase().includes(q) ||
-          char.fullName.toLowerCase().includes(q) ||
-          char.role.toLowerCase().includes(q) ||
-          world.name.toLowerCase().includes(q)
-        );
-      })
-    : filteredCharacters;
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentBanner(prev => (prev + 1) % MOCK_BANNERS.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-black">
       {/* Header */}
-      <header className="px-4 pt-6 pb-4 lg:px-6 lg:pt-8 lg:pb-6">
-        <div className="flex items-center justify-between mb-4 lg:mb-6">
-          {/* Mobile: Logo */}
-          <div className="flex items-center gap-2 lg:hidden">
-            <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center"
-              style={{ background: 'var(--color-brand-gradient)', boxShadow: '0 0 20px rgba(168,85,247,0.4)' }}
-            >
+      <header className="sticky top-0 z-50 bg-black/80 backdrop-blur-md border-b border-white/[0.06]">
+        <div className="px-4 h-14 flex items-center justify-between max-w-7xl mx-auto">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
               <span className="text-white text-sm font-black">N</span>
             </div>
-            <span className="text-xl font-black text-gradient">Novel</span>
+            <span className="text-lg font-bold text-white hidden sm:block">Novel</span>
           </div>
 
-          {/* Desktop: Title */}
-          <div className="hidden lg:block">
-            <h1 className="text-3xl font-black text-gradient mb-2">캐릭터와 함께하는 이야기</h1>
-            <p className="text-[var(--color-text-secondary)]">AI와 함께 만들어가는 인터랙티브 노벨</p>
+          <div className="flex-1 max-w-md mx-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="월드 검색..."
+                className="w-full bg-gray-900 border border-gray-800 rounded-full pl-10 pr-4 py-2 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500/50"
+              />
+            </div>
           </div>
 
-          {/* Desktop: Search (always visible) */}
-          <div className="hidden lg:block relative w-80">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-muted)]" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder="월드, 캐릭터 검색..."
-              className="w-full bg-[var(--color-surface)] border border-white/[0.06] rounded-xl pl-10 pr-4 py-3 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-brand-primary)]/30 transition-colors"
-            />
-          </div>
-
-          {/* Mobile: Search toggle */}
-          <button
-            onClick={() => setSearchOpen(!searchOpen)}
-            className="lg:hidden w-9 h-9 rounded-xl flex items-center justify-center text-[var(--color-text-muted)] hover:text-white/60 hover:bg-white/[0.06] transition-colors"
-            aria-label="검색"
-          >
-            <Search className="w-5 h-5" />
+          <button className="px-3 py-1.5 rounded-full bg-purple-500/20 text-purple-400 text-xs font-medium border border-purple-500/30">
+            로그인
           </button>
-        </div>
-
-        {/* Mobile: Search input (toggle) */}
-        {searchOpen && (
-          <div className="lg:hidden pb-3 animate-slide-down">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder="월드, 캐릭터 검색..."
-              autoFocus
-              className="w-full bg-[var(--color-surface)] border border-white/[0.06] rounded-xl px-4 py-3 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-brand-primary)]/30 transition-colors"
-            />
-          </div>
-        )}
-
-        {/* View Mode Toggle */}
-        <div className="flex gap-2 mb-3">
-          <button
-            onClick={() => setViewMode('worlds')}
-            className="flex items-center gap-1.5 px-3 py-1.5 lg:px-4 lg:py-2 rounded-lg lg:rounded-xl text-xs lg:text-sm font-medium transition-all"
-            style={{
-              background: viewMode === 'worlds' ? 'var(--color-surface)' : 'transparent',
-              border: '1px solid rgba(255,255,255,0.06)',
-              color: viewMode === 'worlds' ? 'var(--color-text)' : 'var(--color-text-muted)',
-            }}
-          >
-            <Globe className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
-            월드
-          </button>
-          <button
-            onClick={() => setViewMode('characters')}
-            className="flex items-center gap-1.5 px-3 py-1.5 lg:px-4 lg:py-2 rounded-lg lg:rounded-xl text-xs lg:text-sm font-medium transition-all"
-            style={{
-              background: viewMode === 'characters' ? 'var(--color-surface)' : 'transparent',
-              border: '1px solid rgba(255,255,255,0.06)',
-              color: viewMode === 'characters' ? 'var(--color-text)' : 'var(--color-text-muted)',
-            }}
-          >
-            <Users className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
-            캐릭터
-          </button>
-        </div>
-
-        {/* Category tabs */}
-        <div className="flex gap-2 overflow-x-auto lg:flex-wrap scrollbar-hide pb-1">
-          {tabs.map(tab => {
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className="shrink-0 px-4 py-1.5 lg:py-2 rounded-full text-xs lg:text-sm font-semibold transition-all duration-200 active:scale-95"
-                style={
-                  isActive
-                    ? { background: 'var(--color-brand-gradient)', color: 'white', boxShadow: '0 0 12px rgba(168,85,247,0.3)' }
-                    : { background: 'var(--color-surface)', color: 'var(--color-text-muted)', border: '1px solid rgba(255,255,255,0.06)' }
-                }
-              >
-                {tab.label}
-              </button>
-            );
-          })}
         </div>
       </header>
 
-      {/* Content */}
-      <main className="px-4 pb-24 lg:px-6 lg:pb-8">
-        {/* Featured — Desktop only, worlds mode, no search */}
-        {viewMode === 'worlds' && !searchQuery && searchedWorlds.length > 0 && (
-          <section className="hidden lg:block mb-10">
-            <div className="flex items-center gap-2 mb-4">
-              <Sparkles className="w-5 h-5 text-[var(--color-brand-primary)]" />
-              <h2 className="text-xl font-bold">추천 월드</h2>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              {searchedWorlds.slice(0, 2).map(world => (
-                <FeaturedWorldCard key={world.id} world={world} />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Worlds View */}
-        {viewMode === 'worlds' && (
-          <div className="space-y-6 lg:space-y-8">
-            {searchedWorlds.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20">
-                <p className="text-sm text-[var(--color-text-muted)]">
-                  {searchQuery ? `'${searchQuery}' 검색 결과 없음` : '월드가 없습니다.'}
-                </p>
+      <main className="max-w-7xl mx-auto">
+        {/* Banner */}
+        <section className="relative px-4 py-4">
+          <div className="relative rounded-2xl overflow-hidden aspect-[3/1] md:aspect-[4/1]">
+            {MOCK_BANNERS.map((banner, index) => (
+              <div
+                key={banner.id}
+                className={`absolute inset-0 transition-opacity duration-500 ${
+                  index === currentBanner ? 'opacity-100' : 'opacity-0'
+                }`}
+              >
+                <div className={`absolute inset-0 bg-gradient-to-r ${banner.color}`} />
+                <div className="absolute inset-0 flex flex-col justify-center px-6 md:px-12">
+                  <span className="inline-block w-fit px-2 py-1 rounded bg-white/20 text-white text-xs font-bold mb-2 backdrop-blur-sm">
+                    {banner.badge}
+                  </span>
+                  <h2 className="text-xl md:text-3xl font-black text-white mb-1">
+                    {banner.title}
+                  </h2>
+                  <p className="text-sm md:text-base text-white/80">
+                    {banner.subtitle}
+                  </p>
+                </div>
               </div>
-            ) : (
-              searchedWorlds.map(world => (
-                <WorldSection key={world.id} world={world} />
-              ))
-            )}
-            <CommunityWorlds />
+            ))}
+            <div className="absolute bottom-3 right-4 text-xs text-white/80">
+              {currentBanner + 1} / {MOCK_BANNERS.length}
+            </div>
           </div>
-        )}
+        </section>
 
-        {/* Characters View */}
-        {viewMode === 'characters' && (
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <Users className="w-4 h-4 lg:w-5 lg:h-5 text-[var(--color-brand-primary)]" />
-              <h2 className="text-sm lg:text-xl font-bold">전체 캐릭터</h2>
-              <span className="text-xs lg:text-sm text-[var(--color-text-muted)]">
-                ({searchedCharacters.length}명)
-              </span>
-            </div>
-            {searchedCharacters.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20">
-                <p className="text-sm text-[var(--color-text-muted)]">
-                  {searchQuery ? `'${searchQuery}' 검색 결과 없음` : '캐릭터가 없습니다.'}
-                </p>
-              </div>
-            ) : (
-              <div className="flex flex-wrap gap-3 lg:gap-4">
-                {searchedCharacters.map(({ char, world, slug }, index) => (
-                  <CharacterCard
-                    key={char.id}
-                    charId={char.id}
-                    name={char.name}
-                    fullName={char.fullName}
-                    role={char.role}
-                    age={char.age}
-                    image={char.image}
-                    glow={char.glow}
-                    glowRgb={char.glowRgb}
-                    slug={slug}
-                    index={index}
-                  />
-                ))}
-              </div>
-            )}
+        {/* Tabs */}
+        <section className="px-4 py-2 border-b border-white/[0.06]">
+          <div className="flex gap-6 overflow-x-auto scrollbar-hide">
+            {['홈', '신작', '랭킹', '로맨스', '판타지', '성인'].map((tab, i) => (
+              <button
+                key={tab}
+                className={`whitespace-nowrap pb-2 text-sm font-medium transition-colors relative ${
+                  i === 0 ? 'text-white' : 'text-gray-500 hover:text-gray-300'
+                }`}
+              >
+                {tab}
+                {i === 0 && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-pink-500" />}
+              </button>
+            ))}
           </div>
-        )}
+        </section>
+
+        {/* World Sections */}
+        {MOCK_SECTIONS.map((section, index) => (
+          <WorldSection key={index} title={section.title} worlds={section.worlds} />
+        ))}
+
+        <div className="h-20" />
       </main>
     </div>
   );
 }
 
-/* ---- Sub-components ---- */
+// World Section
+function WorldSection({ title, worlds }: { title: string; worlds: typeof MOCK_WORLDS }) {
+  const [scrollRef, setScrollRef] = useState<HTMLDivElement | null>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
 
-function FeaturedWorldCard({ world }: { world: WorldCardData }) {
-  const npcChars = world.characters.filter(c => c.role);
-  const firstChar = npcChars[0];
+  const checkScroll = (el: HTMLDivElement) => {
+    setCanScrollLeft(el.scrollLeft > 0);
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 10);
+  };
+
+  const scroll = (direction: 'left' | 'right') => {
+    if (scrollRef) {
+      scrollRef.scrollBy({ left: direction === 'left' ? -300 : 300, behavior: 'smooth' });
+    }
+  };
 
   return (
-    <Link href={`/world/${world.id}`}>
+    <section className="py-6">
+      <div className="px-4 flex items-center justify-between mb-4">
+        <h2 className="text-lg font-bold text-white">{title}</h2>
+        <div className="flex items-center gap-2">
+          <button className="text-sm text-gray-500 hover:text-white">더 보기</button>
+          <div className="flex gap-1">
+            <button
+              onClick={() => scroll('left')}
+              className={`w-7 h-7 rounded-full flex items-center justify-center ${
+                canScrollLeft ? 'bg-gray-800 text-white' : 'bg-gray-900 text-gray-600'
+              }`}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => scroll('right')}
+              className={`w-7 h-7 rounded-full flex items-center justify-center ${
+                canScrollRight ? 'bg-gray-800 text-white' : 'bg-gray-900 text-gray-600'
+              }`}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div
-        className="relative overflow-hidden rounded-2xl p-6 group cursor-pointer transition-all duration-300 hover:scale-[1.01]"
-        style={{
-          background: `linear-gradient(135deg, rgba(168,85,247,0.1) 0%, var(--color-surface) 100%)`,
-          border: '1px solid rgba(255,255,255,0.06)',
-        }}
+        ref={setScrollRef}
+        onScroll={e => checkScroll(e.currentTarget)}
+        className="flex gap-4 overflow-x-auto scrollbar-hide px-4 pb-2"
       >
-        <div className="flex gap-4">
-          <div
-            className="w-20 h-20 rounded-xl overflow-hidden shrink-0"
-            style={{ background: firstChar ? `rgba(${firstChar.glowRgb},0.1)` : 'var(--color-surface-2)' }}
-          >
-            {firstChar?.image ? (
-              <img src={firstChar.image} alt="" className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-2xl">🌏</div>
-            )}
-          </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-bold mb-1 truncate">{world.name}</h3>
-            <p className="text-sm text-[var(--color-text-secondary)] line-clamp-2 mb-3">
-              {world.description}
-            </p>
-            <div className="flex items-center gap-2">
-              <span className="text-xs px-2 py-1 rounded-full bg-white/[0.06] text-[var(--color-text-muted)]">
-                {npcChars.length}개 캐릭터
-              </span>
-              {world.tags.slice(0, 2).map(tag => (
-                <span
-                  key={tag}
-                  className="text-xs px-2 py-1 rounded-full"
-                  style={{ background: 'rgba(168,85,247,0.1)', color: 'var(--color-brand-primary)' }}
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </div>
-          <ChevronRight className="w-5 h-5 text-[var(--color-text-muted)] self-center" />
-        </div>
-      </div>
-    </Link>
-  );
-}
-
-function WorldSection({ world }: { world: WorldCardData }) {
-  const slug = world.slug ?? world.id;
-  const npcChars = world.characters.filter(c => c.role);
-
-  return (
-    <section>
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="text-base">🌏</span>
-          <Link href={`/world/${world.id}`}>
-            <h3 className="text-sm font-bold text-[var(--color-text)] truncate hover:text-[var(--color-brand-primary)] transition-colors">
-              {world.name}
-            </h3>
-          </Link>
-        </div>
-        <span className="text-[11px] text-[var(--color-text-muted)] shrink-0">
-          {npcChars.length}캐릭터
-        </span>
-      </div>
-      <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-1">
-        {npcChars.map((char, index) => (
-          <CharacterCard
-            key={char.id}
-            charId={char.id}
-            name={char.name}
-            fullName={char.fullName}
-            role={char.role}
-            age={char.age}
-            image={char.image}
-            glow={char.glow}
-            glowRgb={char.glowRgb}
-            slug={slug}
-            index={index}
-          />
+        {worlds.map((world, index) => (
+          <WorldCard key={world.id} world={world} index={index} />
         ))}
       </div>
     </section>
   );
 }
 
-function CommunityWorlds() {
-  const [worlds, setWorlds] = useState<WorldCardData[]>([]);
-
-  useEffect(() => {
-    fetch('/api/world')
-      .then(res => res.json() as Promise<{ ok: boolean; worlds: WorldCardData[] }>)
-      .then(data => {
-        if (data.ok && data.worlds?.length > 0) setWorlds(data.worlds);
-      })
-      .catch(() => {});
-  }, []);
-
-  if (worlds.length === 0) return null;
+// World Card
+function WorldCard({ world, index }: { world: typeof MOCK_WORLDS[0]; index: number }) {
+  const formatNumber = (num: number) => {
+    if (num >= 10000) return `${(num / 10000).toFixed(1)}만`;
+    if (num >= 1000) return `${(num / 1000).toFixed(0)}천`;
+    return num.toString();
+  };
 
   return (
-    <section className="pt-4 border-t border-white/[0.06]">
-      <div className="flex items-center gap-2 mb-4">
-        <h2 className="text-base font-bold">커뮤니티 월드</h2>
-        <span
-          className="text-[10px] px-2 py-0.5 rounded-full font-medium"
-          style={{ background: 'rgba(168,85,247,0.1)', color: 'var(--color-brand-primary)', border: '1px solid rgba(168,85,247,0.2)' }}
-        >
-          NEW
-        </span>
+    <Link href={`/world/${world.id}`} className="group flex-shrink-0 w-[200px] md:w-[240px]">
+      {/* Image */}
+      <div className="relative aspect-[4/5] rounded-xl overflow-hidden bg-gray-900 mb-3">
+        <img
+          src={world.image}
+          alt={world.name}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+
+        {/* Badge */}
+        <div className="absolute top-2 left-2">
+          <span className="px-1.5 py-0.5 rounded bg-black/50 text-white text-[10px] font-bold">
+            {world.badge}
+          </span>
+        </div>
+
+        {/* Like button */}
+        <div className="absolute top-2 right-2">
+          <button className="w-6 h-6 rounded-full bg-black/30 flex items-center justify-center hover:bg-pink-500/50 transition-colors">
+            <Heart className="w-3 h-3 text-white" />
+          </button>
+        </div>
+
+        {/* Character avatars */}
+        <div className="absolute bottom-2 left-2 flex -space-x-1.5">
+          {world.characters.slice(0, 3).map((char, i) => (
+            <div key={i} className="w-7 h-7 rounded-full overflow-hidden ring-2 ring-black">
+              <img src={char.image} alt="" className="w-full h-full object-cover" />
+            </div>
+          ))}
+          {world.characters.length > 3 && (
+            <div className="w-7 h-7 rounded-full bg-black/70 flex items-center justify-center text-[9px] text-white ring-2 ring-black">
+              +{world.characters.length - 3}
+            </div>
+          )}
+        </div>
+
+        {/* Stats */}
+        <div className="absolute bottom-2 right-2 flex items-center gap-2 text-white/80 text-[10px]">
+          <span className="flex items-center gap-1">
+            <Users className="w-3 h-3" />
+            {formatNumber(world.members)}
+          </span>
+          <span className="flex items-center gap-1">
+            <Heart className="w-3 h-3" />
+            {formatNumber(world.likes)}
+          </span>
+        </div>
       </div>
-      {worlds.map(world => (
-        <WorldSection key={world.id} world={world} />
-      ))}
-    </section>
+
+      {/* Info */}
+      <div className="space-y-1">
+        <h3 className="text-sm font-bold text-white truncate group-hover:text-pink-400">
+          {world.name}
+        </h3>
+        <p className="text-xs text-gray-500 line-clamp-2">{world.description}</p>
+        
+        <div className="flex flex-wrap gap-1.5 pt-1">
+          {world.tags.slice(0, 3).map(tag => (
+            <span key={tag} className="text-[9px] text-gray-600">{tag}</span>
+          ))}
+        </div>
+        
+        <p className="text-[10px] text-gray-600">{world.author}</p>
+      </div>
+    </Link>
   );
 }
