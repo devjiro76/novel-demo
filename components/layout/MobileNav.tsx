@@ -12,9 +12,9 @@ const NAV_ITEMS = [
     isPrimary: false as const,
   },
   {
-    href: '/explore',
-    label: '탐색',
-    icon: Search,
+    href: '/chats',
+    label: '채팅',
+    icon: MessageCircle,
     isPrimary: false as const,
   },
   {
@@ -22,12 +22,6 @@ const NAV_ITEMS = [
     label: '만들기',
     icon: PlusCircle,
     isPrimary: true as const,
-  },
-  {
-    href: '/chats',
-    label: '채팅',
-    icon: MessageCircle,
-    isPrimary: false as const,
   },
   {
     href: '/my',

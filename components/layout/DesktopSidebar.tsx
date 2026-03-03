@@ -18,8 +18,6 @@ import {
 const MAIN_NAV_ITEMS = [
   { href: '/', label: '홈', icon: Home },
   { href: '/chats', label: '채팅', icon: MessageCircle },
-  { href: '/explore', label: '탐색', icon: Compass },
-  { href: '/ranking', label: '랭킹', icon: TrendingUp },
 ] as const;
 
 const SECONDARY_NAV_ITEMS = [
