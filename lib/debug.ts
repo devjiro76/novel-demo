@@ -61,8 +61,8 @@ export class DebugLog {
   logEmotionChange(
     characterId: string,
     displayName: string,
-    before: { vad: { V: number; A: number; D: number }; discrete?: string } | null,
-    after: { vad: { V: number; A: number; D: number }; discrete?: string } | null,
+    before: { vad: { V: number; A: number; D: number }; label?: string } | null,
+    after: { vad: { V: number; A: number; D: number }; label?: string } | null,
     actionName: string,
   ) {
     const bVad = before?.vad;
