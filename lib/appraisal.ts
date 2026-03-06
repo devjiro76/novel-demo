@@ -5,7 +5,7 @@ import type { Env } from './types';
 import { sanitizeUserInput } from './sanitize';
 
 const appraisalSchema = z.object({
-  goalRelevance: z.number().describe('이 상황이 내 삶에 얼마나 중요한가 (0.0~1.0)'),
+  goalRelevance: z.number().describe('이 상황이 내 삶에 얼마나 중요한가. 긍정적 관련(+)/반감·질투(-) (-1.0~1.0)'),
   goalCongruence: z.number().describe('내 목표에 부합(+)/방해(-) (-1.0~1.0)'),
   expectedness: z.number().describe('예상된 정도 (0.0~1.0)'),
   controllability: z.number().describe('내가 상황을 통제할 수 있는 정도 (0.0~1.0)'),
@@ -14,7 +14,11 @@ const appraisalSchema = z.object({
   internalStandards: z.number().describe('내 내적 가치관 부합(+)/위반(-) (-1.0~1.0)'),
   adjustmentPotential: z.number().describe('적응/대처 여지 (0.0~1.0)'),
   urgency: z.number().describe('즉각 반응 필요도 (0.0~1.0)'),
-  estimatedElapsedSeconds: z.number().describe('이전 대화로부터 서사적으로 경과한 시간(초). 바로 이어지는 대화=5, 잠시 침묵=60, 시간 경과 언급=해당 초. 최소 1, 최대 86400.'),
+  estimatedElapsedSeconds: z
+    .number()
+    .describe(
+      '이전 대화로부터 서사적으로 경과한 시간(초). 바로 이어지는 대화=5, 잠시 침묵=60, 시간 경과 언급=해당 초. 최소 1, 최대 86400.',
+    ),
 });
 
 export async function generateAppraisal(
@@ -34,7 +38,7 @@ export async function generateAppraisal(
 당신의 성격, 가치관, 현재 감정 상태에 기반하여 이 상황을 9개 차원으로 평가하세요.
 
 **중요: 모든 값은 소수점 둘째 자리까지만. 범위를 반드시 준수하세요.**
-- goalRelevance: 0.0 ~ 1.0
+- goalRelevance: -1.0 ~ 1.0
 - goalCongruence: -1.0 ~ 1.0
 - expectedness: 0.0 ~ 1.0
 - controllability: 0.0 ~ 1.0
@@ -55,9 +59,10 @@ export async function generateAppraisal(
     abortSignal: timeout,
   });
 
-  const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, +v.toFixed(2)));
+  const clamp = (v: number, min: number, max: number) =>
+    Math.max(min, Math.min(max, +v.toFixed(2)));
   return {
-    goalRelevance: clamp(object.goalRelevance, 0, 1),
+    goalRelevance: clamp(object.goalRelevance, -1, 1),
     goalCongruence: clamp(object.goalCongruence, -1, 1),
     expectedness: clamp(object.expectedness, 0, 1),
     controllability: clamp(object.controllability, 0, 1),
@@ -66,6 +71,9 @@ export async function generateAppraisal(
     internalStandards: clamp(object.internalStandards, -1, 1),
     adjustmentPotential: clamp(object.adjustmentPotential, 0, 1),
     urgency: clamp(object.urgency, 0, 1),
-    estimatedElapsedSeconds: Math.max(1, Math.min(86400, Math.round(object.estimatedElapsedSeconds))),
+    estimatedElapsedSeconds: Math.max(
+      1,
+      Math.min(86400, Math.round(object.estimatedElapsedSeconds)),
+    ),
   };
 }
