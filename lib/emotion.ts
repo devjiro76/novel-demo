@@ -1,5 +1,7 @@
+import type { EmotionLabel } from '@molroo-io/sdk';
+
 /** Discrete emotion label → Korean display string */
-export const EMOTION_KO: Record<string, string> = {
+export const EMOTION_KO: Record<EmotionLabel, string> = {
   // Positive (8)
   joy: '기쁨',
   excitement: '설렘',
@@ -25,7 +27,7 @@ export const EMOTION_KO: Record<string, string> = {
 };
 
 /** Discrete emotion label → emoji */
-export const EMOTION_EMOJI: Record<string, string> = {
+export const EMOTION_EMOJI: Record<EmotionLabel, string> = {
   // Positive (8)
   joy: '😊',
   excitement: '✨',
@@ -51,6 +53,6 @@ export const EMOTION_EMOJI: Record<string, string> = {
 };
 
 export function resolveEmotionLabel(raw: string): string {
-  const key = raw.toLowerCase().trim();
-  return EMOTION_KO[key] ?? EMOTION_KO[key.replace(/\s+/g, '_')] ?? '';
+  const key = raw.toLowerCase().trim() as EmotionLabel;
+  return EMOTION_KO[key] ?? EMOTION_KO[key.replace(/\s+/g, '_') as EmotionLabel] ?? '';
 }
