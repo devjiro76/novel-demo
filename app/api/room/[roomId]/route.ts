@@ -2,10 +2,7 @@ import { NextResponse } from 'next/server';
 import { getRoom, getMessages, deleteRoom, roomToJSON } from '@/lib/room-store';
 import { formatError } from '@/lib/api-utils';
 
-export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ roomId: string }> },
-) {
+export async function GET(_request: Request, { params }: { params: Promise<{ roomId: string }> }) {
   const { roomId } = await params;
   const room = await getRoom(roomId);
 

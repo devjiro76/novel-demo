@@ -9,7 +9,7 @@
  * Gemini 2.5 Flash generates both summary and long-term fact extraction in one call.
  */
 
-import { primaryModel, generateText, z, generateObject } from './llm';
+import { primaryModel, z, generateObject } from './llm';
 import type { Env } from './types';
 import type { ChatHistoryMessage } from './narrator';
 import { kvGet, kvPut } from './kv';
@@ -113,12 +113,18 @@ export async function updateSummaryIfNeeded(
       model: primaryModel(env),
       abortSignal: timeout,
       schema: z.object({
-        summary: z.string().describe('대화 요약. 5-10문장. 누가 무엇을 했는지, 핵심 사건, 감정 변화, 관계 진전, 신체적 행위를 구체적으로 서술.'),
-        newFacts: z.array(z.string()).describe(
-          '이 대화에서 새로 발견된, 장기적으로 기억할 만한 사실들. '
-          + '예: "용준과 정숙의 관계가 시작됨", "미나는 용준에게 질투를 느낌". '
-          + '이미 알려진 사실은 제외. 새로운 것만. 없으면 빈 배열.',
-        ),
+        summary: z
+          .string()
+          .describe(
+            '대화 요약. 5-10문장. 누가 무엇을 했는지, 핵심 사건, 감정 변화, 관계 진전, 신체적 행위를 구체적으로 서술.',
+          ),
+        newFacts: z
+          .array(z.string())
+          .describe(
+            '이 대화에서 새로 발견된, 장기적으로 기억할 만한 사실들. ' +
+              '예: "용준과 정숙의 관계가 시작됨", "미나는 용준에게 질투를 느낌". ' +
+              '이미 알려진 사실은 제외. 새로운 것만. 없으면 빈 배열.',
+          ),
       }),
       system: `당신은 소설 캐릭터의 기억을 관리하는 시스템입니다.
 주어진 대화를 분석하여:
@@ -139,13 +145,17 @@ ${existingFacts.length > 0 ? existingFacts.map((f, i) => `${i + 1}. ${f}`).join(
       coveredUpTo: Date.now(),
       updatedAt: Date.now(),
     };
-    await kvPut(summaryKey(roomId, npcId), JSON.stringify(summaryData), { expirationTtl: 30 * 86400 });
+    await kvPut(summaryKey(roomId, npcId), JSON.stringify(summaryData), {
+      expirationTtl: 30 * 86400,
+    });
 
     // Save Tier 3: merge new facts
     if (object.newFacts.length > 0) {
       const merged = [...existingFacts, ...object.newFacts];
       await saveLongMemory(roomId, npcId, merged);
-      console.log(`[long-memory] npc=${npcId} +${object.newFacts.length} facts (total ${merged.length})`);
+      console.log(
+        `[long-memory] npc=${npcId} +${object.newFacts.length} facts (total ${merged.length})`,
+      );
     }
 
     console.log(`[summary] room=${roomId} npc=${npcId} (${object.summary.length} chars)`);

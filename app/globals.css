@@ -1,6 +1,6 @@
-@import "tailwindcss";
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -19,20 +19,20 @@
   --color-surface-2: #1a1a24;
   --color-surface-3: #222230;
   --color-surface-4: #2a2a3c;
-  
+
   /* Text Colors */
   --color-text: #f0ece6;
   --color-text-secondary: #b8b0a8;
   --color-text-muted: #7a7268;
   --color-text-dim: #5a544d;
-  
+
   /* Brand Colors */
   --color-brand-primary: #c084fc;
   --color-brand-secondary: #e879f9;
   --color-brand-accent: #f472b6;
   --color-brand-gradient: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
   --color-brand-gradient-text: linear-gradient(135deg, #c084fc 0%, #f472b6 100%);
-  
+
   /* Character Palettes */
   --pink-glow: #ff6b9d;
   --pink-deep: #c44d7c;
@@ -73,13 +73,13 @@
   --text-2xl: 28px;
   --text-3xl: 36px;
   --text-4xl: 48px;
-  
+
   --leading-none: 1;
   --leading-tight: 1.25;
   --leading-snug: 1.375;
   --leading-normal: 1.5;
   --leading-relaxed: 1.625;
-  
+
   --font-weight-normal: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
@@ -102,10 +102,10 @@
   /* ----------------------------------------
      Shadow/Elevation System
      ---------------------------------------- */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.30);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.40), 0 2px 4px -2px rgb(0 0 0 / 0.40);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.50), 0 4px 6px -4px rgb(0 0 0 / 0.50);
-  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.60), 0 8px 10px -6px rgb(0 0 0 / 0.60);
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5), 0 4px 6px -4px rgb(0 0 0 / 0.5);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.6), 0 8px 10px -6px rgb(0 0 0 / 0.6);
   --shadow-glow-sm: 0 0 20px rgba(168, 85, 247, 0.15);
   --shadow-glow-md: 0 0 40px rgba(168, 85, 247, 0.25);
   --shadow-glow-lg: 0 0 60px rgba(168, 85, 247, 0.35);
@@ -130,7 +130,7 @@
   --duration-normal: 200ms;
   --duration-slow: 300ms;
   --duration-slower: 500ms;
-  
+
   --ease-linear: linear;
   --ease-in: cubic-bezier(0.4, 0, 1, 1);
   --ease-out: cubic-bezier(0, 0, 0.2, 1);
@@ -189,7 +189,12 @@ body {
   padding: 0;
   background: var(--color-bg);
   color: var(--color-text);
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-family:
+    'Pretendard',
+    -apple-system,
+    BlinkMacSystemFont,
+    system-ui,
+    sans-serif;
   font-size: var(--text-base);
   line-height: var(--leading-normal);
   -webkit-font-smoothing: antialiased;
@@ -236,140 +241,190 @@ body {
    ======================================== */
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes fadeOut {
-  from { opacity: 1; }
-  to { opacity: 0; }
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
 
 @keyframes slideUp {
-  from { 
-    opacity: 0; 
-    transform: translateY(20px); 
+  from {
+    opacity: 0;
+    transform: translateY(20px);
   }
-  to { 
-    opacity: 1; 
-    transform: translateY(0); 
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
 @keyframes slideDown {
-  from { 
-    opacity: 0; 
-    transform: translateY(-20px); 
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
   }
-  to { 
-    opacity: 1; 
-    transform: translateY(0); 
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
 @keyframes slideLeft {
-  from { 
-    opacity: 0; 
-    transform: translateX(20px); 
+  from {
+    opacity: 0;
+    transform: translateX(20px);
   }
-  to { 
-    opacity: 1; 
-    transform: translateX(0); 
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
 }
 
 @keyframes slideRight {
-  from { 
-    opacity: 0; 
-    transform: translateX(-20px); 
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
   }
-  to { 
-    opacity: 1; 
-    transform: translateX(0); 
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
 }
 
 @keyframes scaleIn {
-  from { 
-    opacity: 0; 
-    transform: scale(0.95); 
+  from {
+    opacity: 0;
+    transform: scale(0.95);
   }
-  to { 
-    opacity: 1; 
-    transform: scale(1); 
+  to {
+    opacity: 1;
+    transform: scale(1);
   }
 }
 
 @keyframes scaleOut {
-  from { 
-    opacity: 1; 
-    transform: scale(1); 
+  from {
+    opacity: 1;
+    transform: scale(1);
   }
-  to { 
-    opacity: 0; 
-    transform: scale(0.95); 
+  to {
+    opacity: 0;
+    transform: scale(0.95);
   }
 }
 
 @keyframes breathe {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 0.8; }
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.8;
+  }
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
 
 @keyframes pulseGlow {
-  0%, 100% { 
-    box-shadow: 0 0 20px rgba(168, 85, 247, 0.3); 
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(168, 85, 247, 0.3);
   }
-  50% { 
-    box-shadow: 0 0 40px rgba(168, 85, 247, 0.6); 
+  50% {
+    box-shadow: 0 0 40px rgba(168, 85, 247, 0.6);
   }
 }
 
 @keyframes shimmer {
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
 }
 
 @keyframes floatSlow {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-12px) rotate(2deg); }
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-12px) rotate(2deg);
+  }
 }
 
 @keyframes bgPan {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes dotBounce {
-  0%, 80%, 100% { 
-    transform: translateY(0); 
-    opacity: 0.4; 
+  0%,
+  80%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
   }
-  40% { 
-    transform: translateY(-6px); 
-    opacity: 1; 
+  40% {
+    transform: translateY(-6px);
+    opacity: 1;
   }
 }
 
 @keyframes gradientShift {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
 }
 
 /* ========================================
@@ -378,54 +433,54 @@ body {
 
 @layer utilities {
   /* Animation Utilities */
-  .animate-fade-in { 
-    animation: fadeIn var(--duration-normal) var(--ease-out) forwards; 
+  .animate-fade-in {
+    animation: fadeIn var(--duration-normal) var(--ease-out) forwards;
   }
-  .animate-fade-out { 
-    animation: fadeOut var(--duration-normal) var(--ease-in) forwards; 
+  .animate-fade-out {
+    animation: fadeOut var(--duration-normal) var(--ease-in) forwards;
   }
-  .animate-slide-up { 
-    animation: slideUp var(--duration-slow) var(--ease-out) forwards; 
+  .animate-slide-up {
+    animation: slideUp var(--duration-slow) var(--ease-out) forwards;
   }
-  .animate-slide-down { 
-    animation: slideDown var(--duration-slow) var(--ease-out) forwards; 
+  .animate-slide-down {
+    animation: slideDown var(--duration-slow) var(--ease-out) forwards;
   }
-  .animate-slide-left { 
-    animation: slideLeft var(--duration-slow) var(--ease-out) forwards; 
+  .animate-slide-left {
+    animation: slideLeft var(--duration-slow) var(--ease-out) forwards;
   }
-  .animate-slide-right { 
-    animation: slideRight var(--duration-slow) var(--ease-out) forwards; 
+  .animate-slide-right {
+    animation: slideRight var(--duration-slow) var(--ease-out) forwards;
   }
-  .animate-scale-in { 
-    animation: scaleIn var(--duration-normal) var(--ease-spring) forwards; 
+  .animate-scale-in {
+    animation: scaleIn var(--duration-normal) var(--ease-spring) forwards;
   }
-  .animate-scale-out { 
-    animation: scaleOut var(--duration-normal) var(--ease-in) forwards; 
+  .animate-scale-out {
+    animation: scaleOut var(--duration-normal) var(--ease-in) forwards;
   }
-  .animate-breathe { 
-    animation: breathe 3s var(--ease-in-out) infinite; 
+  .animate-breathe {
+    animation: breathe 3s var(--ease-in-out) infinite;
   }
-  .animate-pulse-subtle { 
-    animation: pulse 2s var(--ease-in-out) infinite; 
+  .animate-pulse-subtle {
+    animation: pulse 2s var(--ease-in-out) infinite;
   }
-  .animate-pulse-glow { 
-    animation: pulseGlow 2s var(--ease-in-out) infinite; 
+  .animate-pulse-glow {
+    animation: pulseGlow 2s var(--ease-in-out) infinite;
   }
-  .animate-shimmer { 
-    animation: shimmer 2s linear infinite; 
+  .animate-shimmer {
+    animation: shimmer 2s linear infinite;
     background-size: 200% auto;
   }
-  .animate-float { 
-    animation: float 3s var(--ease-in-out) infinite; 
+  .animate-float {
+    animation: float 3s var(--ease-in-out) infinite;
   }
-  .animate-float-slow { 
-    animation: floatSlow 6s var(--ease-in-out) infinite; 
+  .animate-float-slow {
+    animation: floatSlow 6s var(--ease-in-out) infinite;
   }
-  .animate-bg-pan { 
-    animation: bgPan 8s var(--ease-in-out) infinite; 
+  .animate-bg-pan {
+    animation: bgPan 8s var(--ease-in-out) infinite;
   }
-  .animate-spin-slow { 
-    animation: spin 3s linear infinite; 
+  .animate-spin-slow {
+    animation: spin 3s linear infinite;
   }
   .animate-gradient-shift {
     animation: gradientShift 8s ease infinite;
@@ -433,17 +488,32 @@ body {
   }
 
   /* Stagger Delays */
-  .delay-0 { animation-delay: 0ms; }
-  .delay-50 { animation-delay: 50ms; }
-  .delay-100 { animation-delay: 100ms; }
-  .delay-150 { animation-delay: 150ms; }
-  .delay-200 { animation-delay: 200ms; }
-  .delay-300 { animation-delay: 300ms; }
-  .delay-400 { animation-delay: 400ms; }
-  .delay-500 { animation-delay: 500ms; }
+  .delay-0 {
+    animation-delay: 0ms;
+  }
+  .delay-50 {
+    animation-delay: 50ms;
+  }
+  .delay-100 {
+    animation-delay: 100ms;
+  }
+  .delay-150 {
+    animation-delay: 150ms;
+  }
+  .delay-200 {
+    animation-delay: 200ms;
+  }
+  .delay-300 {
+    animation-delay: 300ms;
+  }
+  .delay-400 {
+    animation-delay: 400ms;
+  }
+  .delay-500 {
+    animation-delay: 500ms;
+  }
 
   /* Typography */
-  .text-balance { text-wrap: balance; }
   .text-gradient {
     background: var(--color-brand-gradient-text);
     -webkit-background-clip: text;
@@ -484,8 +554,8 @@ body {
     padding: 1px;
     border-radius: inherit;
     background: var(--color-brand-gradient);
-    -webkit-mask: 
-      linear-gradient(#fff 0 0) content-box, 
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
       linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
@@ -502,35 +572,16 @@ body {
   }
 
   /* Safe area utilities */
-  .pt-safe { padding-top: var(--layout-safe-top); }
-  .pb-safe { padding-bottom: var(--layout-safe-bottom); }
-  .px-safe { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
-
-  /* Line clamp */
-  .line-clamp-1 {
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 1;
+  .pt-safe {
+    padding-top: var(--layout-safe-top);
   }
-  .line-clamp-2 {
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
+  .pb-safe {
+    padding-bottom: var(--layout-safe-bottom);
   }
-  .line-clamp-3 {
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 3;
+  .px-safe {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
   }
-
-  /* Aspect ratios */
-  .aspect-3\/4 { aspect-ratio: 3 / 4; }
-  .aspect-4\/5 { aspect-ratio: 4 / 5; }
-  .aspect-9\/16 { aspect-ratio: 9 / 16; }
-  .aspect-16\/9 { aspect-ratio: 16 / 9; }
 }
 
 /* ========================================
@@ -538,7 +589,7 @@ body {
    ======================================== */
 
 @theme inline {
-  /* Colors */
+  /* shadcn Colors */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -557,6 +608,22 @@ body {
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+
+  /* Novel Design System Colors */
+  --color-bg: var(--color-bg);
+  --color-bg-elevated: var(--color-bg-elevated);
+  --color-surface: var(--color-surface);
+  --color-surface-hover: var(--color-surface-hover);
+  --color-surface-2: var(--color-surface-2);
+  --color-surface-3: var(--color-surface-3);
+  --color-surface-4: var(--color-surface-4);
+  --color-text: var(--color-text);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-muted: var(--color-text-muted);
+  --color-text-dim: var(--color-text-dim);
+  --color-brand-primary: var(--color-brand-primary);
+  --color-brand-secondary: var(--color-brand-secondary);
+  --color-brand-accent: var(--color-brand-accent);
 
   /* Border Radius */
   --radius-sm: var(--radius-sm);

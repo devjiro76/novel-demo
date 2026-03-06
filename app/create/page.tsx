@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Users, Globe } from 'lucide-react';
-import { PageLayout, PageCard } from '@/components/layout';
+import { PageCard } from '@/components/layout';
 import { AppContainer, PageHeader } from '@/components/layout/AppContainer';
 import { useUserCharacters } from '@/hooks/useUserCharacters';
 
@@ -28,30 +28,27 @@ export default function CreateHubPage() {
 
   return (
     <AppContainer>
-      <PageHeader 
-        title="만들기" 
-        subtitle="캐릭터를 만들고, 월드로 조합하세요"
-      />
+      <PageHeader title="만들기" subtitle="캐릭터를 만들고, 월드로 조합하세요" />
       {/* Create options */}
-      <div className="grid grid-cols-2 gap-3 mb-8">
+      <div className="mb-8 grid grid-cols-2 gap-3">
         {createOptions.map((opt) => {
           const Icon = opt.icon;
           return (
             <Link
               key={opt.href}
               href={opt.href}
-              className="flex flex-col items-center gap-3 p-6 rounded-xl border border-white/[0.06] transition-all hover:scale-[1.02] hover:border-white/[0.12] active:scale-[0.98]"
+              className="flex flex-col items-center gap-3 rounded-xl border border-white/[0.06] p-6 transition-all hover:scale-[1.02] hover:border-white/[0.12] active:scale-[0.98]"
               style={{ background: 'var(--color-surface)' }}
             >
               <div
-                className="w-14 h-14 rounded-2xl flex items-center justify-center"
+                className="flex h-14 w-14 items-center justify-center rounded-2xl"
                 style={{ background: `${opt.color}22` }}
               >
-                <Icon className="w-7 h-7" style={{ color: opt.color }} />
+                <Icon className="h-7 w-7" style={{ color: opt.color }} />
               </div>
               <div className="text-center">
                 <p className="text-sm font-semibold">{opt.label}</p>
-                <p className="text-xs text-[var(--color-text-muted)] mt-1">{opt.desc}</p>
+                <p className="mt-1 text-xs text-[var(--color-text-muted)]">{opt.desc}</p>
               </div>
             </Link>
           );
@@ -60,7 +57,7 @@ export default function CreateHubPage() {
 
       {/* My characters */}
       <div>
-        <div className="flex items-center justify-between mb-3">
+        <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-[var(--color-text-secondary)]">
             내 캐릭터 {!loading && `(${characters.length})`}
           </h2>
@@ -75,18 +72,16 @@ export default function CreateHubPage() {
         </div>
 
         {loading ? (
-          <div className="text-center py-8 text-sm text-[var(--color-text-dim)]">
+          <div className="py-8 text-center text-sm text-[var(--color-text-dim)]">
             불러오는 중...
           </div>
         ) : characters.length === 0 ? (
           <PageCard padding="lg">
-            <div className="text-center py-4 space-y-3">
-              <p className="text-sm text-[var(--color-text-secondary)]">
-                아직 캐릭터가 없습니다.
-              </p>
+            <div className="space-y-3 py-4 text-center">
+              <p className="text-sm text-[var(--color-text-secondary)]">아직 캐릭터가 없습니다.</p>
               <Link
                 href="/create/character"
-                className="inline-block px-5 py-2.5 rounded-xl text-sm font-semibold text-white"
+                className="inline-block rounded-xl px-5 py-2.5 text-sm font-semibold text-white"
                 style={{ background: 'var(--color-brand-gradient)' }}
               >
                 캐릭터를 먼저 만들어보세요
@@ -98,19 +93,19 @@ export default function CreateHubPage() {
             {characters.map((char) => (
               <div
                 key={char.id}
-                className="flex flex-col items-center gap-2 p-3 rounded-xl border border-white/[0.06]"
+                className="flex flex-col items-center gap-2 rounded-xl border border-white/[0.06] p-3"
                 style={{ background: 'var(--color-surface)' }}
               >
                 <div
-                  className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold"
+                  className="flex h-12 w-12 items-center justify-center rounded-full text-lg font-bold"
                   style={{ background: `${char.glow}22`, color: char.glow }}
                 >
                   {char.name.charAt(0)}
                 </div>
-                <span className="text-xs font-medium text-[var(--color-text)] truncate w-full text-center">
+                <span className="w-full truncate text-center text-xs font-medium text-[var(--color-text)]">
                   {char.name}
                 </span>
-                <span className="text-[10px] text-[var(--color-text-muted)] truncate w-full text-center">
+                <span className="w-full truncate text-center text-[10px] text-[var(--color-text-muted)]">
                   {char.role}
                 </span>
               </div>

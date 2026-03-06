@@ -1,7 +1,6 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { generateObject, generateText } from 'ai';
+import { generateObject, generateText, type LanguageModel } from 'ai';
 import { z } from 'zod';
-import type { LanguageModel } from 'ai';
 import type { Env } from './types.js';
 
 export const NARRATIVE_MODEL = 'google/gemini-2.5-flash';

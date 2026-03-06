@@ -12,7 +12,7 @@ export function TypingIndicator({ char, assetsBasePath }: TypingIndicatorProps) 
   const imageSrc = `${assetsBasePath}${char.image}`;
 
   return (
-    <div className="flex gap-2.5 items-end max-w-[92%] slide-up">
+    <div className="slide-up flex max-w-[92%] items-end gap-2.5">
       <CharAvatar char={char} size={32} imageSrc={imageSrc} />
       <div className="flex flex-col gap-1">
         <p className={`text-[10px] font-medium ${char.accentText}`}>{char.name}</p>
@@ -23,11 +23,7 @@ export function TypingIndicator({ char, assetsBasePath }: TypingIndicatorProps) 
             border: `1px solid rgba(${char.glowRgb},0.1)`,
           }}
         >
-          <span
-            className="text-[10px] text-white/50 mr-1"
-          >
-            {char.name}이(가) 입력 중
-          </span>
+          <span className="mr-1 text-[10px] text-white/50">{char.name}이(가) 입력 중</span>
           <span
             className="dot-bounce dot-bounce-1 inline-block size-1.5 rounded-full"
             style={{ backgroundColor: char.glow }}

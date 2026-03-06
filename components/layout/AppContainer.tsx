@@ -15,9 +15,7 @@ interface AppContainerProps {
 export function AppContainer({ children, className = '' }: AppContainerProps) {
   return (
     <div className={`min-h-screen pb-24 lg:pb-8 ${className}`}>
-      <div className="max-w-7xl mx-auto px-4 lg:px-8">
-        {children}
-      </div>
+      <div className="mx-auto max-w-7xl px-4 lg:px-8">{children}</div>
     </div>
   );
 }
@@ -33,20 +31,12 @@ export function PageHeader({ title, subtitle, rightContent }: PageHeaderProps) {
     <header className="py-6 lg:py-8">
       <div className="flex items-start justify-between gap-4">
         <div>
-          {title && (
-            <h1 className="text-2xl lg:text-3xl font-black text-gradient">{title}</h1>
-          )}
+          {title && <h1 className="text-gradient text-2xl font-black lg:text-3xl">{title}</h1>}
           {subtitle && (
-            <p className="text-sm text-[var(--color-text-secondary)] mt-2">
-              {subtitle}
-            </p>
+            <p className="mt-2 text-sm text-[var(--color-text-secondary)]">{subtitle}</p>
           )}
         </div>
-        {rightContent && (
-          <div className="flex-shrink-0">
-            {rightContent}
-          </div>
-        )}
+        {rightContent && <div className="flex-shrink-0">{rightContent}</div>}
       </div>
     </header>
   );

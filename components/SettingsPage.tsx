@@ -5,32 +5,34 @@ import { PageCard } from '@/components/layout';
 import { AppContainer, PageHeader } from '@/components/layout/AppContainer';
 import { Bell, Moon, Shield, HelpCircle, Info, Trash2 } from 'lucide-react';
 
-export default function SettingsPage() {
-  const [notifications, setNotifications] = useState(true);
-  const [darkMode, setDarkMode] = useState(true);
-
-  const Toggle = ({
-    checked,
-    onChange,
-    disabled = false
-  }: {
-    checked: boolean;
-    onChange: (v: boolean) => void;
-    disabled?: boolean;
-  }) => (
+function Toggle({
+  checked,
+  onChange,
+  disabled = false,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  disabled?: boolean;
+}) {
+  return (
     <button
       onClick={() => !disabled && onChange(!checked)}
-      className={`w-11 h-6 rounded-full transition-colors relative ${
+      className={`relative h-6 w-11 rounded-full transition-colors ${
         checked ? 'bg-[var(--color-brand-primary)]' : 'bg-[var(--color-surface-2)]'
-      } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+      } ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}
     >
       <span
-        className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
+        className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-transform ${
           checked ? 'translate-x-6' : 'translate-x-1'
         }`}
       />
     </button>
   );
+}
+
+export default function SettingsPage() {
+  const [notifications, setNotifications] = useState(true);
+  const [darkMode, setDarkMode] = useState(true);
 
   const settingsGroups = [
     {
@@ -88,14 +90,11 @@ export default function SettingsPage() {
 
   return (
     <AppContainer>
-      <PageHeader 
-        title="설정"
-        subtitle="앱 설정 및 계정 관리"
-      />
+      <PageHeader title="설정" subtitle="앱 설정 및 계정 관리" />
       <div className="space-y-6">
         {settingsGroups.map((group) => (
           <div key={group.title}>
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)] mb-3 px-1">
+            <h2 className="mb-3 px-1 text-xs font-semibold tracking-wider text-[var(--color-text-muted)] uppercase">
               {group.title}
             </h2>
             <PageCard padding="none">
@@ -108,11 +107,13 @@ export default function SettingsPage() {
                       key={item.label}
                       onClick={item.onClick}
                       className={`flex items-center justify-between px-4 py-3.5 ${
-                        item.onClick ? 'w-full text-left cursor-pointer hover:bg-white/[0.02]' : ''
+                        item.onClick ? 'w-full cursor-pointer text-left hover:bg-white/[0.02]' : ''
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        <Icon className={`w-5 h-5 ${item.danger ? 'text-red-400' : 'text-[var(--color-text-muted)]'}`} />
+                        <Icon
+                          className={`h-5 w-5 ${item.danger ? 'text-red-400' : 'text-[var(--color-text-muted)]'}`}
+                        />
                         <span className={item.danger ? 'text-red-400' : ''}>{item.label}</span>
                       </div>
                       {'control' in item && item.control}
@@ -124,10 +125,8 @@ export default function SettingsPage() {
           </div>
         ))}
 
-        <div className="text-center pt-8 pb-4">
-          <p className="text-xs text-[var(--color-text-dim)]">
-            © 2025 Novel. All rights reserved.
-          </p>
+        <div className="pt-8 pb-4 text-center">
+          <p className="text-xs text-[var(--color-text-dim)]">© 2025 Novel. All rights reserved.</p>
         </div>
       </div>
     </AppContainer>

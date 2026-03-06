@@ -6,6 +6,39 @@ import type { RoomMessage } from '@/lib/room';
 const BASE_INTERVAL = 2000;
 const MAX_INTERVAL = 8000;
 
+interface PollData {
+  messages?: RoomMessage[];
+  room?: { players?: unknown[]; npcCharacterIds?: string[] };
+}
+
+async function fetchRoomData(roomId: string): Promise<PollData | null> {
+  try {
+    const res = await fetch(`/api/room/${roomId}`);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null; // network error — will retry
+  }
+}
+
+function mergeMessages(
+  prev: RoomMessage[],
+  polled: RoomMessage[],
+): { messages: RoomMessage[]; changed: boolean } {
+  const prevIds = new Set(prev.filter((m) => !m.id.startsWith('pending-')).map((m) => m.id));
+  const nonPendingCount = prev.filter((m) => !m.id.startsWith('pending-')).length;
+  const hasNew = polled.some((m) => !prevIds.has(m.id));
+  if (!hasNew && polled.length === nonPendingCount) {
+    return { messages: prev, changed: false };
+  }
+  return { messages: polled, changed: true };
+}
+
+function adaptInterval(current: number, changed: boolean): number {
+  if (changed) return BASE_INTERVAL;
+  return Math.min(current * 1.5, MAX_INTERVAL);
+}
+
 /**
  * Polls GET /api/room/{roomId} with adaptive interval.
  * Backs off when no changes detected; resets on new data.
@@ -31,43 +64,26 @@ export function useRoomPolling(
         schedulePoll();
         return;
       }
-      try {
-        const res = await fetch(`/api/room/${roomId}`);
-        if (!res.ok || cancelled) { schedulePoll(); return; }
-        const data: { messages?: RoomMessage[]; room?: { players?: unknown[]; npcCharacterIds?: string[] } } = await res.json();
-        const polledMessages: RoomMessage[] = data.messages ?? [];
-        const polledPlayerCount: number = data.room?.players?.length ?? 1;
 
-        let changed = false;
-        setMessages((prev) => {
-          const prevIds = new Set(
-            prev.filter((m) => !m.id.startsWith('pending-')).map((m) => m.id),
-          );
-          const nonPendingCount = prev.filter((m) => !m.id.startsWith('pending-')).length;
-          const hasNew = polledMessages.some((m) => !prevIds.has(m.id));
-          if (!hasNew && polledMessages.length === nonPendingCount) {
-            return prev; // no change → skip re-render
-          }
-          changed = true;
-          return polledMessages; // KV is source of truth
-        });
-
-        setPlayerCount(polledPlayerCount);
-
-        // Sync active NPC IDs
-        if (setActiveNpcIds && data.room?.npcCharacterIds) {
-          setActiveNpcIds(data.room.npcCharacterIds);
-        }
-
-        // Adaptive: back off when idle, reset when data changes
-        if (changed) {
-          intervalRef.current = BASE_INTERVAL;
-        } else {
-          intervalRef.current = Math.min(intervalRef.current * 1.5, MAX_INTERVAL);
-        }
-      } catch {
-        // network error — will retry
+      const data = await fetchRoomData(roomId);
+      if (!data || cancelled) {
+        schedulePoll();
+        return;
       }
+
+      let changed = false;
+      setMessages((prev) => {
+        const result = mergeMessages(prev, data.messages ?? []);
+        changed = result.changed;
+        return result.messages;
+      });
+
+      setPlayerCount(data.room?.players?.length ?? 1);
+      if (setActiveNpcIds && data.room?.npcCharacterIds) {
+        setActiveNpcIds(data.room.npcCharacterIds);
+      }
+
+      intervalRef.current = adaptInterval(intervalRef.current, changed);
       schedulePoll();
     };
 
@@ -77,7 +93,6 @@ export function useRoomPolling(
       }
     }
 
-    // Initial fetch
     intervalRef.current = BASE_INTERVAL;
     poll();
 

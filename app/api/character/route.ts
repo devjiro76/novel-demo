@@ -16,7 +16,11 @@ const createCharacterSchema = z.object({
   tags: z.array(z.string().max(50)).max(20).optional().default([]),
   isPublic: z.boolean().optional().default(true),
   isAdult: z.boolean().optional().default(false),
-  glow: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Invalid hex color').optional().default('#a855f7'),
+  glow: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/, 'Invalid hex color')
+    .optional()
+    .default('#a855f7'),
 });
 
 // GET /api/character — list all public characters
@@ -25,7 +29,8 @@ export async function GET() {
   const index: string[] = raw ? JSON.parse(raw) : [];
 
   const characters = [];
-  for (const id of index.slice(-50)) { // latest 50
+  for (const id of index.slice(-50)) {
+    // latest 50
     const data = await kvGet(`user-character:${id}`);
     if (data) {
       const char = JSON.parse(data);

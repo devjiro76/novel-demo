@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import { Molroo } from '@molroo-io/sdk/world';
-import { getEnv } from '@/lib/types';
+import { getEnv, type UserWorld } from '@/lib/types';
 import { kvGet, kvPut } from '@/lib/kv';
-import type { UserWorld } from '@/lib/types';
 import { formatError } from '@/lib/api-utils';
 
 export async function POST(

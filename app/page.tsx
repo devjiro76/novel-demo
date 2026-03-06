@@ -1,4 +1,4 @@
-import Landing from '@/components/Landing';
+import Landing from '@/components/landing/Landing';
 import { getAllClientPacks, getAllWorldCards } from '@/lib/story-pack';
 
 export default function Page() {

@@ -16,6 +16,24 @@ export const EMOTION_KO: Record<string, string> = {
   numbness: '무감각',
 };
 
+/** Discrete emotion label → emoji */
+export const EMOTION_EMOJI: Record<string, string> = {
+  joy: '😊',
+  excitement: '✨',
+  contentment: '😌',
+  anger: '😠',
+  fear: '😨',
+  sadness: '😢',
+  anxiety: '😰',
+  surprise: '😲',
+  disgust: '🤢',
+  trust: '🤝',
+  calm: '😶',
+  shame: '😳',
+  guilt: '😔',
+  numbness: '😶‍🌫️',
+};
+
 export function resolveEmotionLabel(raw: string): string {
   const key = raw.toLowerCase().trim();
   return EMOTION_KO[key] ?? EMOTION_KO[key.replace(/\s+/g, '_')] ?? '';

@@ -3,10 +3,7 @@ import { kvGet, kvPut } from '@/lib/kv';
 import { rateLimitGuard } from '@/lib/rate-limit';
 
 // POST /api/character/:charId/like
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ charId: string }> }
-) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ charId: string }> }) {
   const blocked = await rateLimitGuard(req);
   if (blocked) return blocked;
 
@@ -28,10 +25,7 @@ export async function POST(
 }
 
 // GET /api/character/:charId/like
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ charId: string }> }
-) {
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ charId: string }> }) {
   const { charId } = await params;
 
   if (!charId || charId.length > 200) {

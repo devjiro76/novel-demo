@@ -18,7 +18,6 @@ import {
   Palette,
   Loader2,
 } from 'lucide-react';
-import { PageLayout, PageCard, PageSection } from '@/components/layout';
 import { AppContainer, PageHeader } from '@/components/layout/AppContainer';
 import { useSession, signOut } from '@/lib/auth-client';
 
@@ -40,8 +39,8 @@ export default function MyPage() {
   if (isPending) {
     return (
       <AppContainer>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
+        <div className="flex min-h-[60vh] items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
         </div>
       </AppContainer>
     );
@@ -66,8 +65,8 @@ export default function MyPage() {
       <PageHeader
         title="마이"
         rightContent={
-          <button className="p-2 rounded-full hover:bg-white/[0.06] transition-colors">
-            <Settings className="w-5 h-5 text-gray-400" />
+          <button className="rounded-full p-2 transition-colors hover:bg-white/[0.06]">
+            <Settings className="h-5 w-5 text-gray-400" />
           </button>
         }
       />
@@ -111,12 +110,12 @@ function ProfileSection({ user }: { user: UserInfo }) {
   return (
     <div className="flex items-center gap-4">
       <div className="relative">
-        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-2xl font-bold text-white">
+        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-pink-500 text-2xl font-bold text-white">
           {user.name[0]}
         </div>
         {user.isVIP && (
-          <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-gradient-to-r from-yellow-400 to-orange-500 flex items-center justify-center border-2 border-black">
-            <Crown className="w-4 h-4 text-white" />
+          <div className="absolute -right-1 -bottom-1 flex h-7 w-7 items-center justify-center rounded-full border-2 border-black bg-gradient-to-r from-yellow-400 to-orange-500">
+            <Crown className="h-4 w-4 text-white" />
           </div>
         )}
       </div>
@@ -124,21 +123,21 @@ function ProfileSection({ user }: { user: UserInfo }) {
       <div className="flex-1">
         <div className="flex items-center gap-2">
           <h2 className="text-xl font-bold text-white">{user.name}</h2>
-          <span className="px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 text-xs font-medium border border-yellow-500/30">
+          <span className="rounded-full border border-yellow-500/30 bg-yellow-500/20 px-2 py-0.5 text-xs font-medium text-yellow-400">
             {user.level}
           </span>
         </div>
         <p className="text-sm text-gray-500">{user.email}</p>
-        
-        <div className="flex items-center gap-3 mt-2">
-          <Link 
+
+        <div className="mt-2 flex items-center gap-3">
+          <Link
             href="/my/edit"
-            className="px-3 py-1.5 rounded-lg bg-gray-800 text-white text-xs font-medium hover:bg-gray-700 transition-colors"
+            className="rounded-lg bg-gray-800 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-gray-700"
           >
             프로필 수정
           </Link>
-          <button className="p-1.5 rounded-lg bg-gray-800 text-gray-400 hover:text-white transition-colors">
-            <ShareIcon className="w-4 h-4" />
+          <button className="rounded-lg bg-gray-800 p-1.5 text-gray-400 transition-colors hover:text-white">
+            <ShareIcon className="h-4 w-4" />
           </button>
         </div>
       </div>
@@ -150,28 +149,34 @@ function ProfileSection({ user }: { user: UserInfo }) {
 function VIPBanner({ isVIP, expiry }: { isVIP: boolean; expiry: string }) {
   if (isVIP) {
     return (
-      <div className="rounded-2xl overflow-hidden bg-gradient-to-r from-yellow-500/20 via-orange-500/20 to-yellow-500/20 border border-yellow-500/30 p-4">
+      <div className="overflow-hidden rounded-2xl border border-yellow-500/30 bg-gradient-to-r from-yellow-500/20 via-orange-500/20 to-yellow-500/20 p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center">
-              <Crown className="w-6 h-6 text-white" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-yellow-400 to-orange-500">
+              <Crown className="h-6 w-6 text-white" />
             </div>
             <div>
               <h3 className="text-base font-bold text-white">VIP 멤버십</h3>
               <p className="text-xs text-gray-400">만료일: {expiry}</p>
             </div>
           </div>
-          <Link 
+          <Link
             href="/vip/manage"
-            className="px-3 py-1.5 rounded-lg bg-white/10 text-white text-xs font-medium hover:bg-white/20 transition-colors"
+            className="rounded-lg bg-white/10 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-white/20"
           >
             관리
           </Link>
         </div>
-        <div className="flex gap-2 mt-3">
-          <span className="px-2 py-1 rounded bg-black/30 text-[10px] text-yellow-300">무제한 대화</span>
-          <span className="px-2 py-1 rounded bg-black/30 text-[10px] text-yellow-300">광고 제거</span>
-          <span className="px-2 py-1 rounded bg-black/30 text-[10px] text-yellow-300">프리미엄 콘텐츠</span>
+        <div className="mt-3 flex gap-2">
+          <span className="rounded bg-black/30 px-2 py-1 text-[10px] text-yellow-300">
+            무제한 대화
+          </span>
+          <span className="rounded bg-black/30 px-2 py-1 text-[10px] text-yellow-300">
+            광고 제거
+          </span>
+          <span className="rounded bg-black/30 px-2 py-1 text-[10px] text-yellow-300">
+            프리미엄 콘텐츠
+          </span>
         </div>
       </div>
     );
@@ -179,18 +184,18 @@ function VIPBanner({ isVIP, expiry }: { isVIP: boolean; expiry: string }) {
 
   return (
     <Link href="/vip" className="block">
-      <div className="rounded-2xl overflow-hidden bg-gradient-to-r from-purple-600/80 to-pink-600/80 p-4 group hover:opacity-90 transition-opacity">
+      <div className="group overflow-hidden rounded-2xl bg-gradient-to-r from-purple-600/80 to-pink-600/80 p-4 transition-opacity hover:opacity-90">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center backdrop-blur-sm">
-              <Crown className="w-6 h-6 text-white" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
+              <Crown className="h-6 w-6 text-white" />
             </div>
             <div>
               <h3 className="text-base font-bold text-white">VIP 가입하기</h3>
               <p className="text-xs text-white/70">무제한 대화와 특별한 혜택</p>
             </div>
           </div>
-          <ChevronRight className="w-5 h-5 text-white/50 group-hover:text-white transition-colors" />
+          <ChevronRight className="h-5 w-5 text-white/50 transition-colors group-hover:text-white" />
         </div>
       </div>
     </Link>
@@ -200,28 +205,28 @@ function VIPBanner({ isVIP, expiry }: { isVIP: boolean; expiry: string }) {
 // Assets Section (Coins)
 function AssetsSection({ coins }: { coins: number }) {
   return (
-    <div className="rounded-2xl bg-gray-900/50 border border-white/[0.06] p-4">
-      <div className="flex items-center justify-between mb-3">
+    <div className="rounded-2xl border border-white/[0.06] bg-gray-900/50 p-4">
+      <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Coins className="w-4 h-4 text-yellow-400" />
+          <Coins className="h-4 w-4 text-yellow-400" />
           <span className="text-sm font-medium text-gray-300">보유 코인</span>
         </div>
-        <Link 
+        <Link
           href="/coins/history"
-          className="text-xs text-gray-500 hover:text-white transition-colors"
+          className="text-xs text-gray-500 transition-colors hover:text-white"
         >
           내역 보기
         </Link>
       </div>
-      
-      <div className="flex items-end gap-1 mb-4">
+
+      <div className="mb-4 flex items-end gap-1">
         <span className="text-2xl font-black text-white">{coins.toLocaleString()}</span>
-        <span className="text-sm text-gray-500 mb-1">코인</span>
+        <span className="mb-1 text-sm text-gray-500">코인</span>
       </div>
-      
-      <Link 
+
+      <Link
         href="/coins/charge"
-        className="block w-full py-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-bold text-center hover:opacity-90 transition-opacity"
+        className="block w-full rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 py-3 text-center text-sm font-bold text-white transition-opacity hover:opacity-90"
       >
         코인 충전하기
       </Link>
@@ -232,32 +237,32 @@ function AssetsSection({ coins }: { coins: number }) {
 // Creator Revenue Section
 function RevenueSection({ revenue }: { revenue: number }) {
   return (
-    <div className="rounded-2xl bg-gray-900/50 border border-white/[0.06] p-4">
-      <div className="flex items-center justify-between mb-3">
+    <div className="rounded-2xl border border-white/[0.06] bg-gray-900/50 p-4">
+      <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <TrendingUp className="w-4 h-4 text-green-400" />
+          <TrendingUp className="h-4 w-4 text-green-400" />
           <span className="text-sm font-medium text-gray-300">창작자 수익</span>
         </div>
-        <span className="px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 text-[10px] font-medium">
+        <span className="rounded-full bg-green-500/20 px-2 py-0.5 text-[10px] font-medium text-green-400">
           이번 달
         </span>
       </div>
-      
-      <div className="flex items-end gap-1 mb-4">
+
+      <div className="mb-4 flex items-end gap-1">
         <span className="text-2xl font-black text-white">{revenue.toLocaleString()}</span>
-        <span className="text-sm text-gray-500 mb-1">원</span>
+        <span className="mb-1 text-sm text-gray-500">원</span>
       </div>
-      
+
       <div className="flex gap-2">
-        <Link 
+        <Link
           href="/creator/stats"
-          className="flex-1 py-2.5 rounded-xl bg-gray-800 text-white text-xs font-medium text-center hover:bg-gray-700 transition-colors"
+          className="flex-1 rounded-xl bg-gray-800 py-2.5 text-center text-xs font-medium text-white transition-colors hover:bg-gray-700"
         >
           통계 보기
         </Link>
-        <Link 
+        <Link
           href="/creator/withdraw"
-          className="flex-1 py-2.5 rounded-xl bg-gray-800 text-white text-xs font-medium text-center hover:bg-gray-700 transition-colors"
+          className="flex-1 rounded-xl bg-gray-800 py-2.5 text-center text-xs font-medium text-white transition-colors hover:bg-gray-700"
         >
           출금 신청
         </Link>
@@ -270,44 +275,44 @@ function RevenueSection({ revenue }: { revenue: number }) {
 function MyContentsSection({ contents }: { contents: typeof MOCK_MY_CONTENTS }) {
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
+      <div className="mb-3 flex items-center justify-between">
         <h3 className="text-base font-bold text-white">내 콘텐츠</h3>
         <Link href="/my/contents" className="text-xs text-gray-500 hover:text-white">
           전체 보기
         </Link>
       </div>
-      
+
       <div className="space-y-2">
-        {contents.map(item => (
-          <Link 
+        {contents.map((item) => (
+          <Link
             key={item.id}
             href={`/my/contents/${item.id}`}
-            className="flex items-center gap-3 p-3 rounded-xl bg-gray-900/50 border border-white/[0.06] hover:border-purple-500/30 transition-colors"
+            className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-gray-900/50 p-3 transition-colors hover:border-purple-500/30"
           >
-            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-purple-500/30 to-pink-500/30 flex items-center justify-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500/30 to-pink-500/30">
               <span className="text-lg">{item.type === 'world' ? '🌏' : '👤'}</span>
             </div>
-            <div className="flex-1 min-w-0">
-              <h4 className="text-sm font-medium text-white truncate">{item.title}</h4>
-              <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
+            <div className="min-w-0 flex-1">
+              <h4 className="truncate text-sm font-medium text-white">{item.title}</h4>
+              <div className="mt-1 flex items-center gap-3 text-xs text-gray-500">
                 <span className="flex items-center gap-1">
-                  <TrendingUp className="w-3 h-3" />
+                  <TrendingUp className="h-3 w-3" />
                   {item.views.toLocaleString()}
                 </span>
                 <span className="flex items-center gap-1">
-                  <Heart className="w-3 h-3" />
+                  <Heart className="h-3 w-3" />
                   {item.likes}
                 </span>
               </div>
             </div>
-            <ChevronRight className="w-4 h-4 text-gray-600" />
+            <ChevronRight className="h-4 w-4 text-gray-600" />
           </Link>
         ))}
       </div>
-      
-      <Link 
+
+      <Link
         href="/create"
-        className="flex items-center justify-center gap-2 w-full py-3 mt-3 rounded-xl border border-dashed border-gray-700 text-gray-500 hover:border-purple-500/50 hover:text-purple-400 transition-colors"
+        className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-gray-700 py-3 text-gray-500 transition-colors hover:border-purple-500/50 hover:text-purple-400"
       >
         <span className="text-lg">+</span>
         <span className="text-sm font-medium">새 콘텐츠 만들기</span>
@@ -341,37 +346,37 @@ function MenuSection() {
     <div className="space-y-6">
       {menuGroups.map((group, index) => (
         <div key={index}>
-          <h3 className="text-xs font-medium text-gray-500 mb-3 px-1">{group.title}</h3>
-          <div className="rounded-2xl bg-gray-900/50 border border-white/[0.06] overflow-hidden">
+          <h3 className="mb-3 px-1 text-xs font-medium text-gray-500">{group.title}</h3>
+          <div className="overflow-hidden rounded-2xl border border-white/[0.06] bg-gray-900/50">
             {group.items.map((item, i) => (
               <Link
                 key={i}
                 href={item.href}
-                className="flex items-center gap-3 px-4 py-3.5 hover:bg-white/[0.04] transition-colors border-b border-white/[0.04] last:border-0"
+                className="flex items-center gap-3 border-b border-white/[0.04] px-4 py-3.5 transition-colors last:border-0 hover:bg-white/[0.04]"
               >
-                <item.icon className="w-5 h-5 text-gray-400" />
+                <item.icon className="h-5 w-5 text-gray-400" />
                 <span className="flex-1 text-sm text-white">{item.label}</span>
                 {item.badge && (
-                  <span className="px-2 py-0.5 rounded-full bg-pink-500 text-white text-[10px] font-bold">
+                  <span className="rounded-full bg-pink-500 px-2 py-0.5 text-[10px] font-bold text-white">
                     {item.badge}
                   </span>
                 )}
-                <ChevronRight className="w-4 h-4 text-gray-600" />
+                <ChevronRight className="h-4 w-4 text-gray-600" />
               </Link>
             ))}
           </div>
         </div>
       ))}
-      
+
       {/* Logout */}
       <button
         onClick={async () => {
           await signOut();
           window.location.href = '/login';
         }}
-        className="flex items-center gap-3 px-4 py-3 w-full text-red-400 hover:bg-red-500/10 rounded-xl transition-colors"
+        className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-red-400 transition-colors hover:bg-red-500/10"
       >
-        <LogOut className="w-5 h-5" />
+        <LogOut className="h-5 w-5" />
         <span className="text-sm font-medium">로그아웃</span>
       </button>
     </div>
@@ -382,7 +387,12 @@ function MenuSection() {
 function ShareIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
+      />
     </svg>
   );
 }

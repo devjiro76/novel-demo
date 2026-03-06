@@ -35,11 +35,11 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
+    <div className="flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-sm space-y-8">
         <div className="text-center">
           <h1 className="text-2xl font-black text-white">회원가입</h1>
-          <p className="text-sm text-gray-500 mt-2">새 계정을 만드세요</p>
+          <p className="mt-2 text-sm text-gray-500">새 계정을 만드세요</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -89,9 +89,7 @@ export default function SignupPage() {
             />
           </div>
 
-          {error && (
-            <p className="text-sm text-red-400">{error}</p>
-          )}
+          {error && <p className="text-sm text-red-400">{error}</p>}
 
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? '가입 중...' : '회원가입'}

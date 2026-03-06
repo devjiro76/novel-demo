@@ -67,16 +67,35 @@ export class DebugLog {
   ) {
     const bVad = before?.vad;
     const aVad = after?.vad;
-    const delta = bVad && aVad
-      ? { dV: +(aVad.V - bVad.V).toFixed(3), dA: +(aVad.A - bVad.A).toFixed(3), dD: +(aVad.D - bVad.D).toFixed(3) }
-      : null;
+    const delta =
+      bVad && aVad
+        ? {
+            dV: +(aVad.V - bVad.V).toFixed(3),
+            dA: +(aVad.A - bVad.A).toFixed(3),
+            dD: +(aVad.D - bVad.D).toFixed(3),
+          }
+        : null;
 
     this.add('emotion_change', {
       characterId,
       displayName,
       actionName,
-      before: bVad ? { V: +bVad.V.toFixed(3), A: +bVad.A.toFixed(3), D: +bVad.D.toFixed(3), label: before?.discrete } : null,
-      after: aVad ? { V: +aVad.V.toFixed(3), A: +aVad.A.toFixed(3), D: +aVad.D.toFixed(3), label: after?.discrete } : null,
+      before: bVad
+        ? {
+            V: +bVad.V.toFixed(3),
+            A: +bVad.A.toFixed(3),
+            D: +bVad.D.toFixed(3),
+            label: before?.label,
+          }
+        : null,
+      after: aVad
+        ? {
+            V: +aVad.V.toFixed(3),
+            A: +aVad.A.toFixed(3),
+            D: +aVad.D.toFixed(3),
+            label: after?.label,
+          }
+        : null,
       delta,
     });
   }

@@ -1,18 +1,14 @@
 import { NextResponse } from 'next/server';
 import { kvGet, kvPut, kvDelete } from '@/lib/kv';
-import type { UserWorld } from '@/lib/types';
+import { getEnv, type UserWorld } from '@/lib/types';
 import { getStoryPack, storyToWorldCard } from '@/lib/story-pack';
-import { getEnv } from '@/lib/types';
 import { getWorld } from '@/lib/personas';
 import { formatError } from '@/lib/api-utils';
 
 // GET /api/world/[worldId] — single world detail
 // 1. Try KV for user-created worlds
 // 2. Fall back to builtin story slug match
-export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ worldId: string }> },
-) {
+export async function GET(_request: Request, { params }: { params: Promise<{ worldId: string }> }) {
   const { worldId } = await params;
 
   // Try user-created world from KV
@@ -52,7 +48,10 @@ export async function DELETE(
         const world = await getWorld(env, worldInstanceId);
         await world.delete();
       } catch (err) {
-        console.warn('[world/delete] World instance delete failed (may already be deleted):', err instanceof Error ? err.message : err);
+        console.warn(
+          '[world/delete] World instance delete failed (may already be deleted):',
+          err instanceof Error ? err.message : err,
+        );
       }
     }
 

@@ -1,0 +1,7 @@
+node_modules
+.next
+.open-next
+.wrangler
+components/ui
+components/kibo-ui
+package-lock.json

@@ -9,7 +9,7 @@ export function useUserCharacters() {
 
   useEffect(() => {
     fetch('/api/character')
-      .then(res => res.json() as Promise<{ ok: boolean; characters: UserCharacter[] }>)
+      .then((res) => res.json() as Promise<{ ok: boolean; characters: UserCharacter[] }>)
       .then((data) => {
         if (data.ok) setCharacters(data.characters);
       })

@@ -30,7 +30,7 @@ export default function CharacterCard({
   return (
     <Link
       href={`/${slug}?char=${charId}`}
-      className="w-[140px] lg:w-[180px] rounded-2xl lg:rounded-3xl overflow-hidden transition-all duration-300 hover:-translate-y-1 active:scale-[0.98] group relative animate-slide-up shrink-0"
+      className="group animate-slide-up relative w-[140px] shrink-0 overflow-hidden rounded-2xl transition-all duration-300 hover:-translate-y-1 active:scale-[0.98] lg:w-[180px] lg:rounded-3xl"
       style={{
         background: `linear-gradient(160deg, rgba(${glowRgb},0.15) 0%, rgba(14,14,20,0.98) 60%)`,
         border: `1px solid rgba(${glowRgb},0.2)`,
@@ -40,34 +40,29 @@ export default function CharacterCard({
     >
       {/* Avatar */}
       <div
-        className="w-full h-[170px] lg:h-[220px] overflow-hidden relative"
+        className="relative h-[170px] w-full overflow-hidden lg:h-[220px]"
         style={{ background: `rgba(${glowRgb},0.08)` }}
       >
         {image ? (
           <img
             src={image}
             alt={name}
-            className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
+            className="h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <span
-              className="text-5xl font-bold opacity-40"
-              style={{ color: glow }}
-            >
+          <div className="flex h-full w-full items-center justify-center">
+            <span className="text-5xl font-bold opacity-40" style={{ color: glow }}>
               {name.charAt(0)}
             </span>
           </div>
         )}
 
         {/* Gradient overlay */}
-        <div
-          className="absolute inset-0 bg-gradient-to-t from-[var(--color-surface)] via-transparent to-transparent opacity-80"
-        />
+        <div className="absolute inset-0 bg-gradient-to-t from-[var(--color-surface)] via-transparent to-transparent opacity-80" />
 
         {/* Age badge */}
         <div
-          className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-medium"
+          className="absolute top-2 right-2 rounded-full px-2 py-0.5 text-[10px] font-medium"
           style={{
             background: `rgba(${glowRgb},0.2)`,
             color: glow,
@@ -79,21 +74,18 @@ export default function CharacterCard({
       </div>
 
       {/* Info */}
-      <div className="px-3 py-3 flex flex-col gap-1">
-        <span className="text-sm font-bold text-white leading-tight truncate">
+      <div className="flex flex-col gap-1 px-3 py-3">
+        <span className="truncate text-sm leading-tight font-bold text-white">
           {fullName || name}
         </span>
-        <span
-          className="text-[11px] leading-tight truncate font-medium"
-          style={{ color: glow }}
-        >
+        <span className="truncate text-[11px] leading-tight font-medium" style={{ color: glow }}>
           {role}
         </span>
       </div>
 
       {/* Hover glow effect */}
       <div
-        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+        className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
         style={{
           boxShadow: `inset 0 0 40px rgba(${glowRgb},0.15)`,
           borderRadius: 'inherit',
@@ -102,7 +94,7 @@ export default function CharacterCard({
 
       {/* Bottom glow line on hover */}
       <div
-        className="absolute bottom-0 left-0 right-0 h-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+        className="absolute right-0 bottom-0 left-0 h-[2px] opacity-0 transition-opacity duration-300 group-hover:opacity-100"
         style={{
           background: `linear-gradient(90deg, transparent, ${glow}, transparent)`,
         }}

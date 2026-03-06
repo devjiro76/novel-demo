@@ -13,9 +13,15 @@ import { deleteWorldAPI } from '@/lib/api-client-room';
 import { clearSession } from '@/lib/session';
 import { Button } from '@/components/ui/button';
 import {
-  AlertDialog, AlertDialogTrigger, AlertDialogContent,
-  AlertDialogHeader, AlertDialogFooter, AlertDialogTitle,
-  AlertDialogDescription, AlertDialogAction, AlertDialogCancel,
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 
@@ -37,10 +43,18 @@ export default function WorldDetail({ manifest, userWorld, worldCard }: WorldDet
     try {
       const storageKey = `novel:${slug}`;
       let worldInstanceId: string | undefined;
-      try { worldInstanceId = localStorage.getItem(`${storageKey}:worldId`) ?? undefined; } catch {}
+      try {
+        worldInstanceId = localStorage.getItem(`${storageKey}:worldId`) ?? undefined;
+      } catch {
+        /* ignored */
+      }
       await deleteWorldAPI(worldCard.id, worldInstanceId);
       clearSession(storageKey);
-      try { localStorage.removeItem(`${storageKey}:worldId`); } catch {}
+      try {
+        localStorage.removeItem(`${storageKey}:worldId`);
+      } catch {
+        /* ignored */
+      }
       toast.success('월드가 삭제되었습니다');
       router.push('/');
     } catch {
@@ -63,33 +77,28 @@ export default function WorldDetail({ manifest, userWorld, worldCard }: WorldDet
           image: c.image ? `${manifest.assetsBasePath}${c.image}` : undefined,
         }))
     : userWorld
-    ? userWorld.characters.map((c) => ({
-        id: c.id,
-        name: c.name,
-        fullName: c.fullName,
-        age: c.age,
-        role: c.role,
-        glow: c.glow,
-        glowRgb: hexToRgb(c.glow),
-        image: undefined as string | undefined,
-      }))
-    : [];
+      ? userWorld.characters.map((c) => ({
+          id: c.id,
+          name: c.name,
+          fullName: c.fullName,
+          age: c.age,
+          role: c.role,
+          glow: c.glow,
+          glowRgb: hexToRgb(c.glow),
+          image: undefined as string | undefined,
+        }))
+      : [];
 
   const firstCharId = characters[0]?.id;
 
   return (
-    <PageLayout
-      title={worldCard.name}
-      subtitle={worldCard.description}
-      width="md"
-      showBackButton
-    >
+    <PageLayout title={worldCard.name} subtitle={worldCard.description} width="md" showBackButton>
       {/* Tags */}
-      <div className="flex items-center gap-2 mb-6">
+      <div className="mb-6 flex items-center gap-2">
         {worldCard.tags.slice(0, 3).map((tag) => (
           <span
             key={tag}
-            className="text-[10px] px-2 py-0.5 rounded-full font-medium"
+            className="rounded-full px-2 py-0.5 text-[10px] font-medium"
             style={{
               background: `rgba(${themeRgb},0.14)`,
               color: themeColor,
@@ -104,14 +113,14 @@ export default function WorldDetail({ manifest, userWorld, worldCard }: WorldDet
       {/* Character grid */}
       {characters.length > 0 && (
         <section className="mb-8">
-          <div className="flex items-center gap-2 mb-3">
+          <div className="mb-3 flex items-center gap-2">
             <Users size={15} style={{ color: themeColor }} />
             <h2 className="text-sm font-bold">등장인물</h2>
             <span className="ml-auto text-xs text-[var(--color-text-dim)]">
               {characters.length}명
             </span>
           </div>
-          <div className="grid grid-cols-3 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-3 gap-3 lg:grid-cols-4">
             {characters.map((char) => (
               <CharacterCard
                 key={char.id}
@@ -131,10 +140,10 @@ export default function WorldDetail({ manifest, userWorld, worldCard }: WorldDet
       )}
 
       {/* CTA */}
-      <div className="sticky bottom-4 pt-4 flex gap-3">
+      <div className="sticky bottom-4 flex gap-3 pt-4">
         <Link
           href={firstCharId ? `/${slug}?char=${firstCharId}` : `/${slug}`}
-          className="flex items-center justify-center flex-1 h-14 rounded-2xl text-base font-bold tracking-wide transition-opacity active:opacity-80"
+          className="flex h-14 flex-1 items-center justify-center rounded-2xl text-base font-bold tracking-wide transition-opacity active:opacity-80"
           style={{
             background: 'var(--color-brand-gradient)',
             boxShadow: `0 0 24px rgba(${themeRgb},0.35)`,
@@ -148,7 +157,7 @@ export default function WorldDetail({ manifest, userWorld, worldCard }: WorldDet
             <AlertDialogTrigger asChild>
               <Button
                 variant="outline"
-                className="h-14 px-5 rounded-2xl text-red-400/60 hover:text-red-400 border-white/[0.08] hover:border-red-400/30"
+                className="h-14 rounded-2xl border-white/[0.08] px-5 text-red-400/60 hover:border-red-400/30 hover:text-red-400"
                 disabled={deleting}
               >
                 삭제
@@ -163,7 +172,11 @@ export default function WorldDetail({ manifest, userWorld, worldCard }: WorldDet
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel className="rounded-xl">취소</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDeleteWorld} disabled={deleting} className="rounded-xl bg-destructive text-white hover:bg-destructive/90">
+                <AlertDialogAction
+                  onClick={handleDeleteWorld}
+                  disabled={deleting}
+                  className="bg-destructive hover:bg-destructive/90 rounded-xl text-white"
+                >
                   {deleting ? '삭제 중...' : '삭제'}
                 </AlertDialogAction>
               </AlertDialogFooter>

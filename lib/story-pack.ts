@@ -13,8 +13,8 @@ export interface CharacterMeta {
   gradient: string;
   accentText: string;
   btnBg: string;
-  tags?: string[];          // e.g., ['로맨스', '판타지', '성인']
-  chatBackground?: string;  // CSS gradient or color for chat background theme
+  tags?: string[]; // e.g., ['로맨스', '판타지', '성인']
+  chatBackground?: string; // CSS gradient or color for chat background theme
 }
 
 export interface RelSeed {
@@ -139,8 +139,8 @@ export interface WorldCardData {
     glowRgb: string;
   }[];
   relationshipCount: number;
-  slug?: string;            // builtin worlds only
-  assetsBasePath?: string;  // builtin worlds only
+  slug?: string; // builtin worlds only
+  assetsBasePath?: string; // builtin worlds only
   isAdult?: boolean;
 }
 
@@ -169,7 +169,7 @@ export function storyToWorldCard(pack: StoryManifest): WorldCardData {
       glowRgb: c.glowRgb,
     })),
     relationshipCount: pack.initialRelationships.filter(
-      (r) => r.source.type === 'persona' && r.target.type === 'persona'
+      (r) => r.source.type === 'persona' && r.target.type === 'persona',
     ).length,
     slug: pack.slug,
     assetsBasePath: pack.assetsBasePath,

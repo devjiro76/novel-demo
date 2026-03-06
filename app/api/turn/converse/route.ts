@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import type { ConversationResponse } from '@/lib/types';
-import { getEnv } from '@/lib/types';
+import { getEnv, type ConversationResponse } from '@/lib/types';
 import { getWorld } from '@/lib/personas';
 import { generateConversationResponse } from '@/lib/narrator';
 import { generateAppraisal } from '@/lib/appraisal';
@@ -17,12 +16,16 @@ const converseSchema = z.object({
   characterId: z.string().min(1).max(200),
   userMessage: z.string().min(1).max(2000),
   situation: z.string().min(1).max(2000),
-  chatHistory: z.array(z.object({
-    role: z.enum(['user', 'character']),
-    text: z.string().max(2000),
-    action: z.string().max(1000).optional(),
-    innerThought: z.string().max(1000).optional(),
-  })).optional(),
+  chatHistory: z
+    .array(
+      z.object({
+        role: z.enum(['user', 'character']),
+        text: z.string().max(2000),
+        action: z.string().max(1000).optional(),
+        innerThought: z.string().max(1000).optional(),
+      }),
+    )
+    .optional(),
 });
 
 export async function POST(request: Request) {
@@ -50,7 +53,15 @@ export async function POST(request: Request) {
         generateAppraisal(characterId, stimulusDescription, world, env),
       ),
       dbg.time('converse_narrate', { characterId }, () =>
-        generateConversationResponse(characterId, situation, userMessage, world, env, pack, chatHistory),
+        generateConversationResponse(
+          characterId,
+          situation,
+          userMessage,
+          world,
+          env,
+          pack,
+          chatHistory,
+        ),
       ),
     ]);
 
@@ -60,22 +71,30 @@ export async function POST(request: Request) {
     const { estimatedElapsedSeconds, ...appraisalVector } = appraisal;
     if (estimatedElapsedSeconds >= 1) {
       await persona.tick(estimatedElapsedSeconds).catch((err: unknown) => {
-        console.warn('[converse] tick failed (non-fatal):', err instanceof Error ? err.message : err);
+        console.warn(
+          '[converse] tick failed (non-fatal):',
+          err instanceof Error ? err.message : err,
+        );
       });
     }
 
-    await persona.interact('converse', {
-      actor: pack.playerCharacterId,
-      actorType: 'user',
-      appraisal: appraisalVector,
-      stimulusDescription,
-    }).catch((err: unknown) => {
-      console.warn('[converse] interact failed (non-fatal):', err instanceof Error ? err.message : err);
-    });
+    await persona
+      .interact('converse', {
+        actor: pack.playerCharacterId,
+        actorType: 'user',
+        appraisal: appraisalVector,
+        stimulusDescription,
+      })
+      .catch((err: unknown) => {
+        console.warn(
+          '[converse] interact failed (non-fatal):',
+          err instanceof Error ? err.message : err,
+        );
+      });
 
     // Read updated emotion state from engine (after appraisal applied)
     const updatedState = await persona.getState();
-    const rawEmotion = (updatedState.emotion.discrete?.primary ?? '').toLowerCase().trim();
+    const rawEmotion = (updatedState.emotion.label ?? '').toLowerCase().trim();
     const emotionLabel = resolveEmotionLabel(rawEmotion);
     const updatedVad = updatedState.emotion.vad;
 

@@ -24,20 +24,14 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ko" className="dark">
       <body className="antialiased">
         <TooltipProvider delayDuration={100}>
-          <AppShell>
-            {children}
-          </AppShell>
+          <AppShell>{children}</AppShell>
         </TooltipProvider>
-        <Toaster 
+        <Toaster
           position="bottom-center"
           toastOptions={{
             style: {

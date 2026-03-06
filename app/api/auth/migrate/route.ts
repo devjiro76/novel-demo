@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     // BetterAuth의 마이그레이션 실행
     // @ts-expect-error - internal API for migration
     if (typeof auth.api?.['migrate'] === 'function') {
-      // @ts-expect-error
+      // @ts-expect-error -- internal migration API not in public types
       await auth.api.migrate();
     } else {
       // Fallback: 직접 테이블 생성

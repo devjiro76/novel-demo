@@ -71,7 +71,12 @@ export async function sendRoomMessage(
     characterId: string;
     targetNpcId?: string;
   },
-): Promise<{ ok: boolean; playerMessage: RoomMessage; npcMessage: RoomMessage; npcMessages?: RoomMessage[] }> {
+): Promise<{
+  ok: boolean;
+  playerMessage: RoomMessage;
+  npcMessage: RoomMessage;
+  npcMessages?: RoomMessage[];
+}> {
   return post(`/api/room/${roomId}/message`, { playerId, text, ...context });
 }
 

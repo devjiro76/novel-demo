@@ -25,6 +25,40 @@ interface PageLayoutProps {
   contentClassName?: string;
 }
 
+function PageHeader({
+  title,
+  subtitle,
+  showBackButton,
+  backHref,
+}: {
+  title?: string;
+  subtitle?: string;
+  showBackButton?: boolean;
+  backHref: string;
+}) {
+  if (!title && !showBackButton) return null;
+  return (
+    <header className="mb-4 lg:mb-8">
+      {showBackButton && (
+        <Link
+          href={backHref}
+          className="mb-2 inline-flex items-center gap-1 text-[10px] text-[var(--color-text-dim)] transition-colors hover:text-[var(--color-text)] lg:hidden"
+        >
+          <ChevronLeft className="h-3 w-3" />홈
+        </Link>
+      )}
+      {title && (
+        <h1 className="text-gradient text-2xl font-bold lg:text-3xl lg:font-black">{title}</h1>
+      )}
+      {subtitle && (
+        <p className="mt-1 text-[11px] text-[var(--color-text-dim)] lg:mt-2 lg:text-base lg:text-[var(--color-text-secondary)]">
+          {subtitle}
+        </p>
+      )}
+    </header>
+  );
+}
+
 export function PageLayout({
   children,
   title,
@@ -40,29 +74,13 @@ export function PageLayout({
   return (
     <div className={`min-h-screen px-4 pt-10 pb-4 lg:p-8 ${className}`}>
       <div className={`mx-auto ${widthClass}`}>
-        {(title || showBackButton) && (
-          <header className="mb-4 lg:mb-8">
-            {showBackButton && (
-              <Link
-                href={backHref}
-                className="inline-flex lg:hidden items-center gap-1 text-[10px] text-[var(--color-text-dim)] hover:text-[var(--color-text)] transition-colors mb-2"
-              >
-                <ChevronLeft className="w-3 h-3" />
-                홈
-              </Link>
-            )}
-            {title && (
-              <h1 className="text-2xl lg:text-3xl font-bold lg:font-black text-gradient">{title}</h1>
-            )}
-            {subtitle && (
-              <p className="text-[11px] lg:text-base text-[var(--color-text-dim)] lg:text-[var(--color-text-secondary)] mt-1 lg:mt-2">{subtitle}</p>
-            )}
-          </header>
-        )}
-
-        <div className={contentClassName}>
-          {children}
-        </div>
+        <PageHeader
+          title={title}
+          subtitle={subtitle}
+          showBackButton={showBackButton}
+          backHref={backHref}
+        />
+        <div className={contentClassName}>{children}</div>
       </div>
     </div>
   );
@@ -76,23 +94,15 @@ interface PageSectionProps {
   className?: string;
 }
 
-export function PageSection({
-  children,
-  title,
-  icon,
-  action,
-  className = '',
-}: PageSectionProps) {
+export function PageSection({ children, title, icon, action, className = '' }: PageSectionProps) {
   return (
     <section className={`mb-6 lg:mb-8 ${className}`}>
       {(title || action) && (
-        <div className="flex items-center justify-between mb-4">
+        <div className="mb-4 flex items-center justify-between">
           {title && (
             <div className="flex items-center gap-2">
-              {icon && (
-                <span className="text-[var(--color-brand-primary)]">{icon}</span>
-              )}
-              <h2 className="text-base lg:text-xl font-bold">{title}</h2>
+              {icon && <span className="text-[var(--color-brand-primary)]">{icon}</span>}
+              <h2 className="text-base font-bold lg:text-xl">{title}</h2>
             </div>
           )}
           {action && <div>{action}</div>}
@@ -118,6 +128,31 @@ const PADDING_CLASSES = {
   lg: 'p-6',
 } as const;
 
+function PageCardButton({
+  children,
+  onClick,
+  baseClasses,
+  hoverClasses,
+  paddingClass,
+  className,
+}: {
+  children: ReactNode;
+  onClick: () => void;
+  baseClasses: string;
+  hoverClasses: string;
+  paddingClass: string;
+  className: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full text-left ${baseClasses} ${hoverClasses} ${paddingClass} ${className}`}
+    >
+      {children}
+    </button>
+  );
+}
+
 export function PageCard({
   children,
   className = '',
@@ -133,20 +168,19 @@ export function PageCard({
 
   if (onClick) {
     return (
-      <button
+      <PageCardButton
         onClick={onClick}
-        className={`w-full text-left ${baseClasses} ${hoverClasses} ${paddingClass} ${className}`}
+        baseClasses={baseClasses}
+        hoverClasses={hoverClasses}
+        paddingClass={paddingClass}
+        className={className}
       >
         {children}
-      </button>
+      </PageCardButton>
     );
   }
 
-  return (
-    <div className={`${baseClasses} ${paddingClass} ${className}`}>
-      {children}
-    </div>
-  );
+  return <div className={`${baseClasses} ${paddingClass} ${className}`}>{children}</div>;
 }
 
 interface PageGridProps {
@@ -169,15 +203,8 @@ const GAP_CLASSES = {
   lg: 'gap-6',
 } as const;
 
-export function PageGrid({
-  children,
-  cols = 1,
-  gap = 'md',
-  className = '',
-}: PageGridProps) {
+export function PageGrid({ children, cols = 1, gap = 'md', className = '' }: PageGridProps) {
   return (
-    <div className={`grid ${GRID_COLS[cols]} ${GAP_CLASSES[gap]} ${className}`}>
-      {children}
-    </div>
+    <div className={`grid ${GRID_COLS[cols]} ${GAP_CLASSES[gap]} ${className}`}>{children}</div>
   );
 }

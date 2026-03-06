@@ -1,10 +1,6 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 
-const ALLOWED_ORIGINS = new Set([
-  'https://novel.molroo.io',
-  'https://saeksi.io',
-]);
+const ALLOWED_ORIGINS = new Set(['https://novel.molroo.io', 'https://saeksi.io']);
 
 // Allow localhost in development
 if (process.env.NODE_ENV !== 'production') {
@@ -20,7 +16,7 @@ const SECURITY_HEADERS: Record<string, string> = {
   'X-DNS-Prefetch-Control': 'on',
   'Content-Security-Policy':
     "default-src 'self'; " +
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+    `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV !== 'production' ? " 'unsafe-eval'" : ''}; ` +
     "style-src 'self' 'unsafe-inline'; " +
     "img-src 'self' data: blob: https:; " +
     "font-src 'self' data:; " +

@@ -38,21 +38,21 @@ export function getEnv(): Env {
 
 /** User-created character stored in KV */
 export interface UserCharacter {
-  id: string;                 // uuid
-  name: string;               // 표시 이름 (e.g., "유리")
-  fullName: string;           // 전체 이름 (e.g., "김유리")
+  id: string; // uuid
+  name: string; // 표시 이름 (e.g., "유리")
+  fullName: string; // 전체 이름 (e.g., "김유리")
   age: number;
-  role: string;               // 역할 설명 (e.g., "카페 바리스타")
-  desc: string;               // 캐릭터 설명 (2-3문장)
-  personality: string;        // 성격 프롬프트 (LLM에 전달)
-  speakingStyle: string;      // 말투 예시
-  tags: string[];             // 태그
-  isPublic: boolean;          // 공개 여부
-  isAdult: boolean;           // 성인 콘텐츠 여부
-  glow: string;               // 테마 색상 hex
-  createdAt: number;          // timestamp
-  creatorId?: string;         // 추후 인증 연동용
-  imageUrl?: string;          // 이미지 URL (optional)
+  role: string; // 역할 설명 (e.g., "카페 바리스타")
+  desc: string; // 캐릭터 설명 (2-3문장)
+  personality: string; // 성격 프롬프트 (LLM에 전달)
+  speakingStyle: string; // 말투 예시
+  tags: string[]; // 태그
+  isPublic: boolean; // 공개 여부
+  isAdult: boolean; // 성인 콘텐츠 여부
+  glow: string; // 테마 색상 hex
+  createdAt: number; // timestamp
+  creatorId?: string; // 추후 인증 연동용
+  imageUrl?: string; // 이미지 URL (optional)
 }
 
 // ---- World types ----
@@ -74,7 +74,7 @@ export interface UserWorldRelationship {
   targetId: string;
   relationshipType: string;
   strength: number; // 0-1
-  trust: number;    // 0-1
+  trust: number; // 0-1
 }
 
 export interface UserWorld {

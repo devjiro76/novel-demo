@@ -15,8 +15,8 @@ interface RoomData {
   roomId: string;
   slug: string;
   worldId: string;
-  npcCharacterId: string;       // primary NPC (backwards compat)
-  npcCharacterIds: string[];    // all active NPCs
+  npcCharacterId: string; // primary NPC (backwards compat)
+  npcCharacterIds: string[]; // all active NPCs
   players: Player[];
   createdAt: number;
 }

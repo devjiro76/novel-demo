@@ -27,6 +27,7 @@ export function sanitizeUserInput(input: string): string {
   let sanitized = input.slice(0, MAX_USER_INPUT_LENGTH);
 
   // Remove control characters (keep \n \r \t)
+  // eslint-disable-next-line no-control-regex
   sanitized = sanitized.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
 
   // Strip prompt injection markers
@@ -40,9 +41,7 @@ export function sanitizeUserInput(input: string): string {
 /**
  * Sanitize chat history messages.
  */
-export function sanitizeChatHistory<T extends { text: string }>(
-  history: T[],
-): T[] {
+export function sanitizeChatHistory<T extends { text: string }>(history: T[]): T[] {
   return history.map((msg) => ({
     ...msg,
     text: sanitizeUserInput(msg.text),

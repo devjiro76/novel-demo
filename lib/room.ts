@@ -6,7 +6,7 @@ export interface Player {
   playerId: string;
   displayName: string;
   characterId: string; // role in the story (e.g. 'yongjun')
-  isDefault: boolean;  // true if room creator (first player)
+  isDefault: boolean; // true if room creator (first player)
   joinedAt: number;
 }
 

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import type { ClientStoryPack, CharacterMeta } from '@/lib/story-pack';
+import type { ClientStoryPack } from '@/lib/story-pack';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { CharAvatar } from './MessageBubble';
@@ -13,7 +13,12 @@ interface InviteNpcPopoverProps {
   disabled?: boolean;
 }
 
-export function InviteNpcPopover({ pack, activeNpcIds, onInvite, disabled }: InviteNpcPopoverProps) {
+export function InviteNpcPopover({
+  pack,
+  activeNpcIds,
+  onInvite,
+  disabled,
+}: InviteNpcPopoverProps) {
   const [open, setOpen] = useState(false);
 
   const invitable = pack.characters.filter((c) => !activeNpcIds.includes(c.id));
@@ -26,7 +31,7 @@ export function InviteNpcPopover({ pack, activeNpcIds, onInvite, disabled }: Inv
           variant="outline"
           size="icon"
           disabled={disabled}
-          className="shrink-0 size-10 rounded-2xl border-white/[0.06] text-white/40 hover:text-white/70"
+          className="size-10 shrink-0 rounded-2xl border-white/[0.06] text-white/40 hover:text-white/70"
         >
           +
         </Button>
@@ -34,9 +39,9 @@ export function InviteNpcPopover({ pack, activeNpcIds, onInvite, disabled }: Inv
       <PopoverContent
         side="top"
         align="start"
-        className="w-64 p-2 bg-[#12121a] border-white/[0.08]"
+        className="w-64 border-white/[0.08] bg-[#12121a] p-2"
       >
-        <p className="text-[11px] text-white/40 px-2 py-1.5">대화에 초대하기</p>
+        <p className="px-2 py-1.5 text-[11px] text-white/40">대화에 초대하기</p>
         <div className="space-y-0.5">
           {invitable.map((char) => (
             <button
@@ -45,12 +50,12 @@ export function InviteNpcPopover({ pack, activeNpcIds, onInvite, disabled }: Inv
                 onInvite(char.id);
                 setOpen(false);
               }}
-              className="w-full flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-white/[0.06] transition-colors text-left"
+              className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors hover:bg-white/[0.06]"
             >
               <CharAvatar char={char} size={28} imageSrc={`${pack.assetsBasePath}${char.image}`} />
-              <div className="flex-1 min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className={`text-sm font-medium ${char.accentText}`}>{char.fullName}</p>
-                <p className="text-[10px] text-white/40 truncate">{char.role}</p>
+                <p className="truncate text-[10px] text-white/40">{char.role}</p>
               </div>
             </button>
           ))}

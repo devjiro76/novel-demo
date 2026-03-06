@@ -1,6 +1,14 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getRoom, createRoomWithId, addPlayer, ensurePlayer, getMessages, roomToJSON, playerToJSON } from '@/lib/room-store';
+import {
+  getRoom,
+  createRoomWithId,
+  addPlayer,
+  ensurePlayer,
+  getMessages,
+  roomToJSON,
+  playerToJSON,
+} from '@/lib/room-store';
 import { parseBody, formatError } from '@/lib/api-utils';
 
 const joinRoomSchema = z.object({
@@ -13,41 +21,51 @@ const joinRoomSchema = z.object({
   npcCharacterId: z.string().max(200).optional(),
 });
 
+type JoinBody = z.infer<typeof joinRoomSchema>;
+
+async function getOrCreateRoom(body: JoinBody) {
+  const { roomId, slug, worldId, npcCharacterId } = body;
+  const room = await getRoom(roomId);
+  if (room) return room;
+
+  if (!slug || !worldId || !npcCharacterId) return null;
+
+  await createRoomWithId(roomId, { slug, worldId, npcCharacterId });
+  return getRoom(roomId);
+}
+
+async function resolvePlayer(
+  roomId: string,
+  room: Awaited<ReturnType<typeof getRoom>>,
+  body: JoinBody,
+) {
+  const { playerId: existingPlayerId, displayName, characterId } = body;
+  if (existingPlayerId) {
+    return ensurePlayer(roomId, existingPlayerId, { displayName, characterId });
+  }
+  const existingByName = room!.players.find((p) => p.displayName === displayName);
+  if (existingByName) return existingByName;
+  return addPlayer(roomId, { displayName, characterId });
+}
+
 export async function POST(request: Request) {
   try {
     const parsed = await parseBody(request, joinRoomSchema);
     if ('error' in parsed) return parsed.error;
 
-    const { roomId, displayName, characterId, playerId: existingPlayerId, slug, worldId, npcCharacterId } = parsed.data;
+    const body = parsed.data;
+    const { roomId } = body;
 
-    let room = await getRoom(roomId);
-
-    // Room not found — re-create if we have context
-    if (!room) {
-      if (!slug || !worldId || !npcCharacterId) {
-        return NextResponse.json({ error: 'Room not found and missing context to recreate' }, { status: 404 });
-      }
-      await createRoomWithId(roomId, { slug, worldId, npcCharacterId });
-      room = await getRoom(roomId);
-    }
+    const room = await getOrCreateRoom(body);
 
     if (!room) {
-      return NextResponse.json({ error: 'Failed to create room' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Room not found and missing context to recreate' },
+        { status: 404 },
+      );
     }
 
-    // Reuse existing player if possible (by playerId or displayName)
-    let player;
-    if (existingPlayerId) {
-      player = await ensurePlayer(roomId, existingPlayerId, { displayName, characterId });
-    } else {
-      // Check if a player with same displayName already exists
-      const existingByName = room.players.find((p) => p.displayName === displayName);
-      if (existingByName) {
-        player = existingByName;
-      } else {
-        player = await addPlayer(roomId, { displayName, characterId });
-      }
-    }
+    const player = await resolvePlayer(roomId, room, body);
 
     if (!player) {
       return NextResponse.json({ error: 'Failed to join room' }, { status: 500 });

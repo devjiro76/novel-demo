@@ -8,16 +8,26 @@ export interface GameSession {
 }
 
 export function saveSession(storageKey: string, s: GameSession): void {
-  try { localStorage.setItem(`${storageKey}:session`, JSON.stringify(s)); } catch {}
+  try {
+    localStorage.setItem(`${storageKey}:session`, JSON.stringify(s));
+  } catch {
+    /* ignored */
+  }
 }
 
 export function loadSession(storageKey: string): GameSession | null {
   try {
     const raw = localStorage.getItem(`${storageKey}:session`);
-    return raw ? JSON.parse(raw) as GameSession : null;
-  } catch { return null; }
+    return raw ? (JSON.parse(raw) as GameSession) : null;
+  } catch {
+    /* ignored */ return null;
+  }
 }
 
 export function clearSession(storageKey: string): void {
-  try { localStorage.removeItem(`${storageKey}:session`); } catch {}
+  try {
+    localStorage.removeItem(`${storageKey}:session`);
+  } catch {
+    /* ignored */
+  }
 }

@@ -1,5 +1,4 @@
-import { Molroo, World } from '@molroo-io/sdk/world';
-import type { ActionData } from '@molroo-io/sdk/world';
+import { Molroo, World, type ActionData } from '@molroo-io/sdk/world';
 import type { Env } from './types';
 
 export type { World, ActionData };
@@ -44,8 +43,12 @@ export async function getWorld(env: Env, worldId: string): Promise<World> {
 }
 
 function isRelationshipArray(data: unknown): data is Relationship[] {
-  return Array.isArray(data) && data.every(
-    (item) => typeof item === 'object' && item !== null && 'source_id' in item && 'target_id' in item,
+  return (
+    Array.isArray(data) &&
+    data.every(
+      (item) =>
+        typeof item === 'object' && item !== null && 'source_id' in item && 'target_id' in item,
+    )
   );
 }
 
@@ -55,8 +58,15 @@ export async function getRelationships(world: World): Promise<Relationship[]> {
   return [];
 }
 
-function isEventsResponse(data: unknown): data is { events: WorldEvent[]; nextCursor: string | null } {
-  return typeof data === 'object' && data !== null && 'events' in data && Array.isArray((data as Record<string, unknown>).events);
+function isEventsResponse(
+  data: unknown,
+): data is { events: WorldEvent[]; nextCursor: string | null } {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'events' in data &&
+    Array.isArray((data as Record<string, unknown>).events)
+  );
 }
 
 export async function getEvents(

@@ -2,19 +2,24 @@
 
 import React from 'react';
 import type { EmotionDetail } from '@/lib/types';
-import { resolveEmotionLabel } from '@/lib/emotion';
-
-const EMOTION_EMOJI: Record<string, string> = {
-  joy: '😊', excitement: '✨', contentment: '😌',
-  anger: '😠', fear: '😨', sadness: '😢',
-  anxiety: '😰', surprise: '😲', disgust: '😒',
-  trust: '🤝', calm: '😶', shame: '😳',
-  guilt: '😔', numbness: '😶‍🌫️',
-};
+import { resolveEmotionLabel, EMOTION_EMOJI } from '@/lib/emotion';
 
 interface EmotionEvolutionProps {
   emotionDetail: EmotionDetail;
   glowRgb: string;
+}
+
+function computeArrow(netChange: number, hasDelta: boolean): string {
+  if (!hasDelta) return '';
+  if (netChange > 0.01) return ' ↑';
+  if (netChange < -0.01) return ' ↓';
+  return '';
+}
+
+function computeArrowColor(netChange: number): string {
+  if (netChange > 0.01) return 'text-emerald-400/80';
+  if (netChange < -0.01) return 'text-rose-400/80';
+  return 'text-white/30';
 }
 
 export function EmotionEvolution({ emotionDetail, glowRgb }: EmotionEvolutionProps) {
@@ -29,12 +34,8 @@ export function EmotionEvolution({ emotionDetail, glowRgb }: EmotionEvolutionPro
   const hasDelta = delta !== undefined && dominantDelta > 0.01;
   const netChange = delta ? (delta.V + delta.A + delta.D) / 3 : 0;
 
-  const arrow = !hasDelta ? '' : netChange > 0.01 ? ' ↑' : netChange < -0.01 ? ' ↓' : '';
-  const arrowColor = netChange > 0.01
-    ? 'text-emerald-400/80'
-    : netChange < -0.01
-      ? 'text-rose-400/80'
-      : 'text-white/30';
+  const arrow = computeArrow(netChange, hasDelta);
+  const arrowColor = computeArrowColor(netChange);
 
   return (
     <div
@@ -49,9 +50,7 @@ export function EmotionEvolution({ emotionDetail, glowRgb }: EmotionEvolutionPro
         {label}
       </span>
       {hasDelta && arrow && (
-        <span className={`text-[10px] font-bold leading-none ${arrowColor}`}>
-          {arrow}
-        </span>
+        <span className={`text-[10px] leading-none font-bold ${arrowColor}`}>{arrow}</span>
       )}
     </div>
   );

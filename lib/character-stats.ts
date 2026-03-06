@@ -1,10 +1,10 @@
 'use client';
 
 interface CharacterStats {
-  chatCount: number;        // 총 대화 횟수
-  lastChatAt: number;       // 마지막 대화 timestamp
-  totalMessages: number;    // 총 메시지 수
-  favorited: boolean;       // 즐겨찾기 여부
+  chatCount: number; // 총 대화 횟수
+  lastChatAt: number; // 마지막 대화 timestamp
+  totalMessages: number; // 총 메시지 수
+  favorited: boolean; // 즐겨찾기 여부
 }
 
 const STATS_KEY = 'novel:character-stats';
@@ -21,7 +21,9 @@ function loadAllStats(): Record<string, CharacterStats> {
 function saveAllStats(stats: Record<string, CharacterStats>): void {
   try {
     localStorage.setItem(STATS_KEY, JSON.stringify(stats));
-  } catch {}
+  } catch {
+    /* ignored */
+  }
 }
 
 export function getCharacterStats(charId: string): CharacterStats {

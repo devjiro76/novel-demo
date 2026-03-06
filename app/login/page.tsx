@@ -34,11 +34,11 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
+    <div className="flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-sm space-y-8">
         <div className="text-center">
           <h1 className="text-2xl font-black text-white">로그인</h1>
-          <p className="text-sm text-gray-500 mt-2">계정에 로그인하세요</p>
+          <p className="mt-2 text-sm text-gray-500">계정에 로그인하세요</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -72,9 +72,7 @@ export default function LoginPage() {
             />
           </div>
 
-          {error && (
-            <p className="text-sm text-red-400">{error}</p>
-          )}
+          {error && <p className="text-sm text-red-400">{error}</p>}
 
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? '로그인 중...' : '로그인'}

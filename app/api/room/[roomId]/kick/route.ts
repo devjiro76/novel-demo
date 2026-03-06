@@ -8,10 +8,7 @@ const kickSchema = z.object({
   npcCharacterId: z.string().min(1).max(200),
 });
 
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ roomId: string }> },
-) {
+export async function POST(request: Request, { params }: { params: Promise<{ roomId: string }> }) {
   const { roomId } = await params;
 
   try {

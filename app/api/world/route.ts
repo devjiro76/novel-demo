@@ -35,27 +35,41 @@ const createWorldSchema = z.object({
   description: z.string().max(2000).optional().default(''),
   lore: z.string().max(5000).optional().default(''),
   tags: z.array(z.string().max(50)).max(20).optional().default([]),
-  themeColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional().default('#6366f1'),
+  themeColor: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/)
+    .optional()
+    .default('#6366f1'),
   isPublic: z.boolean().optional().default(false),
   isAdult: z.boolean().optional().default(false),
-  characters: z.array(z.object({
-    id: z.string().min(1).max(200),
-    name: z.string().min(1).max(100),
-    fullName: z.string().min(1).max(100),
-    age: z.number().int().min(1).max(200),
-    role: z.string().max(200),
-    desc: z.string().max(1000),
-    personality: z.string().max(2000),
-    speakingStyle: z.string().max(2000),
-    glow: z.string().max(20),
-  })).optional().default([]),
-  relationships: z.array(z.object({
-    sourceId: z.string().min(1).max(200),
-    targetId: z.string().min(1).max(200),
-    relationshipType: z.string().max(100),
-    strength: z.number().min(0).max(1),
-    trust: z.number().min(0).max(1),
-  })).optional().default([]),
+  characters: z
+    .array(
+      z.object({
+        id: z.string().min(1).max(200),
+        name: z.string().min(1).max(100),
+        fullName: z.string().min(1).max(100),
+        age: z.number().int().min(1).max(200),
+        role: z.string().max(200),
+        desc: z.string().max(1000),
+        personality: z.string().max(2000),
+        speakingStyle: z.string().max(2000),
+        glow: z.string().max(20),
+      }),
+    )
+    .optional()
+    .default([]),
+  relationships: z
+    .array(
+      z.object({
+        sourceId: z.string().min(1).max(200),
+        targetId: z.string().min(1).max(200),
+        relationshipType: z.string().max(100),
+        strength: z.number().min(0).max(1),
+        trust: z.number().min(0).max(1),
+      }),
+    )
+    .optional()
+    .default([]),
   creatorId: z.string().max(200).optional(),
 });
 
